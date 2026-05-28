@@ -1,0 +1,415 @@
+.git/
+  COMMIT_EDITMSG
+  config
+  description
+  FETCH_HEAD
+  HEAD
+  hooks/
+    applypatch-msg.sample
+    commit-msg.sample
+    fsmonitor-watchman.sample
+    post-update.sample
+    pre-applypatch.sample
+    pre-commit.sample
+    pre-merge-commit.sample
+    pre-push.sample
+    pre-rebase.sample
+    pre-receive.sample
+    prepare-commit-msg.sample
+    push-to-checkout.sample
+    sendemail-validate.sample
+    update.sample
+  index
+  info/
+    exclude
+  logs/
+    HEAD
+    refs/
+      heads/
+        master
+  objects/
+    00/
+      4145cddf3f9db91b57b9cb596683c8eb420862
+    05/
+      e726d1b4201bc8c7716d2b058279676582e8c0
+    29/
+      5f8fdf14fcfe6cccaa832133037157521b1890
+    3a/
+      13f90a773b0facb675bf5b1a8239c8f33d36f5
+    51/
+      74b28c565c285e3e312ec5178be64fbeca8398
+    56/
+      7f17b0d7c7fb662c16d4357dd74830caf2dccb
+    5e/
+      f6a520780202a1d6addd833d800ccb1ecac0bb
+    5f/
+      f83ad6f483d7694a5fe9325db829703ef12ff5
+    61/
+      e36849cf7cfa9f1f71b4a3964a4953e3e243d3
+    65/
+      86cc21047e7bf811a7412d882ce6c207f6314c
+    71/
+      8d6fea4835ec2d246af9800eddb7ffb276240c
+    77/
+      053960334e2e34dc584dea8019925c3b4ccca9
+    82/
+      1fbd9bcc01318aca812ad7e9995bae85089e63
+    a2/
+      dc41ecee5ec435200fe7cba2bde4107f823774
+    a5/
+      3d7561ad6dc8eb876853eae2cfa4677c554480
+    aa/
+      ad6f9e6e9b2262b043340091540f96d909e849
+    b2/
+      b2a44f6ebc70c450043c05a002e7a93ba5d651
+    c8/
+      8f389de09f418da376598c42e8788d4fb6d172
+    e2/
+      15bc4ccf138bbc38ad58ad57e92135484b3c0f
+    e9/
+      ffa3083ad279ecf95fd8eae59cb253e9a539c4
+    f7/
+      fa87eb875260ed98651bc419c8139b5119e554
+    info/
+    pack/
+  refs/
+    heads/
+      master
+    tags/
+.gitignore
+.next/
+  types/
+    cache-life.d.ts
+    routes.d.ts
+    validator.ts
+app/
+  favicon.ico
+  globals.css
+  layout.tsx
+  page.tsx
+
+  (auth)/
+    login/
+      page.tsx
+    register/
+      page.tsx
+    forgot-password/
+      page.tsx
+
+  dashboard/
+    layout.tsx
+    page.tsx
+
+  students/
+    page.tsx
+    new/
+      page.tsx
+    [studentId]/
+      page.tsx
+
+  teachers/
+    page.tsx
+    new/
+      page.tsx
+    [teacherId]/
+      page.tsx
+
+  classes/
+    page.tsx
+    new/
+      page.tsx
+    [classId]/
+      page.tsx
+
+  attendance/
+    page.tsx
+    mark/
+      page.tsx
+    summary/
+      page.tsx
+
+  fees/
+    page.tsx
+    collect/
+      page.tsx
+    history/
+      page.tsx
+    structure/
+      page.tsx
+
+  timetable/
+    page.tsx
+
+  exams/
+    page.tsx
+    new/
+      page.tsx
+    [examId]/
+      page.tsx
+    results/
+      page.tsx
+
+  notifications/
+    page.tsx
+    compose/
+      page.tsx
+
+  events/
+    page.tsx
+    new/
+      page.tsx
+    [eventId]/
+      page.tsx
+
+  transport/
+    routes/
+      page.tsx
+    drivers/
+      page.tsx
+    students/
+      page.tsx
+    vehicles/
+      page.tsx
+
+  meal-plan/
+    page.tsx
+    weekly/
+      page.tsx
+
+  gallery/
+    page.tsx
+    upload/
+      page.tsx
+    [albumId]/
+      page.tsx
+
+  parent-portal/
+    page.tsx
+    attendance/
+      page.tsx
+    fees/
+      page.tsx
+    timetable/
+      page.tsx
+    assessments/
+      page.tsx
+    notifications/
+      page.tsx
+
+  settings/
+    page.tsx
+    roles/
+      page.tsx
+    permissions/
+      page.tsx
+    school/
+      page.tsx
+
+  api/
+    auth/
+      login/route.ts
+      register/route.ts
+      forgot-password/route.ts
+
+    students/
+      route.ts
+      [id]/route.ts
+
+    teachers/
+      route.ts
+      [id]/route.ts
+
+    classes/
+      route.ts
+      [id]/route.ts
+
+    attendance/
+      route.ts
+      mark/route.ts
+      summary/route.ts
+
+    fees/
+      route.ts
+      collect/route.ts
+      history/route.ts
+      structure/route.ts
+
+    timetable/
+      route.ts
+
+    exams/
+      route.ts
+      [id]/route.ts
+      results/route.ts
+
+    notifications/
+      route.ts
+      send/route.ts
+
+    events/
+      route.ts
+      [id]/route.ts
+
+    transport/
+      routes/route.ts
+      drivers/route.ts
+      students/route.ts
+      vehicles/route.ts
+
+    meal-plan/
+      route.ts
+
+    gallery/
+      route.ts
+      upload/route.ts
+      [id]/route.ts
+
+    settings/
+      roles/route.ts
+      permissions/route.ts
+      school/route.ts
+
+components/
+  common/
+    Navbar.tsx
+    Sidebar.tsx
+    Loader.tsx
+    Table.tsx
+    Modal.tsx
+    Button.tsx
+    Input.tsx
+    Select.tsx
+    Card.tsx
+    Breadcrumbs.tsx
+
+  students/
+    StudentForm.tsx
+    StudentCard.tsx
+    StudentTable.tsx
+
+  teachers/
+    TeacherForm.tsx
+    TeacherCard.tsx
+
+  classes/
+    ClassForm.tsx
+    ClassCard.tsx
+
+  attendance/
+    AttendanceSheet.tsx
+    AttendanceCalendar.tsx
+
+  fees/
+    FeeForm.tsx
+    FeeCard.tsx
+    FeeHistoryTable.tsx
+
+  timetable/
+    TimetableGrid.tsx
+    TimetableCell.tsx
+
+  exams/
+    ExamForm.tsx
+    ResultTable.tsx
+
+  notifications/
+    NotificationCard.tsx
+    ComposeForm.tsx
+
+  events/
+    EventCard.tsx
+    EventForm.tsx
+
+  transport/
+    RouteCard.tsx
+    DriverCard.tsx
+    VehicleCard.tsx
+
+  meal/
+    MealCard.tsx
+    WeeklyMealTable.tsx
+
+  gallery/
+    GalleryCard.tsx
+    UploadForm.tsx
+    AlbumGrid.tsx
+
+  parent/
+    ParentDashboardCard.tsx
+
+context/
+  AuthContext.tsx
+  StudentContext.tsx
+  TeacherContext.tsx
+  ClassContext.tsx
+  AttendanceContext.tsx
+  FeeContext.tsx
+  TimetableContext.tsx
+  ExamContext.tsx
+  NotificationContext.tsx
+  EventContext.tsx
+  TransportContext.tsx
+  MealContext.tsx
+  GalleryContext.tsx
+  SettingsContext.tsx
+
+lib/
+  db.ts
+  auth.ts
+  mailer.ts
+  upload.ts
+  validations/
+    studentSchema.ts
+    teacherSchema.ts
+    feeSchema.ts
+    examSchema.ts
+    eventSchema.ts
+    transportSchema.ts
+    mealSchema.ts
+    gallerySchema.ts
+
+utils/
+  helpers.ts
+  date.ts
+  calculateFees.ts
+  attendanceUtils.ts
+  examUtils.ts
+  fileUpload.ts
+  permissions.ts
+  validators.ts
+
+hooks/
+  useAuth.ts
+  useStudents.ts
+  useTeachers.ts
+  useAttendance.ts
+  useFees.ts
+  useTimetable.ts
+  useExams.ts
+  useNotifications.ts
+  useEvents.ts
+  useTransport.ts
+  useMealPlan.ts
+  useGallery.ts
+
+public/
+  logo.png
+  school/
+    icons/
+    images/
+      classroom.png
+      teacher.png
+      kids.png
+
+styles/
+  variables.css
+  theme.css
+
+eslint.config.mjs
+next-env.d.ts
+next.config.ts
+package-lock.json
+package.json
+postcss.config.mjs
+README.md
+tsconfig.json
