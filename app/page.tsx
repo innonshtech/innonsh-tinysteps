@@ -36,8 +36,8 @@ export default function LandingPage() {
     const formData = new FormData(form);
 
     try {
-      // Using FormSubmit AJAX to bypass page reloads & safely attach files to sales@xpertance.in
-      const response = await fetch("https://formsubmit.co/ajax/sales@xpertance.in", {
+      // Using FormSubmit AJAX to bypass page reloads & safely attach files to info@innonsh.com
+      const response = await fetch("https://formsubmit.co/ajax/info@innonsh.com", {
         method: "POST",
         body: formData,
       });
@@ -67,7 +67,7 @@ export default function LandingPage() {
     const formData = new FormData(form);
 
     try {
-      const response = await fetch("https://formsubmit.co/ajax/sales@xpertance.in", {
+      const response = await fetch("https://formsubmit.co/ajax/info@innonsh.com", {
         method: "POST",
         body: formData,
       });
@@ -183,7 +183,7 @@ export default function LandingPage() {
 
   const stats = [
     { number: "50+", label: "Schools Trust Us" },
-    { number: "20K", label: "Students Managed" },
+    { number: "5K", label: "Students Managed" },
     { number: "80%", label: "Uptime Guarantee" },
     { number: "24/7", label: "Support Available" }
   ];
@@ -404,7 +404,7 @@ export default function LandingPage() {
                 className="absolute -top-5 -right-5 bg-secondary rounded-2xl px-6 py-5 shadow-2xl flex flex-col items-center justify-center animate-bounce cursor-default z-10"
                 style={{ animationDuration: '4s', minWidth: '110px' }}
               >
-                <span className="text-2xl font-black text-white leading-none">20K</span>
+                <span className="text-2xl font-black text-white leading-none">5K</span>
                 <span className="text-xs font-bold text-white/90 mt-1">Students</span>
               </div>
 
@@ -688,7 +688,7 @@ export default function LandingPage() {
                 <div className="space-y-4">
                   <div>
                     <div className="text-sm text-gray-500 mb-1">Email</div>
-                    <div className="text-gray-900">sales@xpertance.in</div>
+                    <div className="text-gray-900">info@innonsh.com</div>
                   </div>
                   <div>
                     <div className="text-sm text-gray-500 mb-1">Phone</div>
