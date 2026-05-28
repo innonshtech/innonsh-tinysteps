@@ -358,7 +358,7 @@ export default function LandingPage() {
               {/* Badge */}
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-50 rounded-full border border-orange-100 mb-8">
                 <Zap className="w-4 h-4 text-primary" />
-                <span className="text-sm font-semibold text-slate-700">Trusted by 500+ schools</span>
+                <span className="text-sm font-semibold text-slate-700">Trusted by 50+ schools</span>
               </div>
 
               {/* Heading */}
