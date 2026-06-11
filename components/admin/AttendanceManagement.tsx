@@ -344,50 +344,55 @@ export default function AttendanceManagement() {
   });
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
-      {/* Scrollable outer wrapper */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="p-4 md:p-6 flex flex-col gap-0">
-          <Breadcrumbs items={[{ label: "Dashboard", href: "/dashboard" }, { label: "Attendance" }]} />
-
-          {/* Header */}
-          <div className="mt-6 mb-8">
-            <h1 className="text-3xl font-bold text-gray-800">Attendance Register</h1>
-            <p className="text-gray-500 mt-1 text-lg">Manage daily attendance and view history</p>
+    <div className="p-4 pt-2 bg-gray-50 min-h-screen">
+      {/* Header */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">Attendance Register</h1>
+            <p className="text-sm text-gray-600 mt-1">Manage daily attendance and view history</p>
           </div>
+        </div>
+      </div>
 
-          {/* Overall Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8">
-            <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
-              <div className="flex justify-between items-start mb-2">
-                <p className="text-emerald-700 text-xs font-bold uppercase tracking-wider">Present Today</p>
-                <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm">
-                  <UserCheck className="w-5 h-5 text-emerald-600" />
-                </div>
-              </div>
-              <p className="text-3xl font-extrabold text-emerald-900">{stats.present}</p>
+      {/* Overall Stats Cards */}
+      <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 rounded-xl p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-emerald-700 text-sm font-medium mb-2">Present Today</p>
+              <p className="text-2xl font-bold text-emerald-600">{stats.present}</p>
             </div>
-
-            <div className="bg-pink-50 p-5 rounded-2xl border border-pink-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
-              <div className="flex justify-between items-start mb-2">
-                <p className="text-pink-700 text-xs font-bold uppercase tracking-wider">Absent Today</p>
-                <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm">
-                  <UserX className="w-5 h-5 text-pink-600" />
-                </div>
-              </div>
-              <p className="text-3xl font-extrabold text-pink-900">{stats.absent}</p>
-            </div>
-
-            <div className="bg-blue-50 p-5 rounded-2xl border border-blue-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
-              <div className="flex justify-between items-start mb-2">
-                <p className="text-blue-700 text-xs font-bold uppercase tracking-wider">Attendance Rate</p>
-                <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm">
-                  <ClipboardCheck className="w-5 h-5 text-blue-600" />
-                </div>
-              </div>
-              <p className="text-3xl font-extrabold text-blue-900">{stats.rate}%</p>
+            <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-emerald-600">
+              <UserCheck className="w-5 h-5 text-current" />
             </div>
           </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-pink-50 to-pink-100 border border-pink-200 rounded-xl p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-pink-700 text-sm font-medium mb-2">Absent Today</p>
+              <p className="text-2xl font-bold text-pink-600">{stats.absent}</p>
+            </div>
+            <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-pink-600">
+              <UserX className="w-5 h-5 text-current" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-blue-700 text-sm font-medium mb-2">Attendance Rate</p>
+              <p className="text-2xl font-bold text-blue-600">{stats.rate}%</p>
+            </div>
+            <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-blue-600">
+              <ClipboardCheck className="w-5 h-5 text-current" />
+            </div>
+          </div>
+        </div>
+      </div>
 
           {/* Main Action Area - flex col to allow inner scrolling */}
           <div className="bg-white border border-gray-200 rounded-2xl shadow-sm flex flex-col" style={{ minHeight: '480px' }}>
@@ -626,7 +631,5 @@ export default function AttendanceManagement() {
             </div>
           </div>
         </div>
-      </div>
-    </div>
   );
 }

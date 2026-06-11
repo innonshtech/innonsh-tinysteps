@@ -132,10 +132,10 @@ export default function LeaveManagement() {
       label: "Status",
       render: (value: any) => {
         const status = String(value);
-        let color: "success" | "warning" | "error" | "default" = "default";
+        let color: "success" | "warning" | "danger" | "gray" = "gray";
         if (status === "approved") color = "success";
         if (status === "pending") color = "warning";
-        if (status === "rejected") color = "error";
+        if (status === "rejected") color = "danger";
         return <Badge variant={color} size="sm">{status.toUpperCase()}</Badge>;
       },
     },
@@ -147,7 +147,7 @@ export default function LeaveManagement() {
   ];
 
   return (
-    <div className="p-6">
+    <div className="p-4 pt-2 bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Leave Management</h1>
@@ -165,7 +165,7 @@ export default function LeaveManagement() {
             <p className="text-sm font-medium text-gray-500 mb-1">Sick Leaves (Used/Total)</p>
             <p className="text-2xl font-bold text-gray-800">{usedSick} <span className="text-lg text-gray-400">/ {quotas.sick}</span></p>
           </div>
-          <div className="w-12 h-12 bg-red-50 text-red-600 rounded-lg flex items-center justify-center">
+          <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm">
             <Info className="w-6 h-6" />
           </div>
         </div>
@@ -174,7 +174,7 @@ export default function LeaveManagement() {
             <p className="text-sm font-medium text-gray-500 mb-1">Casual Leaves (Used/Total)</p>
             <p className="text-2xl font-bold text-gray-800">{usedCasual} <span className="text-lg text-gray-400">/ {quotas.casual}</span></p>
           </div>
-          <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center">
+          <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm">
             <FileText className="w-6 h-6" />
           </div>
         </div>
@@ -183,7 +183,7 @@ export default function LeaveManagement() {
             <p className="text-sm font-medium text-gray-500 mb-1">Pending Approvals</p>
             <p className="text-2xl font-bold text-gray-800">{leaves.filter(l => l.status === "pending").length}</p>
           </div>
-          <div className="w-12 h-12 bg-yellow-50 text-yellow-600 rounded-lg flex items-center justify-center">
+          <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm">
             <Clock className="w-6 h-6" />
           </div>
         </div>

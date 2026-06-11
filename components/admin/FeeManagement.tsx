@@ -287,15 +287,13 @@ export default function FeeStructureManagement() {
   ];
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <Breadcrumbs items={[{ label: "Dashboard", href: "/dashboard" }, { label: "Fee Structures" }]} />
-
+    <div className="p-4 pt-2 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="mt-6 mb-6">
+      <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">Fee Structure Management</h1>
-            <p className="text-gray-600 mt-1">Define and manage fee structures for different classes</p>
+            <h1 className="text-2xl font-bold text-gray-800">Fee Structure Management</h1>
+            <p className="text-sm text-gray-600 mt-1">Define and manage fee structures for different classes</p>
           </div>
           <div className="flex gap-3">
             <button onClick={() => exportToCSV(feeStructures, "fee-structures.csv")} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
@@ -307,15 +305,15 @@ export default function FeeStructureManagement() {
       </div>
 
       {/* Tabs */}
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 rounded-xl p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-emerald-700 text-sm font-medium mb-2">Total Structures</p>
-              <p className="text-4xl font-bold text-emerald-600">{totalStructures}</p>
+              <p className="text-2xl font-bold text-emerald-600">{totalStructures}</p>
             </div>
-            <div className="w-14 h-14 bg-emerald-500 rounded-xl flex items-center justify-center">
-              <Receipt className="w-7 h-7 text-white" />
+            <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-emerald-600">
+              <Receipt className="w-5 h-5 text-current" />
             </div>
           </div>
         </div>
@@ -324,10 +322,10 @@ export default function FeeStructureManagement() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-blue-700 text-sm font-medium mb-2">Total Fee Heads</p>
-              <p className="text-4xl font-bold text-blue-600">{totalFeeHeads}</p>
+              <p className="text-2xl font-bold text-blue-600">{totalFeeHeads}</p>
             </div>
-            <div className="w-14 h-14 bg-blue-500 rounded-xl flex items-center justify-center">
-              <IndianRupee className="w-7 h-7 text-white" />
+            <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-blue-600">
+              <IndianRupee className="w-5 h-5 text-current" />
             </div>
           </div>
         </div>

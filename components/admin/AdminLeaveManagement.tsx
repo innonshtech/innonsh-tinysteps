@@ -161,21 +161,21 @@ export default function AdminLeaveManagement() {
       label: "Status",
       render: (value: any) => {
         const status = String(value);
-        let color: "success" | "warning" | "error" | "default" = "default";
+        let color: "success" | "warning" | "danger" | "gray" = "gray";
         if (status === "approved") color = "success";
         if (status === "pending") color = "warning";
-        if (status === "rejected") color = "error";
+        if (status === "rejected") color = "danger";
         return <Badge variant={color} size="sm">{status.toUpperCase()}</Badge>;
       },
     }
   ];
 
   return (
-    <div className="p-6">
+    <div className="p-4 pt-2 bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Leave Approvals & Substitutes</h1>
-          <p className="text-gray-600 mt-1">Manage teacher leaves and assign substitute classes.</p>
+          <h1 className="text-2xl font-bold text-gray-800">Leave Approvals & Substitutes</h1>
+          <p className="text-sm text-gray-600 mt-1">Manage teacher leaves and assign substitute classes.</p>
         </div>
         <Button onClick={() => setSettingsModal(true)} variant="secondary" className="flex items-center gap-2">
           <Settings className="w-4 h-4" /> Global Settings
@@ -187,9 +187,9 @@ export default function AdminLeaveManagement() {
           <div className="flex justify-between items-center">
             <div>
               <p className="text-indigo-700 font-medium mb-1">On Leave Today</p>
-              <p className="text-3xl font-bold text-indigo-800">{onLeaveToday}</p>
+              <p className="text-2xl font-bold text-indigo-800">{onLeaveToday}</p>
             </div>
-            <div className="w-12 h-12 bg-indigo-500 rounded-lg flex items-center justify-center text-white">
+            <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-indigo-600">
               <Users className="w-6 h-6" />
             </div>
           </div>
@@ -198,9 +198,9 @@ export default function AdminLeaveManagement() {
           <div className="flex justify-between items-center">
             <div>
               <p className="text-yellow-700 font-medium mb-1">Pending Requests</p>
-              <p className="text-3xl font-bold text-yellow-800">{pendingLeaves}</p>
+              <p className="text-2xl font-bold text-yellow-800">{pendingLeaves}</p>
             </div>
-            <div className="w-12 h-12 bg-yellow-500 rounded-lg flex items-center justify-center text-white">
+            <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-yellow-600">
               <Clock className="w-6 h-6" />
             </div>
           </div>
@@ -209,9 +209,9 @@ export default function AdminLeaveManagement() {
           <div className="flex justify-between items-center">
             <div>
               <p className="text-green-700 font-medium mb-1">Total Approved</p>
-              <p className="text-3xl font-bold text-green-800">{approvedLeaves}</p>
+              <p className="text-2xl font-bold text-green-800">{approvedLeaves}</p>
             </div>
-            <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center text-white">
+            <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-green-600">
               <CheckCircle2 className="w-6 h-6" />
             </div>
           </div>
@@ -239,7 +239,7 @@ export default function AdminLeaveManagement() {
               {row.status === "approved" && (
                 <button 
                   onClick={() => {
-                    setSubFormData({ ...subFormData, date: new Date(row.startDate).toISOString().split('T')[0] });
+                    setSubFormData({ ...subFormData, date: new Date((row as any).startDate).toISOString().split('T')[0] });
                     setSubstituteModal({ open: true, leave: row });
                   }} 
                   className="text-xs font-medium px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded hover:bg-blue-100"

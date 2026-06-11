@@ -524,15 +524,13 @@ export default function StudentManagement() {
   ];
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <Breadcrumbs items={[{ label: "Dashboard", href: "/dashboard" }, { label: "Students" }]} />
-
+    <div className="p-4 pt-2 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="mt-6 mb-6">
+      <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">Student Management</h1>
-            <p className="text-gray-600 mt-1">Manage all students in the system</p>
+            <h1 className="text-2xl font-bold text-gray-800">Student Management</h1>
+            <p className="text-sm text-gray-600 mt-1">Manage all students in the system</p>
           </div>
           <div className="flex gap-3">
             <button onClick={() => exportStudentsToCSV(students, "students.csv")} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
@@ -544,15 +542,15 @@ export default function StudentManagement() {
       </div>
 
       {/* Stats Cards */}
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+      <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <div className="bg-gradient-to-br from-pink-50 to-pink-100 border border-pink-200 rounded-xl p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-pink-700 text-sm font-medium mb-2">Total Students</p>
-              <p className="text-4xl font-bold text-pink-600">{students.length}</p>
+              <p className="text-2xl font-bold text-pink-600">{students.length}</p>
             </div>
-            <div className="w-14 h-14 bg-pink-500 rounded-xl flex items-center justify-center">
-              <Users className="w-7 h-7 text-white" />
+            <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-pink-600">
+              <Users className="w-5 h-5 text-current" />
             </div>
           </div>
         </div>
@@ -561,12 +559,12 @@ export default function StudentManagement() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-green-700 text-sm font-medium mb-2">Enrolled</p>
-              <p className="text-4xl font-bold text-green-600">
+              <p className="text-2xl font-bold text-green-600">
                 {students.filter((s) => s.classId).length}
               </p>
             </div>
-            <div className="w-14 h-14 bg-green-500 rounded-xl flex items-center justify-center">
-              <UserCheck className="w-7 h-7 text-white" />
+            <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-green-600">
+              <UserCheck className="w-5 h-5 text-current" />
             </div>
           </div>
         </div>
@@ -575,12 +573,12 @@ export default function StudentManagement() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-amber-700 text-sm font-medium mb-2">Not Assigned</p>
-              <p className="text-4xl font-bold text-amber-600">
+              <p className="text-2xl font-bold text-amber-600">
                 {students.filter((s) => !s.classId).length}
               </p>
             </div>
-            <div className="w-14 h-14 bg-amber-500 rounded-xl flex items-center justify-center">
-              <UserX className="w-7 h-7 text-white" />
+            <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-amber-600">
+              <UserX className="w-5 h-5 text-current" />
             </div>
           </div>
         </div>

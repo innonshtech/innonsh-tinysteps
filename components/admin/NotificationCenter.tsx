@@ -221,15 +221,13 @@ export default function NotificationCenter() {
   };
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <Breadcrumbs items={[{ label: "Dashboard", href: "/dashboard" }, { label: "Notifications" }]} />
-
+    <div className="p-4 pt-2 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="mt-6 mb-6">
+      <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">Notification Center</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-2xl font-bold text-gray-800">Notification Center</h1>
+            <p className="text-sm text-gray-600 mt-1">
               You have {unreadCount} unread notification{unreadCount !== 1 ? "s" : ""}
             </p>
           </div>
@@ -255,15 +253,15 @@ export default function NotificationCenter() {
       </div>
 
       {/* Stats Cards */}
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-xl p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-orange-700 text-sm font-medium mb-2">Total Notifications</p>
-              <p className="text-4xl font-bold text-orange-600">{totalCount}</p>
+              <p className="text-2xl font-bold text-orange-600">{totalCount}</p>
             </div>
-            <div className="w-14 h-14 bg-orange-500 rounded-xl flex items-center justify-center">
-              <Bell className="w-7 h-7 text-white" />
+            <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-orange-600">
+              <Bell className="w-5 h-5 text-current" />
             </div>
           </div>
         </div>
@@ -272,10 +270,10 @@ export default function NotificationCenter() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-pink-700 text-sm font-medium mb-2">Unread</p>
-              <p className="text-4xl font-bold text-pink-600">{unreadCount}</p>
+              <p className="text-2xl font-bold text-pink-600">{unreadCount}</p>
             </div>
-            <div className="w-14 h-14 bg-pink-500 rounded-xl flex items-center justify-center">
-              <Mail className="w-7 h-7 text-white" />
+            <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-pink-600">
+              <Mail className="w-5 h-5 text-current" />
             </div>
           </div>
         </div>

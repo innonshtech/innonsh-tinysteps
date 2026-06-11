@@ -443,15 +443,13 @@ export default function TeacherManagement() {
   ];
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <Breadcrumbs items={[{ label: "Dashboard", href: "/dashboard" }, { label: "Teachers" }]} />
-
+    <div className="p-4 pt-2 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="mt-6 mb-6">
+      <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">Teacher Management</h1>
-            <p className="text-gray-600 mt-1">Manage all teaching staff members</p>
+            <h1 className="text-2xl font-bold text-gray-800">Teacher Management</h1>
+            <p className="text-sm text-gray-600 mt-1">Manage all teaching staff members</p>
           </div>
           <div className="flex gap-3">
             <button onClick={() => exportToCSV(teachers, "teachers.csv")} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
@@ -463,15 +461,15 @@ export default function TeacherManagement() {
       </div>
 
       {/* Stats Cards */}
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+      <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-xl p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-purple-700 text-sm font-medium mb-2">Total Teachers</p>
-              <p className="text-4xl font-bold text-purple-600">{teachers.length}</p>
+              <p className="text-2xl font-bold text-purple-600">{teachers.length}</p>
             </div>
-            <div className="w-14 h-14 bg-purple-500 rounded-xl flex items-center justify-center">
-              <GraduationCap className="w-7 h-7 text-white" />
+            <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-purple-600">
+              <GraduationCap className="w-5 h-5 text-current" />
             </div>
           </div>
         </div>
@@ -480,10 +478,10 @@ export default function TeacherManagement() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-green-700 text-sm font-medium mb-2">With Subjects</p>
-              <p className="text-4xl font-bold text-green-600">{teachersWithSubjects}</p>
+              <p className="text-2xl font-bold text-green-600">{teachersWithSubjects}</p>
             </div>
-            <div className="w-14 h-14 bg-green-500 rounded-xl flex items-center justify-center">
-              <BookOpen className="w-7 h-7 text-white" />
+            <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-green-600">
+              <BookOpen className="w-5 h-5 text-current" />
             </div>
           </div>
         </div>
@@ -492,10 +490,10 @@ export default function TeacherManagement() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-orange-700 text-sm font-medium mb-2">With Classes</p>
-              <p className="text-4xl font-bold text-orange-600">{teachersWithClasses}</p>
+              <p className="text-2xl font-bold text-orange-600">{teachersWithClasses}</p>
             </div>
-            <div className="w-14 h-14 bg-orange-500 rounded-xl flex items-center justify-center">
-              <UserCheck className="w-7 h-7 text-white" />
+            <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-orange-600">
+              <UserCheck className="w-5 h-5 text-current" />
             </div>
           </div>
         </div>

@@ -534,7 +534,7 @@ export default function StudentFeeDetails({ studentId }: { studentId: string }) 
     const { student } = studentData;
 
     return (
-        <div className="p-6 bg-gray-50 min-h-screen">
+        <div className="p-4 pt-2 bg-gray-50 min-h-screen">
             {/* Header / Nav */}
             <div className="flex items-center gap-4 mb-6">
                 <button
@@ -605,19 +605,19 @@ export default function StudentFeeDetails({ studentId }: { studentId: string }) 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                 <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-5 text-white shadow-md">
                     <p className="text-blue-100 text-xs font-medium uppercase tracking-wide mb-1">Total Fee</p>
-                    <h3 className="text-3xl font-bold">{formatCurrency(studentData.totalDue)}</h3>
+                    <h3 className="text-2xl font-bold">{formatCurrency(studentData.totalDue)}</h3>
                     <p className="text-blue-200 text-xs mt-2">Across all transactions</p>
                 </div>
                 <div className="bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl p-5 text-white shadow-md">
                     <p className="text-emerald-100 text-xs font-medium uppercase tracking-wide mb-1">Total Paid</p>
-                    <h3 className="text-3xl font-bold">{formatCurrency(studentData.totalPaid)}</h3>
+                    <h3 className="text-2xl font-bold">{formatCurrency(studentData.totalPaid)}</h3>
                     <p className="text-emerald-200 text-xs mt-2">
                         {studentData.totalDue > 0 ? Math.round((studentData.totalPaid / studentData.totalDue) * 100) : 0}% of total
                     </p>
                 </div>
                 <div className={`rounded-2xl p-5 text-white shadow-md ${studentData.totalPending <= 0 ? 'bg-gradient-to-br from-emerald-400 to-green-500' : 'bg-gradient-to-br from-rose-500 to-red-600'}`}>
                     <p className="text-rose-100 text-xs font-medium uppercase tracking-wide mb-1">Total Pending</p>
-                    <h3 className="text-3xl font-bold">
+                    <h3 className="text-2xl font-bold">
                         {studentData.totalPending <= 0 ? '₹0' : formatCurrency(studentData.totalPending)}
                     </h3>
                     <p className="text-rose-200 text-xs mt-2">

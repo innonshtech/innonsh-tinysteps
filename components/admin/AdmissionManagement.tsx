@@ -10,6 +10,7 @@ import Badge from "@/components/common/Badge";
 import Alert from "@/components/common/Alert";
 import Breadcrumbs from "@/components/common/Breadcrumbs";
 import { showToast } from "@/lib/toast";
+import { FileText, Send, Clock, CheckCircle, XCircle, Search, Users, Eye, Check, X } from "lucide-react";
 
 interface Admission {
   _id: string;
@@ -120,79 +121,108 @@ export default function AdmissionManagement() {
   ];
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <Breadcrumbs items={[{ label: "Dashboard", href: "/dashboard" }, { label: "Admissions" }]} />
-      <div className="mt-8 mb-8">
-        <h1 className="text-4xl font-bold text-gray-900">Admission Management</h1>
-        <p className="text-gray-600 mt-2">Review and process admission applications</p>
-      </div>
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-5 gap-4">
-        <Card padding="md" shadow="sm">
-          <div className="text-center">
-            <div className="text-4xl font-bold text-gray-600">{admissions.length}</div>
-            <div className="text-gray-600 text-sm mt-1">Total Applications</div>
-          </div>
-        </Card>
-        <Card padding="md" shadow="sm">
-          <div className="text-center">
-            <div className="text-4xl font-bold text-cyan-600">
-              {admissions.filter((a) => a.status === "submitted").length}
-            </div>
-            <div className="text-gray-600 text-sm mt-1">Submitted</div>
-          </div>
-        </Card>
-        <Card padding="md" shadow="sm">
-          <div className="text-center">
-            <div className="text-4xl font-bold text-amber-600">
-              {admissions.filter((a) => a.status === "pending").length}
-            </div>
-            <div className="text-gray-600 text-sm mt-1">Pending</div>
-          </div>
-        </Card>
-        <Card padding="md" shadow="sm">
-          <div className="text-center">
-            <div className="text-4xl font-bold text-green-600">
-              {admissions.filter((a) => a.status === "approved").length}
-            </div>
-            <div className="text-gray-600 text-sm mt-1">Approved</div>
-          </div>
-        </Card>
-        <Card padding="md" shadow="sm">
-          <div className="text-center">
-            <div className="text-4xl font-bold text-red-600">
-              {admissions.filter((a) => a.status === "rejected").length}
-            </div>
-            <div className="text-gray-600 text-sm mt-1">Rejected</div>
-          </div>
-        </Card>
-      </div>
-      <Card className="mt-6" shadow="md">
-        <div className="mb-6">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-4">All Applications</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Input
-              placeholder="Search by name or application no..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              icon="🔍"
-              fullWidth
-            />
-            <Select
-              label="Filter by Status"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              fullWidth
-            >
-              <option value="">All Statuses</option>
-              <option value="submitted">Submitted</option>
-              <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="rejected">Rejected</option>
-              <option value="enrolled">Enrolled</option>
-            </Select>
+    <div className="p-4 pt-2 bg-gray-50 min-h-screen">
+      {/* Header */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">Admission Management</h1>
+            <p className="text-sm text-gray-600 mt-1">Review and process admission applications</p>
           </div>
         </div>
-        <div className="max-h-[calc(100vh-340px)] overflow-y-auto custom-scrollbar">
+      </div>
+
+      {/* Stats Cards */}
+      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-4 sm:p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-blue-700 text-xs sm:text-sm font-medium mb-1">Total</p>
+              <p className="text-xl sm:text-2xl font-bold text-blue-600">{admissions.length}</p>
+            </div>
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-blue-600">
+              <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-current" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200 rounded-xl p-4 sm:p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-amber-700 text-xs sm:text-sm font-medium mb-1">Pending Review</p>
+              <p className="text-xl sm:text-2xl font-bold text-amber-600">
+                {admissions.filter((a) => a.status === "pending" || a.status === "submitted").length}
+              </p>
+            </div>
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-amber-600">
+              <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-current" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 rounded-xl p-4 sm:p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-emerald-700 text-xs sm:text-sm font-medium mb-1">Approved</p>
+              <p className="text-xl sm:text-2xl font-bold text-emerald-600">
+                {admissions.filter((a) => a.status === "approved").length}
+              </p>
+            </div>
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-emerald-600">
+              <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-current" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-red-50 to-red-100 border border-red-200 rounded-xl p-4 sm:p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-red-700 text-xs sm:text-sm font-medium mb-1">Rejected</p>
+              <p className="text-xl sm:text-2xl font-bold text-red-600">
+                {admissions.filter((a) => a.status === "rejected").length}
+              </p>
+            </div>
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-red-600">
+              <XCircle className="w-4 h-4 sm:w-5 sm:h-5 text-current" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="bg-white border border-gray-200 rounded-2xl flex flex-col" style={{ minHeight: '480px' }}>
+        {/* Toolbar */}
+        <div className="px-5 pt-4 pb-4 border-b border-gray-100 bg-white sticky top-[64px] z-20">
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div className="relative flex-1 max-w-md w-full">
+              <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search by name or application no..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400 font-medium text-gray-700 text-sm transition-all"
+              />
+            </div>
+            <div className="w-full md:w-auto relative">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full md:w-48 appearance-none pl-4 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400 font-medium text-gray-700 text-sm transition-all"
+              >
+                <option value="">All Statuses</option>
+                <option value="submitted">Submitted</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+                <option value="enrolled">Enrolled</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Table Area */}
+        <div className="flex-1 p-5 overflow-y-auto custom-scrollbar">
           <Table
             columns={columns}
             data={filteredAdmissions}
@@ -206,34 +236,37 @@ export default function AdmissionManagement() {
                 {(row as Admission).status === "submitted" && (
                   <>
                     <button
-                      onClick={() => handleStatusChange((row as Admission)._id, "approved")}
-                      className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200"
+                      onClick={(e) => { e.stopPropagation(); handleStatusChange((row as Admission)._id, "approved"); }}
+                      className="p-1.5 text-green-600 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
+                      title="Approve"
                     >
-                      Approve
+                      <Check className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => handleStatusChange((row as Admission)._id, "rejected")}
-                      className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200"
+                      onClick={(e) => { e.stopPropagation(); handleStatusChange((row as Admission)._id, "rejected"); }}
+                      className="p-1.5 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                      title="Reject"
                     >
-                      Reject
+                      <X className="w-4 h-4" />
                     </button>
                   </>
                 )}
                 <button
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setEditingAdmission(row as Admission);
                     setModalOpen(true);
                   }}
-                  className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                  className="p-1.5 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                  title="View Details"
                 >
-                  View
+                  <Eye className="w-4 h-4" />
                 </button>
               </div>
             )}
           />
         </div>
-
-      </Card>
+      </div>
       <Modal
         isOpen={modalOpen}
         onClose={() => {
