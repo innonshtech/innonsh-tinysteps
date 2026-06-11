@@ -96,6 +96,7 @@ input::placeholder {
 
 html {
   scroll-behavior: smooth;
+  font-size: 90%; /* Scales down the entire UI to 90% by default */
 }
 
 /* Modal Animations */

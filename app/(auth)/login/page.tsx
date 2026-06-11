@@ -144,7 +144,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <h2 className="text-3xl font-bold text-gray-800 mb-2">Welcome Back!</h2>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Welcome Back!</h2>
             <p className="text-gray-600">Use your credentials to access your account</p>
           </div>
 
@@ -324,7 +324,7 @@ export default function LoginPage() {
           </div>
 
           {/* Content */}
-          <h3 className="text-3xl font-bold text-gray-800 mb-4">
+          <h3 className="text-2xl font-bold text-gray-800 mb-4">
             {slides[currentSlide].title}
           </h3>
           <p className="text-gray-700 text-lg leading-relaxed mb-8">

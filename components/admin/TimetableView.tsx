@@ -115,7 +115,7 @@ export default function TimetableView() {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-4 pt-2 bg-gray-50 min-h-screen">
       <PageHeader title="Class Timetable" />
 
       {selectedClass && (
@@ -222,7 +222,7 @@ export default function TimetableView() {
           </div>
         ) : (
           <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">
+            <p className="text-gray-600 text-sm">
               {filteredTimetables.length === 0
                 ? "No timetable available"
                 : "Select a class to view timetable"}

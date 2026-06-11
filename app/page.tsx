@@ -132,43 +132,43 @@ export default function LandingPage() {
       icon: Users,
       title: "Student Management",
       description: "Comprehensive student profiles, enrollment tracking, and parent communication tools",
-      color: "bg-pink-500",
-      lightBg: "bg-pink-50"
+      iconColor: "text-pink-600",
+      gradientBg: "from-pink-50 to-pink-100/50 border-pink-100"
     },
     {
       icon: GraduationCap,
       title: "Teacher Management",
       description: "Manage teaching staff, assign classes, track performance and schedules efficiently",
-      color: "bg-purple-500",
-      lightBg: "bg-purple-50"
+      iconColor: "text-purple-600",
+      gradientBg: "from-purple-50 to-purple-100/50 border-purple-100"
     },
     {
       icon: ClipboardList,
       title: "Class Organization",
       description: "Create and manage classes, sections, and student groups with ease",
-      color: "bg-orange-500",
-      lightBg: "bg-orange-50"
+      iconColor: "text-orange-600",
+      gradientBg: "from-orange-50 to-orange-100/50 border-orange-100"
     },
     {
       icon: Calendar,
       title: "Attendance Tracking",
       description: "Real-time attendance monitoring with automated reports and notifications",
-      color: "bg-cyan-500",
-      lightBg: "bg-cyan-50"
+      iconColor: "text-cyan-600",
+      gradientBg: "from-cyan-50 to-cyan-100/50 border-cyan-100"
     },
     {
       icon: DollarSign,
       title: "Fee Management",
       description: "Streamlined fee collection, payment tracking, and financial reporting",
-      color: "bg-green-500",
-      lightBg: "bg-green-50"
+      iconColor: "text-green-600",
+      gradientBg: "from-green-50 to-green-100/50 border-green-100"
     },
     {
       icon: Clock,
       title: "Timetable Scheduling",
       description: "Create and manage timetables, class schedules, and event planning",
-      color: "bg-blue-500",
-      lightBg: "bg-blue-50"
+      iconColor: "text-blue-600",
+      gradientBg: "from-blue-50 to-blue-100/50 border-blue-100"
     }
   ];
 
@@ -267,14 +267,11 @@ export default function LandingPage() {
       <nav className="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 flex items-center justify-center">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 flex items-center justify-center">
                 <img src="/ICON.png" alt="Innonsh TinySteps" className="w-full h-full object-contain rounded-xl" />
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">Innonsh TinySteps</h1>
-                <p className="text-xs text-gray-500">School Management</p>
-              </div>
+              <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight leading-none mt-0.5">Innonsh TinySteps</h1>
             </div>
 
             {/* Desktop Navigation */}
@@ -428,7 +425,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {stats.map((stat, index) => (
               <div key={index} className="text-center">
-                <div className="text-4xl font-bold text-gray-900 mb-2">{stat.number}</div>
+                <div className="text-2xl font-bold text-gray-900 mb-2">{stat.number}</div>
                 <div className="text-gray-600">{stat.label}</div>
               </div>
             ))}
@@ -440,7 +437,7 @@ export default function LandingPage() {
       <section id="features" className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
               Everything You Need to Manage Your School
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
@@ -451,12 +448,12 @@ export default function LandingPage() {
             {features.map((feature, index) => {
               const Icon = feature.icon;
               return (
-                <div key={index} className="bg-white rounded-xl p-8 border border-gray-200 hover:shadow-lg transition-shadow">
-                  <div className={`w-14 h-14 ${feature.color} rounded-xl flex items-center justify-center mb-6`}>
-                    <Icon className="w-7 h-7 text-white" />
+                <div key={index} className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
+                  <div className={`w-14 h-14 rounded-xl flex items-center justify-center mb-6 bg-gradient-to-br border ${feature.gradientBg} group-hover:scale-110 transition-transform duration-300`}>
+                    <Icon className={`w-7 h-7 ${feature.iconColor}`} />
                   </div>
                   <h3 className="text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
-                  <p className="text-gray-600">{feature.description}</p>
+                  <p className="text-gray-600 leading-relaxed">{feature.description}</p>
                 </div>
               );
             })}
@@ -469,7 +466,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
-              <h2 className="text-4xl font-bold text-gray-900 mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">
                 Why Schools Choose Innonsh TinySteps
               </h2>
               <p className="text-xl text-gray-600 mb-8">
@@ -550,7 +547,7 @@ export default function LandingPage() {
       <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
               Simple, Transparent Pricing
             </h2>
             <p className="text-xl text-gray-600">
@@ -574,7 +571,7 @@ export default function LandingPage() {
                 <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
                 <p className="text-gray-600 mb-6">{plan.description}</p>
                 <div className="mb-6">
-                  <span className="text-4xl font-bold text-gray-900">{plan.price}</span>
+                  <span className="text-2xl font-bold text-gray-900">{plan.price}</span>
                   <span className="text-gray-600 ml-2">{plan.period}</span>
                 </div>
                 <Link
@@ -603,7 +600,7 @@ export default function LandingPage() {
       {/* CTA Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-orange-400 via-pink-500 to-purple-600">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl font-bold text-white mb-6">
+          <h2 className="text-2xl font-bold text-white mb-6">
             Ready to Transform Your School Management?
           </h2>
           <p className="text-xl text-white/90 mb-8">
@@ -621,7 +618,7 @@ export default function LandingPage() {
       <section id="contact" className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-accent/5 via-primary/5 to-primary-dark/5">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">Get in Touch</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Get in Touch</h2>
             <p className="text-xl text-gray-600">
               Have questions? We'd love to hear from you
             </p>

@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 export type JwtPayload = {
   id: string;
   role: "admin" | "teacher" | "parent" | string;
+  email?: string;
   iat?: number;
   exp?: number;
 };

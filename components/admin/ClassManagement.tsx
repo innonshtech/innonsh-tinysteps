@@ -292,15 +292,13 @@ export default function ClassManagement() {
   ];
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <Breadcrumbs items={[{ label: "Dashboard", href: "/dashboard" }, { label: "Classes" }]} />
-
+    <div className="p-4 pt-2 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="mt-6 mb-6">
+      <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">Class Management</h1>
-            <p className="text-gray-600 mt-1">Manage all classes and sections</p>
+            <h1 className="text-2xl font-bold text-gray-800">Class Management</h1>
+            <p className="text-sm text-gray-600 mt-1">Manage all classes and sections</p>
           </div>
           <div className="flex gap-3">
             <button onClick={() => exportToCSV(classes, "classes.csv")} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
@@ -312,16 +310,16 @@ export default function ClassManagement() {
       </div>
 
       {/* Stats Cards */}
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         {/* Total Classes */}
         <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-xl p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-orange-700 text-sm font-medium mb-2">Total Classes</p>
-              <p className="text-4xl font-bold text-orange-600">{classes.length}</p>
+              <p className="text-2xl font-bold text-orange-600">{classes.length}</p>
             </div>
-            <div className="w-14 h-14 bg-orange-500 rounded-xl flex items-center justify-center">
-              <School className="w-7 h-7 text-white" />
+            <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-orange-600">
+              <School className="w-5 h-5 text-current" />
             </div>
           </div>
         </div>
@@ -331,10 +329,10 @@ export default function ClassManagement() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-pink-700 text-sm font-medium mb-2">Total Students</p>
-              <p className="text-4xl font-bold text-pink-600">{totalStudents}</p>
+              <p className="text-2xl font-bold text-pink-600">{totalStudents}</p>
             </div>
-            <div className="w-14 h-14 bg-pink-500 rounded-xl flex items-center justify-center">
-              <Users className="w-7 h-7 text-white" />
+            <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-pink-600">
+              <Users className="w-5 h-5 text-current" />
             </div>
           </div>
         </div>
@@ -344,10 +342,10 @@ export default function ClassManagement() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-purple-700 text-sm font-medium mb-2">Total Teachers</p>
-              <p className="text-4xl font-bold text-purple-600">{totalTeachers}</p>
+              <p className="text-2xl font-bold text-purple-600">{totalTeachers}</p>
             </div>
-            <div className="w-14 h-14 bg-purple-500 rounded-xl flex items-center justify-center">
-              <GraduationCap className="w-7 h-7 text-white" />
+            <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-purple-600">
+              <GraduationCap className="w-5 h-5 text-current" />
             </div>
           </div>
         </div>
@@ -357,10 +355,10 @@ export default function ClassManagement() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-blue-700 text-sm font-medium mb-2">Assigned Rooms</p>
-              <p className="text-4xl font-bold text-blue-600">{totalRooms}</p>
+              <p className="text-2xl font-bold text-blue-600">{totalRooms}</p>
             </div>
-            <div className="w-14 h-14 bg-blue-500 rounded-xl flex items-center justify-center">
-              <DoorOpen className="w-7 h-7 text-white" />
+            <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-blue-600">
+              <DoorOpen className="w-5 h-5 text-current" />
             </div>
           </div>
         </div>

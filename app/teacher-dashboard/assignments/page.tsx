@@ -38,7 +38,7 @@ export default function TeacherAssignmentsPage() {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-4 pt-2 bg-gray-50 min-h-screen">
      <PageHeader
   title="Assignments"
   subtitle="Create and manage student assignments"

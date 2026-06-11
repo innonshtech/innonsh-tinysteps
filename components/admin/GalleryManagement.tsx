@@ -377,15 +377,13 @@ export default function GalleryManagement({ isViewer = false }: { isViewer?: boo
   ];
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <Breadcrumbs items={[{ label: "Dashboard", href: "/dashboard" }, { label: "Gallery" }]} />
-
+    <div className="p-4 pt-2 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="mt-6 mb-6">
+      <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">Photo Gallery</h1>
-            <p className="text-gray-600 mt-1">Manage photo albums and event galleries</p>
+            <h1 className="text-2xl font-bold text-gray-800">Photo Gallery</h1>
+            <p className="text-sm text-gray-600 mt-1">Manage photo albums and event galleries</p>
           </div>
           <div className="flex gap-3">
             {isAdmin && (
@@ -410,7 +408,7 @@ export default function GalleryManagement({ isViewer = false }: { isViewer?: boo
                 <ImageIcon className="w-10 h-10 text-purple-400" />
               </div>
               <h3 className="text-xl font-bold text-gray-800">No memories found yet</h3>
-              <p className="text-gray-500 mt-2">School will share photos and videos here soon!</p>
+              <p className="text-gray-600 mt-1 text-sm">School will share photos and videos here soon!</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -428,7 +426,7 @@ export default function GalleryManagement({ isViewer = false }: { isViewer?: boo
                           <video src={gallery.images[0].url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                           <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
                             <div className="w-12 h-12 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center">
-                              <Video className="w-6 h-6 text-white" />
+                              <Video className="w-5 h-5 text-current" />
                             </div>
                           </div>
                         </div>
@@ -508,15 +506,15 @@ export default function GalleryManagement({ isViewer = false }: { isViewer?: boo
         /* Admin Management List */
         <>
           {/* Stats */}
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-6">
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-6">
             <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-xl p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-purple-700 text-sm font-medium mb-1">Total Albums</p>
-                  <p className="text-3xl font-bold text-purple-600">{stats.total}</p>
+                  <p className="text-2xl font-bold text-purple-600">{stats.total}</p>
                 </div>
-                <div className="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center">
-                  <ImageIcon className="w-6 h-6 text-white" />
+                <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-purple-600">
+                  <ImageIcon className="w-5 h-5 text-current" />
                 </div>
               </div>
             </div>
@@ -525,10 +523,10 @@ export default function GalleryManagement({ isViewer = false }: { isViewer?: boo
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-green-700 text-sm font-medium mb-1">Published</p>
-                  <p className="text-3xl font-bold text-green-600">{stats.published}</p>
+                  <p className="text-2xl font-bold text-green-600">{stats.published}</p>
                 </div>
-                <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center">
-                  <CheckCircle2 className="w-6 h-6 text-white" />
+                <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-green-600">
+                  <CheckCircle2 className="w-5 h-5 text-current" />
                 </div>
               </div>
             </div>
@@ -537,10 +535,10 @@ export default function GalleryManagement({ isViewer = false }: { isViewer?: boo
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-yellow-700 text-sm font-medium mb-1">Featured</p>
-                  <p className="text-3xl font-bold text-yellow-600">{stats.featured}</p>
+                  <p className="text-2xl font-bold text-yellow-600">{stats.featured}</p>
                 </div>
-                <div className="w-12 h-12 bg-yellow-500 rounded-xl flex items-center justify-center">
-                  <Star className="w-6 h-6 text-white" />
+                <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-yellow-600">
+                  <Star className="w-5 h-5 text-current" />
                 </div>
               </div>
             </div>
@@ -549,10 +547,10 @@ export default function GalleryManagement({ isViewer = false }: { isViewer?: boo
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-pink-700 text-sm font-medium mb-1">Total Photos</p>
-                  <p className="text-3xl font-bold text-pink-600">{stats.totalPhotos}</p>
+                  <p className="text-2xl font-bold text-pink-600">{stats.totalPhotos}</p>
                 </div>
-                <div className="w-12 h-12 bg-pink-500 rounded-xl flex items-center justify-center">
-                  <ImagePlus className="w-6 h-6 text-white" />
+                <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-pink-600">
+                  <ImagePlus className="w-5 h-5 text-current" />
                 </div>
               </div>
             </div>
@@ -561,10 +559,10 @@ export default function GalleryManagement({ isViewer = false }: { isViewer?: boo
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-blue-700 text-sm font-medium mb-1">Total Videos</p>
-                  <p className="text-3xl font-bold text-blue-600">{stats.totalVideos}</p>
+                  <p className="text-2xl font-bold text-blue-600">{stats.totalVideos}</p>
                 </div>
-                <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
-                  <Video className="w-6 h-6 text-white" />
+                <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-blue-600">
+                  <Video className="w-5 h-5 text-current" />
                 </div>
               </div>
             </div>

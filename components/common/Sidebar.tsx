@@ -3,7 +3,7 @@ import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { PERMISSIONS } from "@/utils/permissions";
-import { useState, ComponentType } from "react";
+import { useState, useEffect, ComponentType } from "react";
 import {
   LayoutDashboard,
   Users,
@@ -24,6 +24,7 @@ import {
   PanelLeftClose,
   PanelLeft,
   Clock,
+  UserPlus,
 } from "lucide-react";
 
 interface User {
@@ -55,6 +56,31 @@ export default function Sidebar({
   // use isOpen prop to control visibility on mobile
   // lg:translate-x-0 class ensures it's always visible on desktop
   const visible = isOpen;
+  
+  const [featureFlags, setFeatureFlags] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const fetchFlags = () => {
+      fetch("/api/settings")
+        .then(r => r.json())
+        .then(d => {
+          if (d.success && d.settings?.featureFlags) {
+            setFeatureFlags(d.settings.featureFlags);
+          }
+        })
+        .catch(e => console.error("Failed to load feature flags", e));
+    };
+
+    // Initial fetch
+    fetchFlags();
+
+    // Listen for custom event from Settings page
+    window.addEventListener("feature-flags-updated", fetchFlags);
+
+    return () => {
+      window.removeEventListener("feature-flags-updated", fetchFlags);
+    };
+  }, []);
 
   const getDashboardPath = () => {
     switch (user?.role) {
@@ -81,6 +107,13 @@ export default function Sidebar({
       module: "classes",
       icon: House,
       color: "pink",
+    },
+    {
+      name: "Admissions",
+      path: `${basePath}/admission`,
+      module: "admission",
+      icon: UserPlus,
+      color: "violet",
     },
     {
       name: "Students",
@@ -211,9 +244,27 @@ export default function Sidebar({
     return colors[color] || colors.orange;
   };
 
-  const filteredMenu = menuList.filter((m) =>
-    user?.role ? PERMISSIONS[user.role]?.includes(m.module) : false
-  );
+  const filteredMenu = menuList.filter((m) => {
+    // 1. Check user permissions
+    const hasRoleAccess = user?.role ? PERMISSIONS[user.role]?.includes(m.module) : false;
+    if (!hasRoleAccess) return false;
+
+    // 2. Check feature flags for optional modules
+    const featureMap: Record<string, string> = {
+      "transport": "enableTransport",
+      "meal-plan": "enableMealPlan",
+      "gallery": "enableGallery",
+      "events": "enableEvents",
+    };
+
+    const flagKey = featureMap[m.module];
+    // If it's a togglable feature and it is explicitly set to false, hide it.
+    if (flagKey && featureFlags[flagKey] === false) {
+      return false;
+    }
+
+    return true;
+  });
 
   return (
     <aside
@@ -224,30 +275,27 @@ export default function Sidebar({
     transition-transform duration-300
     ${visible ? "translate-x-0" : "-translate-x-full"}
     lg:translate-x-0
-    ${isCollapsed ? "w-20" : "w-64"}
+    ${isCollapsed ? "w-16" : "w-60"}
   `}
     >
 
 
       {/* Header */}
       <div
-        className={`border-b border-gray-200 flex items-center ${isCollapsed ? "justify-center py-5" : "justify-between px-5 py-5"
+        className={`h-[60px] border-b border-gray-200 flex items-center ${isCollapsed ? "justify-center" : "justify-between px-4"
           }`}
       >
         {!isCollapsed && (
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 flex items-center justify-center">
-              <img src="/ICON.png" alt="Innonsh TinySteps" className="w-full h-full object-contain rounded-xl" />
+            <div className="w-9 h-9 flex items-center justify-center">
+              <img src="/ICON.png" alt="Innonsh TinySteps" className="w-full h-full object-contain rounded-lg" />
             </div>
-            <div>
-              <h1 className="text-base font-bold text-gray-800">Innonsh TinySteps</h1>
-              <p className="text-xs text-gray-500">School Management</p>
-            </div>
+            <h1 className="text-lg font-extrabold text-gray-800 tracking-tight leading-none mt-0.5">Innonsh TinySteps</h1>
           </div>
         )}
         {isCollapsed && (
-          <div className="w-10 h-10 flex items-center justify-center">
-            <img src="/ICON.png" alt="Innonsh TinySteps" className="w-full h-full object-contain rounded-xl" />
+          <div className="w-8 h-8 flex items-center justify-center">
+            <img src="/ICON.png" alt="Innonsh TinySteps" className="w-full h-full object-contain rounded-lg" />
           </div>
         )}
         <button
@@ -277,8 +325,8 @@ export default function Sidebar({
                   className={`
               group relative flex items-center transition-all duration-150
               ${isCollapsed
-                      ? "justify-center py-3"
-                      : "px-3 py-2.5 rounded-lg"
+                      ? "justify-center py-2.5"
+                      : "px-2.5 py-2 rounded-md"
                     }
               ${isActive
                       ? "bg-gradient-to-r from-orange-50 to-pink-50 shadow-sm"
@@ -289,12 +337,12 @@ export default function Sidebar({
                 >
                   <div
                     className={`
-                flex items-center justify-center rounded-lg
-                ${isCollapsed ? "w-10 h-10" : "w-9 h-9 mr-3"}
+                flex items-center justify-center rounded-md
+                ${isCollapsed ? "w-8 h-8" : "w-7 h-7 mr-2.5"}
                 ${getColorClasses(item.color, isActive)}
               `}
                   >
-                    <Icon className="w-5 h-5" />
+                    <Icon className="w-4 h-4" />
                   </div>
 
                   {!isCollapsed && (
@@ -321,56 +369,20 @@ export default function Sidebar({
 
       {/* Expand button when collapsed */}
       {isCollapsed && (
-        <div className="py-3 border-t border-gray-200">
+        <div className="py-2 border-t border-gray-200">
           <button
             onClick={() => setIsCollapsed(false)}
             className="w-full flex justify-center py-2 hover:bg-gray-50 transition-colors group"
             title="Expand sidebar"
           >
-            <div className="w-10 h-10 rounded-lg bg-gray-100 group-hover:bg-gray-200 flex items-center justify-center transition-colors">
-              <PanelLeft className="w-5 h-5 text-gray-600" />
+            <div className="w-8 h-8 rounded-md bg-gray-100 group-hover:bg-gray-200 flex items-center justify-center transition-colors">
+              <PanelLeft className="w-4 h-4 text-gray-600" />
             </div>
           </button>
         </div>
       )}
 
-      {/* Logout Button */}
-      <div className={`border-t border-gray-200 ${isCollapsed ? "py-3" : "py-3 px-3"}`}>
-        <button
-          onClick={async () => {
-            try {
-              await logout();
-              router.push("/login");
-            } catch (err) {
-              console.error("Logout failed", err);
-            }
-          }}
-          className={`
-            w-full flex items-center text-gray-700 hover:bg-red-50 transition-all group rounded-lg
-            ${isCollapsed ? "justify-center py-3" : "px-3 py-2.5"}
-          `}
-          title={isCollapsed ? "Logout" : undefined}
-        >
-          <div
-            className={`
-            flex items-center justify-center rounded-lg bg-red-50 group-hover:bg-red-100 transition-colors
-            ${isCollapsed ? "w-10 h-10" : "w-9 h-9 mr-3"}
-          `}
-          >
-            <LogOut className="w-5 h-5 text-red-600" />
-          </div>
-          {!isCollapsed && (
-            <span className="text-sm font-medium group-hover:text-red-600">Logout</span>
-          )}
 
-          {isCollapsed && (
-            <div className="absolute left-full ml-3 px-3 py-1.5 bg-gray-900 text-white text-xs font-medium rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-lg">
-              Logout
-              <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-900"></div>
-            </div>
-          )}
-        </button>
-      </div>
 
       {/* Footer */}
       {!isCollapsed && (

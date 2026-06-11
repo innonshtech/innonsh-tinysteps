@@ -56,13 +56,11 @@ export default function LogActivityCenter() {
   });
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <Breadcrumbs items={[{ label: "Dashboard", href: "/dashboard" }, { label: "Log Activity" }]} />
-
-      <div className="mt-6 mb-6 flex items-center justify-between">
+    <div className="p-4 pt-2 bg-gray-50 min-h-screen">
+      <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Log Activity</h1>
-          <p className="text-gray-600 mt-1">Tracks login attempts and related actions</p>
+          <h1 className="text-2xl font-bold text-gray-800">Log Activity</h1>
+          <p className="text-sm text-gray-600 mt-1">Tracks login attempts and related actions</p>
         </div>
         <div className="w-80 relative">
           <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />

@@ -417,15 +417,13 @@ export default function ExamManagement() {
   ];
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <Breadcrumbs items={[{ label: "Dashboard", href: "/dashboard" }, { label: "Exams" }]} />
-
+    <div className="p-4 pt-2 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="mt-6 mb-6">
+      <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">Exam Management</h1>
-            <p className="text-gray-600 mt-1">Schedule and manage examinations</p>
+            <h1 className="text-2xl font-bold text-gray-800">Exam Management</h1>
+            <p className="text-sm text-gray-600 mt-1">Schedule and manage examinations</p>
           </div>
           <div className="flex gap-3">
             <button onClick={() => exportToCSV(exams, "exams.csv")} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
@@ -437,15 +435,15 @@ export default function ExamManagement() {
       </div>
 
       {/* Stats Cards */}
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+      <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
         <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-blue-700 text-sm font-medium mb-2">Total Exams</p>
-              <p className="text-4xl font-bold text-blue-600">{totalExams}</p>
+              <p className="text-2xl font-bold text-blue-600">{totalExams}</p>
             </div>
-            <div className="w-14 h-14 bg-blue-500 rounded-xl flex items-center justify-center">
-              <FileText className="w-7 h-7 text-white" />
+            <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-blue-600">
+              <FileText className="w-5 h-5 text-current" />
             </div>
           </div>
         </div>
@@ -454,10 +452,10 @@ export default function ExamManagement() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-cyan-700 text-sm font-medium mb-2">Scheduled</p>
-              <p className="text-4xl font-bold text-cyan-600">{scheduledExams}</p>
+              <p className="text-2xl font-bold text-cyan-600">{scheduledExams}</p>
             </div>
-            <div className="w-14 h-14 bg-cyan-500 rounded-xl flex items-center justify-center">
-              <Calendar className="w-7 h-7 text-white" />
+            <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-cyan-600">
+              <Calendar className="w-5 h-5 text-current" />
             </div>
           </div>
         </div>
@@ -466,10 +464,10 @@ export default function ExamManagement() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-amber-700 text-sm font-medium mb-2">Ongoing</p>
-              <p className="text-4xl font-bold text-amber-600">{ongoingExams}</p>
+              <p className="text-2xl font-bold text-amber-600">{ongoingExams}</p>
             </div>
-            <div className="w-14 h-14 bg-amber-500 rounded-xl flex items-center justify-center">
-              <AlertCircle className="w-7 h-7 text-white" />
+            <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-amber-600">
+              <AlertCircle className="w-5 h-5 text-current" />
             </div>
           </div>
         </div>
@@ -478,10 +476,10 @@ export default function ExamManagement() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-green-700 text-sm font-medium mb-2">Completed</p>
-              <p className="text-4xl font-bold text-green-600">{completedExams}</p>
+              <p className="text-2xl font-bold text-green-600">{completedExams}</p>
             </div>
-            <div className="w-14 h-14 bg-green-500 rounded-xl flex items-center justify-center">
-              <CheckCircle2 className="w-7 h-7 text-white" />
+            <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-green-600">
+              <CheckCircle2 className="w-5 h-5 text-current" />
             </div>
           </div>
         </div>
