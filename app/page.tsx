@@ -1254,6 +1254,11 @@ export default function LandingPage() {
                   <a href="tel:+917620301874" className="hover:text-coral transition-colors" style={{ color: "var(--ink-soft)", fontSize: "0.92rem" }}>+91 76203 01874</a>
                 </li>
                 <li style={{ display: "flex", alignItems: "center", height: "36px", padding: 0 }}>
+                  <span style={{ fontFamily: "var(--font-body)", fontSize: "0.85rem", fontWeight: 700, letterSpacing: "0.08em", color: "var(--ink)", textTransform: "uppercase" }}>
+                    SOCIAL
+                  </span>
+                </li>
+                <li>
                   <div className="social-links square-links" style={{ display: "flex", gap: "10px" }}>
                     <a href="#" aria-label="X">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
