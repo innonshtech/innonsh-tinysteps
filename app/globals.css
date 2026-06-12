@@ -31,26 +31,42 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  color: #334155; /* slate-700 */
+  color: #334155;
+  /* slate-700 */
 }
 
-h1, h2, h3, h4, h5, h6, 
-.card-title, .section-header, .page-title {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.card-title,
+.section-header,
+.page-title {
   font-family: var(--font-heading-var), sans-serif;
   letter-spacing: -0.02em;
   line-height: 1.25;
   font-weight: 700;
-  color: #0f172a; /* slate-900 */
+  color: #0f172a;
+  /* slate-900 */
 }
 
 /* UI Elements & Controls */
-input, select, textarea, button, label, table, .sidebar-link {
+input,
+select,
+textarea,
+button,
+label,
+table,
+.sidebar-link {
   font-family: var(--font-body-var), sans-serif;
 }
 
 label {
   font-weight: 500;
-  color: #475569; /* slate-600 */
+  color: #475569;
+  /* slate-600 */
 }
 
 input::placeholder {
@@ -58,10 +74,6 @@ input::placeholder {
   opacity: 0.5;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #e2e8f0; /* slate-200 */
-  border-radius: 10px;
-}
 
 /* Hide native scrollbars while preserving scroll functionality */
 .no-scrollbar {
@@ -96,22 +108,29 @@ input::placeholder {
 
 html {
   scroll-behavior: smooth;
-  font-size: 90%; /* Scales down the entire UI to 90% by default */
+  font-size: 90%;
+  /* Scales down the entire UI to 90% by default */
 }
 
 /* Modal Animations */
 @keyframes modal-backdrop-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes modal-content-in {
-  from { 
-    opacity: 0; 
+  from {
+    opacity: 0;
     transform: scale(0.95);
   }
-  to { 
-    opacity: 1; 
+
+  to {
+    opacity: 1;
     transform: scale(1);
   }
 }
