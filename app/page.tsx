@@ -1,32 +1,123 @@
-"use client"
+"use client";
+
+import React, { useState, useEffect, FormEvent } from "react";
 import Link from "next/link";
-import Image from "next/image";
-import {
-  Users,
-  GraduationCap,
-  Calendar,
-  DollarSign,
-  ClipboardList,
-  Clock,
-  Shield,
-  Zap,
-  BarChart3,
-  CheckCircle2,
-  ArrowRight,
-  Star,
-  Menu,
-  X,
-  UploadCloud,
-  FileText
-} from "lucide-react";
-import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { UploadCloud, X } from "lucide-react";
+import "./landing.css";
 
 export default function LandingPage() {
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState("");
+  const [isScrolled, setIsScrolled] = useState(false);
   const [isCareersModalOpen, setIsCareersModalOpen] = useState(false);
   const [resumeName, setResumeName] = useState("");
   const [isSubmittingForm, setIsSubmittingForm] = useState(false);
+  const [isSubmittingContact, setIsSubmittingContact] = useState(false);
+
+  // Sticky navbar logic
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 20) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Scroll reveal animation
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry, i) => {
+          if (entry.isIntersecting) {
+            setTimeout(() => {
+              entry.target.classList.add("visible");
+            }, i * 50);
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.12, rootMargin: "0px 0px -60px 0px" }
+    );
+
+    const elements = document.querySelectorAll(".reveal");
+    elements.forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, []);
+
+  // Counter animation on stats
+  useEffect(() => {
+    const counterObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const el = entry.target as HTMLElement;
+            const target = parseInt(el.getAttribute("data-target") || "0", 10);
+            const suffix = el.getAttribute("data-suffix") || "";
+            const prefix = el.getAttribute("data-prefix") || "";
+            const duration = 1600;
+            let startTime: number | null = null;
+
+            const step = (now: number) => {
+              if (!startTime) startTime = now;
+              const progress = Math.min((now - startTime) / duration, 1);
+              const eased = 1 - Math.pow(1 - progress, 3);
+              const value = Math.floor(eased * target);
+              el.textContent = prefix + value + suffix;
+              if (progress < 1) {
+                requestAnimationFrame(step);
+              } else {
+                el.textContent = prefix + target + suffix;
+              }
+            };
+            requestAnimationFrame(step);
+            counterObserver.unobserve(el);
+          }
+        });
+      },
+      { threshold: 0.4 }
+    );
+
+    const elements = document.querySelectorAll("[data-target]");
+    elements.forEach((el) => counterObserver.observe(el));
+
+    return () => counterObserver.disconnect();
+  }, []);
+
+  // Parallax effect on blobs
+  useEffect(() => {
+    const blobs = document.querySelectorAll(".blob");
+    const handleMouseMove = (e: MouseEvent) => {
+      const x = (e.clientX / window.innerWidth - 0.5) * 20;
+      const y = (e.clientY / window.innerHeight - 0.5) * 20;
+      blobs.forEach((blob, i) => {
+        const factor = (i + 1) * 0.4;
+        (blob as HTMLElement).style.transform = `translate(${x * factor}px, ${y * factor}px)`;
+      });
+    };
+    window.addEventListener("mousemove", handleMouseMove, { passive: true });
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
+
+  // Handle smooth scroll for anchor links
+  const handleAnchorClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (href.startsWith("#")) {
+      e.preventDefault();
+      const targetId = href.substring(1);
+      const targetElement = document.getElementById(targetId);
+      if (targetElement) {
+        const offset = 70;
+        const top = targetElement.getBoundingClientRect().top + window.pageYOffset - offset;
+        window.scrollTo({ top, behavior: "smooth" });
+        setMobileMenuOpen(false);
+      }
+    }
+  };
 
   const handleCareerSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -36,7 +127,6 @@ export default function LandingPage() {
     const formData = new FormData(form);
 
     try {
-      // Using FormSubmit AJAX to bypass page reloads & safely attach files to info@innonsh.com
       const response = await fetch("https://formsubmit.co/ajax/info@innonsh.com", {
         method: "POST",
         body: formData,
@@ -56,8 +146,6 @@ export default function LandingPage() {
       setIsSubmittingForm(false);
     }
   };
-
-  const [isSubmittingContact, setIsSubmittingContact] = useState(false);
 
   const handleContactSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -85,795 +173,1184 @@ export default function LandingPage() {
     }
   };
 
-  useEffect(() => {
-    const sections = ["features", "benefits", "pricing", "testimonials", "contact"];
-    const observerOptions = {
-      root: null,
-      rootMargin: "-80px 0px -40% 0px", // 80px accommodates the fixed navbar
-      threshold: 0,
-    };
-
-    const observerCallback = (entries: IntersectionObserverEntry[]) => {
-      // Find the intersecting entry that is currently active, or the last one intersecting
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          setActiveSection(entry.target.id);
-        }
-      });
-    };
-
-    const observer = new IntersectionObserver(observerCallback, observerOptions);
-
-    sections.forEach((id) => {
-      const element = document.getElementById(id);
-      if (element) observer.observe(element);
-    });
-
-    // Handle Contact section specially when near the bottom of the page
-    const handleScroll = () => {
-      const scrollBottom = window.scrollY + window.innerHeight;
-      const pageHeight = document.documentElement.scrollHeight;
-      // If we are within 300px of the bottom of the page, ensure contact is highlighted
-      if (scrollBottom >= pageHeight - 300) {
-        setActiveSection("contact");
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("scroll", handleScroll);
-    };
-  }, []);
-
-  const features = [
-    {
-      icon: Users,
-      title: "Student Management",
-      description: "Comprehensive student profiles, enrollment tracking, and parent communication tools",
-      color: "bg-pink-500",
-      lightBg: "bg-pink-50"
-    },
-    {
-      icon: GraduationCap,
-      title: "Teacher Management",
-      description: "Manage teaching staff, assign classes, track performance and schedules efficiently",
-      color: "bg-purple-500",
-      lightBg: "bg-purple-50"
-    },
-    {
-      icon: ClipboardList,
-      title: "Class Organization",
-      description: "Create and manage classes, sections, and student groups with ease",
-      color: "bg-orange-500",
-      lightBg: "bg-orange-50"
-    },
-    {
-      icon: Calendar,
-      title: "Attendance Tracking",
-      description: "Real-time attendance monitoring with automated reports and notifications",
-      color: "bg-cyan-500",
-      lightBg: "bg-cyan-50"
-    },
-    {
-      icon: DollarSign,
-      title: "Fee Management",
-      description: "Streamlined fee collection, payment tracking, and financial reporting",
-      color: "bg-green-500",
-      lightBg: "bg-green-50"
-    },
-    {
-      icon: Clock,
-      title: "Timetable Scheduling",
-      description: "Create and manage timetables, class schedules, and event planning",
-      color: "bg-blue-500",
-      lightBg: "bg-blue-50"
-    }
-  ];
-
-  const benefits = [
-    "Reduce administrative workload by 60%",
-    "Improve parent-teacher communication",
-    "Real-time data access from anywhere",
-    "Automated report generation",
-    "Secure data management",
-    "Mobile-friendly interface"
-  ];
-
-  const stats = [
-    { number: "50+", label: "Schools Trust Us" },
-    { number: "5K", label: "Students Managed" },
-    { number: "80%", label: "Uptime Guarantee" },
-    { number: "24/7", label: "Support Available" }
-  ];
-
-  const testimonials = [
-    {
-      name: "Priya Sharma",
-      role: "Principal, Little Stars Academy",
-      content: "Innonsh TinySteps has transformed how we manage our school. The intuitive interface makes it easy for all staff members to use.",
-      rating: 5
-    },
-    {
-      name: "Rajesh Kumar",
-      role: "Administrator, Sunshine Kindergarten",
-      content: "The attendance and fee management features have saved us countless hours. Parent feedback has been overwhelmingly positive.",
-      rating: 5
-    },
-    {
-      name: "Anjali Patel",
-      role: "Director, Growing Minds School",
-      content: "Excellent support team and regular updates. This system grows with our needs and handles everything we require.",
-      rating: 5
-    }
-  ];
-
-  const pricingPlans = [
-    {
-      name: "Starter",
-      price: "₹4,999",
-      period: "per month",
-      description: "Perfect for small preschools",
-      features: [
-        "Up to 50 students",
-        "Basic student management",
-        "Attendance tracking",
-        "Fee management",
-        "Email support",
-        "Mobile app access"
-      ],
-      popular: false
-    },
-    {
-      name: "Professional",
-      price: "₹9,999",
-      period: "per month",
-      description: "Most popular for growing schools",
-      features: [
-        "Up to 100 students",
-        "All Starter features",
-        "Teacher management",
-        "Advanced reporting",
-        "Parent portal",
-        "Priority support",
-        "Custom timetables",
-        "SMS notifications"
-      ],
-      popular: true
-    },
-    {
-      name: "Enterprise",
-      price: "Custom",
-      period: "contact us",
-      description: "For large institutions",
-      features: [
-        "Unlimited students",
-        "All Professional features",
-        "Multi-branch support",
-        "Custom integrations",
-        "Dedicated account manager",
-        "On-premise deployment",
-        "Training sessions",
-        "24/7 phone support"
-      ],
-      popular: false
-    }
-  ];
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 flex items-center justify-center">
-                <img src="/ICON.png" alt="Innonsh TinySteps" className="w-full h-full object-contain rounded-xl" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">Innonsh TinySteps</h1>
-                <p className="text-xs text-gray-500">School Management</p>
-              </div>
-            </div>
-
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-10">
-              {[
-                { id: "features", label: "Features" },
-                { id: "benefits", label: "Benefits" },
-                { id: "testimonials", label: "Testimonials" },
-                { id: "pricing", label: "Pricing" },
-                { id: "contact", label: "Contact" }
-              ].map((item) => (
-                <a
-                  key={item.id}
-                  href={`#${item.id}`}
-                  className={`text-sm font-medium transition-all duration-300 relative py-1 group ${activeSection === item.id ? "text-primary scale-105" : "text-gray-600 hover:text-gray-900"
-                    }`}
-                >
-                  {item.label}
-                  <span className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 bg-primary rounded-full transition-all duration-300 ${activeSection === item.id ? "w-full opacity-100" : "w-0 opacity-0 group-hover:w-1/2 group-hover:opacity-50"
-                    }`} />
-                </a>
-              ))}
-              <Link href="/login" className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors font-medium">
-                Get Started
-              </Link>
-            </div>
-
-            {/* Mobile Menu Button */}
-            <button
-              className="md:hidden"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+    <div className="landing-page-wrapper">
+      {/* ============ NAV ============ */}
+      <nav className={`nav ${isScrolled ? "scrolled" : ""}`} id="nav">
+        <div className="container nav-inner">
+          <a href="#" className="logo" onClick={(e) => handleAnchorClick(e, "#")} aria-label="Innonsh TinySteps home">
+            Innonsh TinySteps
+          </a>
+          <div className="nav-links">
+            <a href="#features" onClick={(e) => handleAnchorClick(e, "#features")}>Features</a>
+            <a href="#modules" onClick={(e) => handleAnchorClick(e, "#modules")}>Modules</a>
+            <a href="#parents" onClick={(e) => handleAnchorClick(e, "#parents")}>For Parents</a>
+            <a href="#impact" onClick={(e) => handleAnchorClick(e, "#impact")}>Impact</a>
+            <a href="#contact" onClick={(e) => handleAnchorClick(e, "#contact")}>Contact</a>
+          </div>
+          <div className="nav-cta-wrap">
+            <a href="#contact" onClick={(e) => handleAnchorClick(e, "#contact")} className="btn btn-secondary" style={{ padding: "8px 18px", border: "1.5px solid var(--ink)", background: "transparent", color: "var(--ink)" }}>
+              Request for a Demo
+            </a>
+            <Link href="/login" className="btn btn-primary" style={{ padding: "8px 18px" }}>
+              Sign Up <span className="btn-arrow">→</span>
+            </Link>
+            <button className="menu-toggle" onClick={() => setMobileMenuOpen(true)} aria-label="Open menu">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                <line x1="4" y1="7" x2="20" y2="7" />
+                <line x1="4" y1="12" x2="20" y2="12" />
+                <line x1="4" y1="17" x2="20" y2="17" />
+              </svg>
             </button>
           </div>
-
-          {/* Mobile Navigation */}
-          {mobileMenuOpen && (
-            <div className="md:hidden py-4 border-t border-gray-200">
-              <div className="flex flex-col gap-4">
-                {[
-                  { id: "features", label: "Features" },
-                  { id: "benefits", label: "Benefits" },
-                  { id: "testimonials", label: "Testimonials" },
-                  { id: "pricing", label: "Pricing" },
-                  { id: "contact", label: "Contact" }
-                ].map((item) => (
-                  <a
-                    key={item.id}
-                    href={`#${item.id}`}
-                    className={`text-base font-medium transition-all duration-300 flex items-center gap-2 ${activeSection === item.id ? "text-primary translate-x-2" : "text-gray-600"
-                      }`}
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    {activeSection === item.id && <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />}
-                    {item.label}
-                  </a>
-                ))}
-                <Link href="/login" className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark text-center">
-                  Get Started
-                </Link>
-              </div>
-            </div>
-          )}
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section id="demo" className="relative pt-28 pb-20 px-4 sm:px-6 lg:px-8 bg-white overflow-hidden">
-        {/* Subtle background blobs */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full bg-orange-50 blur-3xl opacity-60" />
-          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full bg-purple-50 blur-3xl opacity-40" />
-        </div>
-
-        <div className="max-w-7xl mx-auto relative z-10">
-          <div className="grid lg:grid-cols-2 gap-10 items-center">
-
-            {/* Left Content */}
-            <div>
-              {/* Badge */}
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-50 rounded-full border border-orange-100 mb-8">
-                <Zap className="w-4 h-4 text-primary" />
-                <span className="text-sm font-semibold text-slate-700">Trusted by 50+ schools</span>
-              </div>
-
-              {/* Heading */}
-              <h1 className="text-3xl sm:text-4xl lg:text-[40px] font-bold mb-6 leading-[1.2] tracking-tight text-slate-900">
-                Complete School<br />
-                Management System for<br />
-                Pre-Primary Education
-              </h1>
-
-              {/* Description */}
-              <p className="text-base sm:text-lg text-slate-500 mb-10 leading-relaxed max-w-md">
-                Streamline your preschool operations with our comprehensive ERP system. Manage students, teachers, attendance, fees, and more from one powerful platform.
-              </p>
-
-              {/* CTA Buttons */}
-              <div className="flex flex-wrap gap-4">
-                <a
-                  href="#contact"
-                  className="inline-flex items-center gap-2 px-7 py-3.5 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/30 hover:bg-primary-dark transition-all hover:-translate-y-0.5 group"
-                >
-                  Start Free Trial
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </a>
-              </div>
-            </div>
-
-            {/* Right — Dashboard Image */}
-            <div className="relative mt-10 lg:mt-0">
-              {/* Image card */}
-              <div className="relative rounded-2xl bg-white shadow-[0_8px_40px_rgba(0,0,0,0.12)] border border-slate-100 overflow-hidden">
-                <Image
-                  src="/dashboard.png"
-                  alt="Innonsh TinySteps Dashboard"
-                  width={900}
-                  height={620}
-                  className="w-full h-auto block"
-                  priority
-                />
-              </div>
-
-              {/* Floating Card — 50K+ Students (top-right, OUTSIDE the image card) */}
-              <div
-                className="absolute -top-5 -right-5 bg-secondary rounded-2xl px-6 py-5 shadow-2xl flex flex-col items-center justify-center animate-bounce cursor-default z-10"
-                style={{ animationDuration: '4s', minWidth: '110px' }}
-              >
-                <span className="text-2xl font-black text-white leading-none">5K</span>
-                <span className="text-xs font-bold text-white/90 mt-1">Students</span>
-              </div>
-
-              {/* Floating Card — 99.9% Uptime (bottom-left, overlapping corner) */}
-              <div
-                className="absolute -bottom-5 left-8 bg-primary rounded-2xl px-7 py-5 shadow-2xl flex flex-col items-center justify-center animate-bounce cursor-default z-10"
-                style={{ animationDuration: '5s', minWidth: '120px' }}
-              >
-                <span className="text-2xl font-black text-white leading-none">80%</span>
-                <span className="text-xs font-bold text-white/90 mt-1">Uptime</span>
-              </div>
-            </div>
-
+      {/* ============ MOBILE NAV DRAWER ============ */}
+      <div className={`mobile-menu-overlay ${mobileMenuOpen ? "open" : ""}`} onClick={() => setMobileMenuOpen(false)}>
+        <div className="mobile-menu-drawer" onClick={(e) => e.stopPropagation()}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+            <span style={{ fontFamily: "var(--font-display)", fontSize: "1.2rem", fontWeight: 500 }}>Menu</span>
+            <button onClick={() => setMobileMenuOpen(false)} style={{ padding: "8px", color: "var(--ink-soft)" }}>
+              <X className="w-6 h-6" />
+            </button>
           </div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="py-16 bg-white border-y border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, index) => (
-              <div key={index} className="text-center">
-                <div className="text-4xl font-bold text-gray-900 mb-2">{stat.number}</div>
-                <div className="text-gray-600">{stat.label}</div>
-              </div>
-            ))}
+          <div className="mobile-menu-links">
+            <a href="#features" onClick={(e) => handleAnchorClick(e, "#features")}>Features</a>
+            <a href="#modules" onClick={(e) => handleAnchorClick(e, "#modules")}>Modules</a>
+            <a href="#parents" onClick={(e) => handleAnchorClick(e, "#parents")}>For Parents</a>
+            <a href="#impact" onClick={(e) => handleAnchorClick(e, "#impact")}>Impact</a>
+            <a href="#contact" onClick={(e) => handleAnchorClick(e, "#contact")}>Contact</a>
           </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section id="features" className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Everything You Need to Manage Your School
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Our comprehensive ERP system includes all the features you need to run your pre-primary school efficiently
-            </p>
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, index) => {
-              const Icon = feature.icon;
-              return (
-                <div key={index} className="bg-white rounded-xl p-8 border border-gray-200 hover:shadow-lg transition-shadow">
-                  <div className={`w-14 h-14 ${feature.color} rounded-xl flex items-center justify-center mb-6`}>
-                    <Icon className="w-7 h-7 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
-                  <p className="text-gray-600">{feature.description}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Benefits Section */}
-      <section id="benefits" className="py-20 px-4 sm:px-6 lg:px-8 bg-sky-50">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-4xl font-bold text-gray-900 mb-6">
-                Why Schools Choose Innonsh TinySteps
-              </h2>
-              <p className="text-xl text-gray-600 mb-8">
-                Join hundreds of schools that have transformed their operations with our intelligent management system
-              </p>
-              <div className="space-y-4">
-                {benefits.map((benefit, index) => (
-                  <div key={index} className="flex items-start gap-3">
-                    <CheckCircle2 className="w-6 h-6 text-green-500 flex-shrink-0 mt-1" />
-                    <span className="text-lg text-gray-700">{benefit}</span>
-                  </div>
-                ))}
-              </div>
-
-            </div>
-            <div className="grid grid-cols-2 gap-6">
-              <div className="bg-primary/10 rounded-xl p-6 border border-primary/20">
-                <Shield className="w-10 h-10 text-primary mb-4" />
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Secure & Reliable</h3>
-                <p className="text-gray-600">Bank-level security with daily backups</p>
-              </div>
-              <div className="bg-secondary/10 rounded-xl p-6 border border-secondary/20 mt-8">
-                <Zap className="w-10 h-10 text-secondary mb-4" />
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Lightning Fast</h3>
-                <p className="text-gray-600">Optimized for speed and performance</p>
-              </div>
-              <div className="bg-accent/10 rounded-xl p-6 border border-accent/20">
-                <BarChart3 className="w-10 h-10 text-accent mb-4" />
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Smart Analytics</h3>
-                <p className="text-gray-600">Data-driven insights and reports</p>
-              </div>
-              <div className="bg-green-50 rounded-xl p-6 border border-green-200 mt-8">
-                <Users className="w-10 h-10 text-green-500 mb-4" />
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Easy to Use</h3>
-                <p className="text-gray-600">Intuitive interface for everyone</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section id="testimonials" className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4 tracking-tight">
-              Loved by School Administrators
-            </h2>
-            <p className="text-lg text-gray-500 max-w-xl mx-auto">
-              See what our customers have to say about Innonsh TinySteps
-            </p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-white rounded-2xl p-8 border border-gray-200 hover:shadow-lg transition-all duration-300">
-                {/* Stars */}
-                <div className="flex gap-1 mb-5">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-                {/* Quote */}
-                <p className="text-gray-700 leading-relaxed mb-6">
-                  &ldquo;{testimonial.content}&rdquo;
-                </p>
-                {/* Author */}
-                <div>
-                  <div className="font-bold text-gray-900">{testimonial.name}</div>
-                  <div className="text-sm text-gray-500 mt-0.5">{testimonial.role}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing Section */}
-      <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Simple, Transparent Pricing
-            </h2>
-            <p className="text-xl text-gray-600">
-              Choose the perfect plan for your school's needs
-            </p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            {pricingPlans.map((plan, index) => (
-              <div
-                key={index}
-                className={`rounded-xl p-8 border-2 ${plan.popular
-                  ? 'border-orange-500 bg-orange-50 relative'
-                  : 'border-gray-200 bg-white'
-                  }`}
-              >
-                {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-orange-500 text-white text-sm font-medium rounded-full">
-                    Most Popular
-                  </div>
-                )}
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
-                <p className="text-gray-600 mb-6">{plan.description}</p>
-                <div className="mb-6">
-                  <span className="text-4xl font-bold text-gray-900">{plan.price}</span>
-                  <span className="text-gray-600 ml-2">{plan.period}</span>
-                </div>
-                <Link
-                  href="/login"
-                  className={`w-full py-3 rounded-lg font-medium transition-colors mb-8 block text-center ${plan.popular
-                    ? 'bg-orange-500 text-white hover:bg-orange-600'
-                    : 'bg-gray-900 text-white hover:bg-gray-800'
-                    }`}
-                >
-                  Get Started
-                </Link>
-                <div className="space-y-3">
-                  {plan.features.map((feature, idx) => (
-                    <div key={idx} className="flex items-start gap-3">
-                      <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700">{feature}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-orange-400 via-pink-500 to-purple-600">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl font-bold text-white mb-6">
-            Ready to Transform Your School Management?
-          </h2>
-          <p className="text-xl text-white/90 mb-8">
-            Join hundreds of schools using Innonsh TinySteps to streamline their operations
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="#contact" className="px-8 py-4 bg-white text-gray-900 rounded-lg hover:bg-gray-100 transition-colors text-lg font-medium inline-block text-center whitespace-nowrap">
-              Start Free Trial
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "auto" }}>
+            <a href="#contact" onClick={(e) => { setMobileMenuOpen(false); handleAnchorClick(e, "#contact"); }} className="btn btn-secondary" style={{ width: "100%", justifyContent: "center" }}>
+              Request for a Demo
             </a>
+            <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="btn btn-primary" style={{ width: "100%", justifyContent: "center" }}>
+              Sign Up <span className="btn-arrow">→</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* ============ HERO ============ */}
+      <header className="hero">
+        <div className="hero-bg">
+          <div className="blob blob-1"></div>
+          <div className="blob blob-2"></div>
+          <div className="blob blob-3"></div>
+        </div>
+        <div className="container hero-grid">
+          <div className="hero-text">
+            <span className="eyebrow">Made for preschools</span>
+            <h1>
+              Everything your preschool needs, <span className="serif-italic">in one warm little place.</span>
+            </h1>
+            <p className="hero-sub">
+              Simple, friendly school management for students, teachers, parents, attendance, fees, and daily school life designed so you can spend less time on paperwork and more time with the children.
+            </p>
+            <div className="hero-actions">
+              <Link href="/login" className="btn btn-primary">
+                Sign Up <span className="btn-arrow">→</span>
+              </Link>
+              <a href="#contact" onClick={(e) => handleAnchorClick(e, "#contact")} className="btn btn-secondary">
+                Request for a Demo
+              </a>
+            </div>
+            <div className="hero-trust">
+              <span className="hero-trust-item">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                No technical knowledge needed
+              </span>
+              <span className="hero-trust-item">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Setup help included
+              </span>
+              <span className="hero-trust-item">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Works on any device
+              </span>
+            </div>
+          </div>
+
+          <div className="hero-visual">
+            {/* Floating mini card 1 */}
+            <div className="float-card float-card-1">
+              <div className="float-icon" style={{ background: "var(--sage)" }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </div>
+              <div>
+                <div style={{ fontWeight: 700 }}>Aanya is in class</div>
+                <div style={{ color: "var(--ink-muted)", fontSize: "0.75rem" }}>Attendance marked · 9:02 AM</div>
+              </div>
+            </div>
+
+            {/* Dashboard card */}
+            <div className="dashboard-card">
+              <div className="dash-header">
+                <div className="dash-title">Today at School</div>
+                <div className="dash-dots">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+              </div>
+              <div className="dash-stats">
+                <div className="dash-stat">
+                  <div className="dash-stat-label">Present</div>
+                  <div className="dash-stat-value">128</div>
+                </div>
+                <div className="dash-stat">
+                  <div className="dash-stat-label">On Leave</div>
+                  <div className="dash-stat-value">4</div>
+                </div>
+                <div className="dash-stat">
+                  <div className="dash-stat-label">Fees Paid</div>
+                  <div className="dash-stat-value">92%</div>
+                </div>
+              </div>
+              <div className="dash-chart">
+                <svg viewBox="0 0 300 90" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="chartGrad" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0%" stopColor="#E8704B" stopOpacity="0.6" />
+                      <stop offset="100%" stopColor="#E8704B" stopOpacity="0" />
+                    </linearGradient>
+                  </defs>
+                  <path d="M0,70 Q40,40 80,50 T160,30 T240,40 T300,20 L300,90 L0,90 Z" fill="url(#chartGrad)" />
+                  <path d="M0,70 Q40,40 80,50 T160,30 T240,40 T300,20" stroke="#E8704B" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+                </svg>
+              </div>
+              <div className="dash-list">
+                <div className="dash-row">
+                  <div className="dash-avatar" style={{ background: "var(--coral)" }}>
+                    AS
+                  </div>
+                  <div className="dash-row-info">
+                    <div className="dash-row-name">Aarav Sharma</div>
+                    <div className="dash-row-meta">Sunflower · Class A</div>
+                  </div>
+                  <span className="dash-row-badge badge-present">Present</span>
+                </div>
+                <div className="dash-row">
+                  <div className="dash-avatar" style={{ background: "var(--sage)" }}>
+                    MP
+                  </div>
+                  <div className="dash-row-info">
+                    <div className="dash-row-name">Meera Patel</div>
+                    <div className="dash-row-meta">Sunflower · Class A</div>
+                  </div>
+                  <span className="dash-row-badge badge-late">Late</span>
+                </div>
+                <div className="dash-row">
+                  <div className="dash-avatar" style={{ background: "var(--plum)" }}>
+                    RK
+                  </div>
+                  <div className="dash-row-info">
+                    <div className="dash-row-name">Ria Kapoor</div>
+                    <div className="dash-row-meta">Daisy · Class B</div>
+                  </div>
+                  <span className="dash-row-badge badge-present">Present</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Floating mini card 2 */}
+            <div className="float-card float-card-2">
+              <div className="float-icon" style={{ background: "var(--coral)" }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+              </div>
+              <div>
+                <div style={{ fontWeight: 700 }}>Message sent</div>
+                <div style={{ color: "var(--ink-muted)", fontSize: "0.75rem" }}>42 parents notified</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* ============ MARQUEE STRIP ============ */}
+      <div className="strip">
+        <div className="strip-track">
+          <span>
+            Save Time <span className="dot"></span> Happy Parents <span className="dot"></span> Easy Attendance <span className="dot"></span> Simple Fees <span className="dot"></span> Organized Records <span className="dot"></span> Smooth Operations <span className="dot"></span>
+          </span>
+          <span>
+            Save Time <span className="dot"></span> Happy Parents <span className="dot"></span> Easy Attendance <span className="dot"></span> Simple Fees <span className="dot"></span> Organized Records <span className="dot"></span> Smooth Operations <span className="dot"></span>
+          </span>
+        </div>
+      </div>
+
+      {/* ============ PROBLEMS / SOLUTIONS ============ */}
+      <section id="features">
+        <div className="container">
+          <div className="section-head reveal">
+            <span className="eyebrow">Why schools love it</span>
+            <h2>
+              The little headaches you&apos;ll <span className="serif-italic">never deal with again.</span>
+            </h2>
+            <p>Running a preschool means juggling a thousand small things every day. Brightly takes care of the paperwork so you can focus on what really matters—the children.</p>
+          </div>
+
+          <div className="problem-grid">
+            <div className="problem-card reveal">
+              <div className="problem-icon pi-1">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                </svg>
+              </div>
+              <h3>Mountains of paperwork</h3>
+              <p>Stop chasing files, ledgers, and registers. Everything is neatly stored and just one click away.</p>
+              <div className="arrow">Goodbye, file cabinets →</div>
+            </div>
+
+            <div className="problem-card reveal">
+              <div className="problem-icon pi-2">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                  <polyline points="9 16 11 18 15 14" />
+                </svg>
+              </div>
+              <h3>Slow attendance taking</h3>
+              <p>Mark attendance for the whole class in under a minute and share it with parents instantly.</p>
+              <div className="arrow">Save 30 mins every morning →</div>
+            </div>
+
+            <div className="problem-card reveal">
+              <div className="problem-icon pi-3">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                </svg>
+              </div>
+              <h3>Parents calling all day</h3>
+              <p>Parents see attendance, fees, photos, and notices in their app—no more endless phone calls.</p>
+              <div className="arrow">Happier parents, calmer office →</div>
+            </div>
+
+            <div className="problem-card reveal">
+              <div className="problem-icon pi-4">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="1" x2="12" y2="23" />
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                </svg>
+              </div>
+              <h3>Confusing fee tracking</h3>
+              <p>See who paid, who pending, who&apos;s due—all in one clear screen. Send reminders with one tap.</p>
+              <div className="arrow">No more missed payments →</div>
+            </div>
+
+            <div className="problem-card reveal">
+              <div className="problem-icon pi-5">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+              </div>
+              <h3>Scattered student info</h3>
+              <p>Every child&apos;s profile, parent info, medical notes, and history beautifully organized in one place.</p>
+              <div className="arrow">Find anything in seconds →</div>
+            </div>
+
+            <div className="problem-card reveal">
+              <div className="problem-icon pi-6">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+              </div>
+              <h3>Manual timetables & exams</h3>
+              <p>Build class schedules, plan exams, and share results without the spreadsheet headaches.</p>
+              <div className="arrow">Plan your week in minutes →</div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Contact Section */}
-      <section id="contact" className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-accent/5 via-primary/5 to-primary-dark/5">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">Get in Touch</h2>
-            <p className="text-xl text-gray-600">
-              Have questions? We'd love to hear from you
-            </p>
+      {/* ============ MODULES ============ */}
+      <section id="modules" className="modules-section">
+        <div className="container">
+          <div className="section-head reveal">
+            <span className="eyebrow">17 thoughtful modules</span>
+            <h2>
+              One simple system. <span className="serif-italic">Every part of school life.</span>
+            </h2>
+            <p>From your first day of admission to the last day of the year—every step of your school&apos;s journey is covered.</p>
           </div>
-          <div className="grid md:grid-cols-2 gap-8">
-            <div>
-              <form className="space-y-6" onSubmit={handleContactSubmit}>
-                {/* Prevent Captcha from FormSubmit when using AJAX */}
+
+          <div className="modules-grid">
+            {/* 1 */}
+            <div className="module-card reveal" data-color="coral">
+              <div className="mod-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="7" height="9" />
+                  <rect x="14" y="3" width="7" height="5" />
+                  <rect x="14" y="12" width="7" height="9" />
+                  <rect x="3" y="16" width="7" height="5" />
+                </svg>
+              </div>
+              <h3>Admin Dashboard</h3>
+              <p>See everything happening in your school at a glance—attendance, fees, students, and more, all on one friendly screen.</p>
+              <span className="module-tag">Your daily command center</span>
+            </div>
+
+            {/* 2 */}
+            <div className="module-card reveal" data-color="sage">
+              <div className="mod-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+              </div>
+              <h3>Student Management</h3>
+              <p>Every child&apos;s full story in one place—parents, medical notes, documents, photos, and progress.</p>
+              <span className="module-tag">Everything about every child</span>
+            </div>
+
+            {/* 3 */}
+            <div className="module-card reveal" data-color="sky">
+              <div className="mod-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+              </div>
+              <h3>Teacher Management</h3>
+              <p>Manage your teaching team easily—profiles, qualifications, classes assigned, and more.</p>
+              <span className="module-tag">Your team, organized</span>
+            </div>
+
+            {/* 4 */}
+            <div className="module-card reveal" data-color="butter">
+              <div className="mod-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 21h18" />
+                  <path d="M5 21V7l8-4v18" />
+                  <path d="M19 21V11l-6-4" />
+                </svg>
+              </div>
+              <h3>Class & Sections</h3>
+              <p>Organize classes, sections, rooms, and who&apos;s in each one—clean and simple to set up.</p>
+              <span className="module-tag">Right child, right place</span>
+            </div>
+
+            {/* 5 */}
+            <div className="module-card reveal" data-color="plum">
+              <div className="mod-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                  <polyline points="9 16 11 18 15 14" />
+                </svg>
+              </div>
+              <h3>Attendance</h3>
+              <p>Mark daily attendance in seconds. Parents see updates instantly. Reports made automatically.</p>
+              <span className="module-tag">One tap, done</span>
+            </div>
+
+            {/* 6 */}
+            <div className="module-card reveal" data-color="coral">
+              <div className="mod-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+              </div>
+              <h3>Timetable</h3>
+              <p>Build beautiful weekly schedules—drag, drop, and never have two classes in the same room again.</p>
+              <span className="module-tag">No more clashes</span>
+            </div>
+
+            {/* 7 */}
+            <div className="module-card reveal" data-color="sage">
+              <div className="mod-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2L15.09 8.26 22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+              </div>
+              <h3>Exams & Results</h3>
+              <p>Plan exams, set grading, enter marks, and share friendly report cards with parents beautifully.</p>
+              <span className="module-tag">Stress-free assessments</span>
+            </div>
+
+            {/* 8 */}
+            <div className="module-card reveal" data-color="coral">
+              <div className="mod-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="1" x2="12" y2="23" />
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                </svg>
+              </div>
+              <h3>Fees</h3>
+              <p>Collect fees in cash, online, or by cheque. Track who paid, send reminders, print receipts—done.</p>
+              <span className="module-tag">Money matters, sorted</span>
+            </div>
+
+            {/* 9 */}
+            <div className="module-card reveal" data-color="sky">
+              <div className="mod-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="9" y1="13" x2="15" y2="13" />
+                  <line x1="9" y1="17" x2="13" y2="17" />
+                </svg>
+              </div>
+              <h3>Admissions</h3>
+              <p>From inquiry to enrollment—track new admissions, verify documents, and welcome new families easily.</p>
+              <span className="module-tag">Smooth enrollments</span>
+            </div>
+
+            {/* 10 */}
+            <div className="module-card reveal" data-color="plum">
+              <div className="mod-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+              </div>
+              <h3>Settings</h3>
+              <p>Set up your school&apos;s profile, decide who can do what, and customize the system the way you like.</p>
+              <span className="module-tag">Your school, your rules</span>
+            </div>
+
+            {/* 11 */}
+            <div className="module-card reveal" data-color="butter">
+              <div className="mod-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10 17h4V5H2v12h3" />
+                  <polyline points="14 5 21 5 21 17 17 17" />
+                  <circle cx="7.5" cy="17.5" r="2.5" />
+                  <circle cx="17.5" cy="17.5" r="2.5" />
+                </svg>
+              </div>
+              <h3>Transport</h3>
+              <p>Manage school buses, drivers, and routes. Know which child is on which bus, always.</p>
+              <span className="module-tag">Safe rides, every day</span>
+            </div>
+
+            {/* 12 */}
+            <div className="module-card reveal" data-color="coral">
+              <div className="mod-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+              </div>
+              <h3>Notifications</h3>
+              <p>Send announcements, reminders, or personal notes to one parent or everyone in seconds.</p>
+              <span className="module-tag">Always in the loop</span>
+            </div>
+
+            {/* 13 */}
+            <div className="module-card reveal" data-color="sage">
+              <div className="mod-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+              </div>
+              <h3>Events & Calendar</h3>
+              <p>Holidays, parent meetings, sports day, picnics—every special day on one shared calendar.</p>
+              <span className="module-tag">Never miss a moment</span>
+            </div>
+
+            {/* 14 */}
+            <div className="module-card reveal" data-color="sky">
+              <div className="mod-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                  <circle cx="12" cy="13" r="4" />
+                </svg>
+              </div>
+              <h3>Photo & Media</h3>
+              <p>Share happy classroom moments and event photos with parents—they&apos;ll love every memory.</p>
+              <span className="module-tag">Memories that matter</span>
+            </div>
+
+            {/* 15 */}
+            <div className="module-card reveal" data-color="plum">
+              <div className="mod-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                </svg>
+              </div>
+              <h3>Parent Portal</h3>
+              <p>A loving little app for parents—attendance, fees, photos, progress, and notices, all in their pocket.</p>
+              <span className="module-tag">Parents&apos; favorite feature</span>
+            </div>
+
+            {/* 16 */}
+            <div className="module-card reveal" data-color="butter">
+              <div className="mod-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                </svg>
+              </div>
+              <h3>Teacher & Student Portal</h3>
+              <p>A simple dashboard where teachers manage their classes and students see their schedule and tasks.</p>
+              <span className="module-tag">Everyone has their own space</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============ PARENT SECTION ============ */}
+      <section id="parents" className="parent-section">
+        <div className="container parent-grid">
+          <div className="parent-visual reveal">
+            <span className="parent-decoration d1">⭐</span>
+            <span className="parent-decoration d2">❤️</span>
+            <span className="parent-decoration d3">✨</span>
+            <div className="phone">
+              <div className="phone-notch"></div>
+              <div className="phone-screen">
+                <div style={{ fontFamily: "var(--font-display)", fontSize: "1rem", marginBottom: "16px", paddingLeft: "4px" }}>
+                  <div style={{ fontSize: "0.7rem", color: "var(--ink-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700 }}>Today</div>
+                  <div style={{ fontWeight: 500, marginTop: "2px" }}>Hello, Priya 👋</div>
+                </div>
+
+                <div className="notif">
+                  <div className="notif-icon" style={{ background: "var(--sage-soft)", color: "#496D4C" }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                  <div className="notif-body">
+                    <div className="notif-title">Aarav is at school!</div>
+                    <div className="notif-text">Attendance marked at 9:02 AM</div>
+                    <div className="notif-time">Just now</div>
+                  </div>
+                </div>
+
+                <div className="notif">
+                  <div className="notif-icon" style={{ background: "var(--butter-soft)", color: "#8B6A1F" }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 2C8 2 6 5 6 8c0 4 3 5 3 9 0 2 1 3 3 3s3-1 3-3c0-4 3-5 3-9 0-3-2-6-6-6z" />
+                    </svg>
+                  </div>
+                  <div className="notif-body">
+                    <div className="notif-title">Lunch today: Veg pulao 🍚</div>
+                    <div className="notif-text">With cucumber salad & fruit</div>
+                    <div className="notif-time">12 min ago</div>
+                  </div>
+                </div>
+
+                <div className="notif">
+                  <div className="notif-icon" style={{ background: "var(--coral-soft)", color: "var(--coral-deep)" }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="4" width="18" height="18" rx="2" />
+                      <line x1="16" y1="2" x2="16" y2="6" />
+                      <line x1="8" y1="2" x2="8" y2="6" />
+                    </svg>
+                  </div>
+                  <div className="notif-body">
+                    <div className="notif-title">Sports Day on Friday!</div>
+                    <div className="notif-text">Please send sneakers ✨</div>
+                    <div className="notif-time">2 hours ago</div>
+                  </div>
+                </div>
+
+                <div className="notif">
+                  <div className="notif-icon" style={{ background: "var(--sky-soft)", color: "#3F6586" }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <circle cx="8.5" cy="8.5" r="1.5" />
+                      <polyline points="21 15 16 10 5 21" />
+                    </svg>
+                  </div>
+                  <div className="notif-body">
+                    <div className="notif-title">New photos uploaded 📸</div>
+                    <div className="notif-text">5 from today&apos;s art class</div>
+                    <div className="notif-time">Yesterday</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="parent-content reveal">
+            <span className="eyebrow">Built for parents too</span>
+            <h2>
+              The kind of school updates <span className="serif-italic">parents fall in love with.</span>
+            </h2>
+            <p>Parents feel calmer when they know their little one is happy and safe. Brightly gently keeps them in the loop so they always feel close, even when they&apos;re at work.</p>
+
+            <div className="parent-benefits">
+              <div className="parent-benefit">
+                <div className="pb-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                  </svg>
+                </div>
+                <div className="pb-text">
+                  <strong>Live notifications</strong>
+                  <span>The moment something happens, parents know.</span>
+                </div>
+              </div>
+
+              <div className="parent-benefit">
+                <div className="pb-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+                <div className="pb-text">
+                  <strong>Attendance updates</strong>
+                  <span>&ldquo;Your child is safely in class.&rdquo; Every morning.</span>
+                </div>
+              </div>
+
+              <div className="parent-benefit">
+                <div className="pb-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="12" y1="1" x2="12" y2="23" />
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                  </svg>
+                </div>
+                <div className="pb-text">
+                  <strong>Friendly fee reminders</strong>
+                  <span>Pay online or get a gentle reminder—no awkward calls.</span>
+                </div>
+              </div>
+
+              <div className="parent-benefit">
+                <div className="pb-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" />
+                    <line x1="16" y1="2" x2="16" y2="6" />
+                    <line x1="8" y1="2" x2="8" y2="6" />
+                  </svg>
+                </div>
+                <div className="pb-text">
+                  <strong>Event updates</strong>
+                  <span>Holidays, meetings, picnics—all in one calendar.</span>
+                </div>
+              </div>
+
+              <div className="parent-benefit">
+                <div className="pb-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2L15.09 8.26 22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                  </svg>
+                </div>
+                <div className="pb-text">
+                  <strong>Progress tracking</strong>
+                  <span>Watch your child grow with simple report cards.</span>
+                </div>
+              </div>
+
+              <div className="parent-benefit">
+                <div className="pb-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <polyline points="21 15 16 10 5 21" />
+                  </svg>
+                </div>
+                <div className="pb-text">
+                  <strong>Photos from the day</strong>
+                  <span>Sweet little moments shared straight from the classroom.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============ ROLES SECTION ============ */}
+      <section className="roles-section">
+        <div className="container">
+          <div className="section-head reveal">
+            <span className="eyebrow">Made for everyone</span>
+            <h2>
+              One system that <span className="serif-italic">makes everyone&apos;s day easier.</span>
+            </h2>
+            <p>From the principal to the parent, Brightly gives each person exactly what they need and nothing they don&apos;t.</p>
+          </div>
+
+          <div className="roles-grid">
+            <div className="role-card reveal">
+              <div className="role-illust" style={{ background: "var(--coral-soft)" }}>👑</div>
+              <h3>For Principals</h3>
+              <ul>
+                <li>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  One screen for the whole school
+                </li>
+                <li>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  Quick reports any time
+                </li>
+                <li>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  See how the school is doing
+                </li>
+                <li>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  Make better decisions
+                </li>
+              </ul>
+            </div>
+
+            <div className="role-card reveal">
+              <div className="role-illust" style={{ background: "var(--sage-soft)" }}>📋</div>
+              <h3>For Admin Staff</h3>
+              <ul>
+                <li>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  No more paperwork piles
+                </li>
+                <li>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  Collect fees easily
+                </li>
+                <li>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  Find any record in seconds
+                </li>
+                <li>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  Send updates in one click
+                </li>
+              </ul>
+            </div>
+
+            <div className="role-card reveal">
+              <div className="role-illust" style={{ background: "var(--sky-soft)" }}>🍎</div>
+              <h3>For Teachers</h3>
+              <ul>
+                <li>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  Mark attendance in seconds
+                </li>
+                <li>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  Share photos & updates
+                </li>
+                <li>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  Track each child&apos;s progress
+                </li>
+                <li>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  More time with the children
+                </li>
+              </ul>
+            </div>
+
+            <div className="role-card reveal">
+              <div className="role-illust" style={{ background: "var(--butter-soft)" }}>👨‍👩‍👧</div>
+              <h3>For Parents</h3>
+              <ul>
+                <li>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  Always know what&apos;s happening
+                </li>
+                <li>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  Pay fees online easily
+                </li>
+                <li>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  See daily photos & updates
+                </li>
+                <li>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  Stay close to your little one
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============ DEVICES SECTION ============ */}
+      <section className="devices-section">
+        <div className="container">
+          <div className="section-head reveal">
+            <span className="eyebrow">Anywhere, anytime</span>
+            <h2>
+              Works beautifully on <span className="serif-italic">every device you own.</span>
+            </h2>
+            <p>Open it on your office desktop, your tablet during the day, or your phone on the go. It just works—no installation, no fuss.</p>
+          </div>
+
+          <div className="devices-stage reveal">
+            <div className="device device-laptop">
+              <div className="device-screen">
+                <div>
+                  <div style={{ fontSize: "0.75rem", opacity: 0.7, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "8px" }}>Principal&apos;s view</div>
+                  <div style={{ fontSize: "clamp(1rem, 2vw, 1.5rem)" }}>Today, 132 children are at school 🌼</div>
+                </div>
+              </div>
+            </div>
+            <div className="device device-tablet">
+              <div className="device-screen">
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: "0.65rem", opacity: 0.7, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "6px" }}>Teacher&apos;s view</div>
+                  <div style={{ fontSize: "1rem" }}>Attendance ✓</div>
+                </div>
+              </div>
+            </div>
+            <div className="device device-phone">
+              <div className="device-screen">
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: "0.6rem", opacity: 0.7, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "6px" }}>Parent&apos;s view</div>
+                  <div style={{ fontSize: "0.85rem" }}>
+                    Aarav
+                    <br />
+                    is happy ❤️
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============ STATS / IMPACT ============ */}
+      <section id="impact" className="stats-section">
+        <div className="container">
+          <div className="section-head reveal">
+            <span className="eyebrow">Real impact</span>
+            <h2>
+              Less paperwork. <span className="serif-italic">More smiles.</span>
+            </h2>
+            <p>Schools using Brightly tell us they save hours every week, and parents say the difference is night and day.</p>
+          </div>
+
+          <div className="stats-grid">
+            <div className="stat-card reveal">
+              <div className="stat-card-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+              </div>
+              <div className="stat-number" data-target="12" data-suffix="hrs">
+                0
+              </div>
+              <div className="stat-label">Saved every week</div>
+              <div className="stat-sub">Less time on admin, more time with children.</div>
+            </div>
+
+            <div className="stat-card reveal">
+              <div className="stat-card-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                </svg>
+              </div>
+              <div className="stat-number" data-target="98" data-suffix="%">
+                0
+              </div>
+              <div className="stat-label">Happier parents</div>
+              <div className="stat-sub">Parents feel informed and trusted.</div>
+            </div>
+
+            <div className="stat-card reveal">
+              <div className="stat-card-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="1" x2="12" y2="23" />
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                </svg>
+              </div>
+              <div className="stat-number" data-target="3" data-suffix="x">
+                0
+              </div>
+              <div className="stat-label">Faster fee collection</div>
+              <div className="stat-sub">Fewer pending payments, clearer records.</div>
+            </div>
+
+            <div className="stat-card reveal">
+              <div className="stat-card-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </div>
+              <div className="stat-number" data-target="100" data-suffix="%">
+                0
+              </div>
+              <div className="stat-label">Organized records</div>
+              <div className="stat-sub">Every detail, neatly in its place.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============ CTA BANNER & CONTACT FORM ============ */}
+      <section id="contact" className="cta-section">
+        <div className="container">
+          <div className="cta-banner reveal">
+            <div className="cta-left">
+              <h2>
+                Ready to simplify your <br className="desktop-only" /><span className="serif-italic">school management?</span>
+              </h2>
+              <p>
+                Book a free 30-minute demo with<br className="desktop-only" />
+                our friendly team. We&apos;ll show you exactly<br className="desktop-only" />
+                how Innonsh TinySteps can make your school<br className="desktop-only" />
+                run smoother—no commitment, no pressure.
+              </p>
+            </div>
+            
+            <div className="cta-right">
+              <form onSubmit={handleContactSubmit}>
                 <input type="hidden" name="_captcha" value="false" />
                 <input type="hidden" name="_subject" value="New Inquiry from Innonsh TinySteps Website!" />
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Name</label>
-                  <input
-                    type="text"
-                    name="Name"
-                    required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="Your name"
-                  />
+                
+                <h3 className="cta-right-title">Send us a message</h3>
+                <p className="cta-right-subtitle">Have questions or want to see a live demo? Fill out the form below.</p>
+                
+                <div className="cta-form-group">
+                  <label className="cta-form-label">Your Name</label>
+                  <input type="text" name="Name" required className="cta-form-input" placeholder="Enter your full name" />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                  <input
-                    type="email"
-                    name="Email"
-                    required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="your@email.com"
-                  />
+                
+                <div className="cta-form-group">
+                  <label className="cta-form-label">Email Address</label>
+                  <input type="email" name="Email" required className="cta-form-input" placeholder="you@example.com" />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">School Name</label>
-                  <input
-                    type="text"
-                    name="School Name"
-                    required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="Your school name"
-                  />
+                
+                <div className="cta-form-group">
+                  <label className="cta-form-label">School Name</label>
+                  <input type="text" name="School Name" required className="cta-form-input" placeholder="Your school or institution name" />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Message</label>
-                  <textarea
-                    rows={4}
-                    name="Message"
-                    required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary min-h-[120px]"
-                    placeholder="Tell us about your requirements"
-                  />
+                
+                <div className="cta-form-group">
+                  <label className="cta-form-label">Your Message</label>
+                  <textarea name="Message" rows={3} required className="cta-form-textarea" placeholder="Tell us about your requirements..."></textarea>
                 </div>
-                <button
-                  type="submit"
-                  disabled={isSubmittingContact}
-                  className="w-full flex items-center justify-center py-3 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors font-medium text-center disabled:opacity-50 disabled:cursor-not-allowed"
-                >
+                
+                <button type="submit" disabled={isSubmittingContact} className="btn btn-light" style={{ width: "100%", justifyContent: "center", marginTop: "8px" }}>
                   {isSubmittingContact ? "Sending..." : "Send Message"}
                 </button>
               </form>
             </div>
-            <div className="space-y-6">
-              <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">Contact Information</h3>
-                <div className="space-y-4">
-                  <div>
-                    <div className="text-sm text-gray-500 mb-1">Email</div>
-                    <div className="text-gray-900">info@innonsh.com</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500 mb-1">Phone</div>
-                    <div className="text-gray-900">+91 76203 01874</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500 mb-1">Address</div>
-                    <div className="text-gray-900 leading-relaxed">311, Innonsh Technologies, One Mall (Reliance Shop), Bhondve Vasti, Aundh-Ravet, BRTS Road, Ravet. 412101</div>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-primary/5 rounded-xl p-6 border border-primary/10">
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Need Help?</h3>
-                <p className="text-gray-600 mb-4">
-                  Our support team is available 24/7 to assist you with any questions
-                </p>
-
-              </div>
-            </div>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-slate-900 text-white py-12 px-4 sm:px-6 lg:px-8 border-t border-slate-800 font-sans">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-            {/* Brand */}
-            <div className="lg:col-span-1">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 flex items-center justify-center">
-                  <img src="/ICON.png" alt="Innonsh TinySteps" className="w-full h-full object-contain rounded-xl" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-white" style={{ color: "#ffffff", opacity: 1, visibility: "visible" }}>Innonsh TinySteps</h3>
-                </div>
-              </div>
-              <p className="text-slate-400 text-sm leading-relaxed max-w-xs">
-                Empowering the next generation of schools with intelligent, secure, and intuitive management solutions.
-              </p>
+      {/* ============ FOOTER ============ */}
+      <footer>
+        <div className="container">
+          <div className="footer-grid">
+            <div>
+              <a href="#" className="logo" onClick={(e) => handleAnchorClick(e, "#")}>
+                Innonsh TinySteps
+              </a>
+              <p className="footer-brand-text">Easy school management made simple. Built with care for preschools so every day feels lighter and a little brighter.</p>
             </div>
 
-            {/* Links */}
-            <div>
-              <h4 className="font-bold text-white mb-4 text-sm uppercase tracking-wider">Product</h4>
-              <ul className="space-y-2 text-slate-400 text-sm">
-                <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
-                <li><a href="#pricing" className="hover:text-white transition-colors">Pricing</a></li>
-                <li><a href="#demo" className="hover:text-white transition-colors">Live Demo</a></li>
-                <li><a href="#benefits" className="hover:text-white transition-colors">Product Roadmap</a></li>
+            <div className="footer-col">
+              <h4>PRODUCT</h4>
+              <ul>
+                <li>
+                  <a href="#features" onClick={(e) => handleAnchorClick(e, "#features")}>Features</a>
+                </li>
+                <li>
+                  <a href="#modules" onClick={(e) => handleAnchorClick(e, "#modules")}>All Modules</a>
+                </li>
+                <li>
+                  <a href="#parents" onClick={(e) => handleAnchorClick(e, "#parents")}>Parent App</a>
+                </li>
+                <li>
+                  <a href="#impact" onClick={(e) => handleAnchorClick(e, "#impact")}>Why TinySteps</a>
+                </li>
+                <li>
+                  <a href="#contact" onClick={(e) => handleAnchorClick(e, "#contact")} className="hover:text-white transition-colors cursor-pointer text-left">
+                    Book a Demo
+                  </a>
+                </li>
               </ul>
             </div>
 
-            <div>
-              <h4 className="font-bold text-white mb-4 text-sm uppercase tracking-wider">Resources</h4>
-              <ul className="space-y-2 text-slate-400 text-sm">
-                <li><Link href="/login" className="hover:text-white transition-colors">Help Center</Link></li>
-                <li><Link href="/login" className="hover:text-white transition-colors">API Documentation</Link></li>
-                <li><Link href="/login" className="hover:text-white transition-colors">Community Forum</Link></li>
-                <li><Link href="/login" className="hover:text-white transition-colors">Webinars & Events</Link></li>
+            <div className="footer-col">
+              <h4>COMPANY</h4>
+              <ul>
+                <li>
+                  <a href="#">About Us</a>
+                </li>
+                <li>
+                  <a href="#">Customer Stories</a>
+                </li>
+                <li>
+                  <a href="#">Pricing</a>
+                </li>
+                <li>
+                  <button onClick={(e) => { e.preventDefault(); setIsCareersModalOpen(true); }} className="hover:text-white transition-colors cursor-pointer text-left">
+                    Careers
+                  </button>
+                </li>
+                <li>
+                  <a href="#">Privacy Policy</a>
+                </li>
               </ul>
             </div>
 
-            <div>
-              <h4 className="font-bold text-white mb-4 text-sm uppercase tracking-wider">Company</h4>
-              <ul className="space-y-2 text-slate-400 text-sm">
-                <li><a href="#features" className="hover:text-white transition-colors">About Us</a></li>
-                <li><button onClick={(e) => { e.preventDefault(); setIsCareersModalOpen(true); }} className="hover:text-white transition-colors cursor-pointer text-left">Careers</button></li>
-                <li><a href="#contact" className="hover:text-white transition-colors">Contact Us</a></li>
+            <div className="footer-col">
+              <h4>CONTACT</h4>
+              <ul>
+                <li>
+                  <a href="mailto:info@innonsh.com" className="hover:text-coral transition-colors" style={{ color: "var(--ink-soft)", fontSize: "0.92rem" }}>info@innonsh.com</a>
+                </li>
+                <li style={{ color: "var(--ink-soft)", fontSize: "0.92rem" }}>
+                  Pune, Maharashtra
+                </li>
+                <li>
+                  <a href="tel:+917620301874" className="hover:text-coral transition-colors" style={{ color: "var(--ink-soft)", fontSize: "0.92rem" }}>+91 76203 01874</a>
+                </li>
+                <li style={{ display: "flex", alignItems: "center", height: "36px", padding: 0 }}>
+                  <div className="social-links square-links" style={{ display: "flex", gap: "10px" }}>
+                    <a href="#" aria-label="X">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                      </svg>
+                    </a>
+                    <a href="#" aria-label="LinkedIn">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                      </svg>
+                    </a>
+                    <a href="#" aria-label="GitHub">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
+                      </svg>
+                    </a>
+                    <a href="#" aria-label="Instagram">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="2" y="2" width="20" height="20" rx="5" />
+                        <path d="M16 11.4a4 4 0 1 1-7.9 1.2 4 4 0 0 1 7.9-1.2z" />
+                        <line x1="17.5" y1="6.5" x2="17.5" y2="6.5" />
+                      </svg>
+                    </a>
+                  </div>
+                </li>
               </ul>
             </div>
           </div>
 
-          {/* Bottom Footer: Legal & Social */}
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6 pt-8 border-t border-slate-800">
-            <div className="flex flex-col md:flex-row items-center gap-6 text-sm text-slate-500">
-              <span>© {new Date().getFullYear()} Innonsh TinySteps. All rights reserved.</span>
-              <div className="hidden md:block w-1 h-1 bg-slate-700 rounded-full" />
-              <div className="flex gap-4">
-                <a href="#" className="hover:text-white transition-colors">Privacy</a>
-                <a href="#" className="hover:text-white transition-colors">Terms</a>
-                <a href="#" className="hover:text-white transition-colors">Security</a>
-              </div>
-            </div>
-
-            <div className="flex gap-4 text-slate-400">
-              {/* No social icons */}
-            </div>
+          <div className="footer-bottom">
+            <div>© {new Date().getFullYear()} Innonsh TinySteps. Made with ❤️ for preschools from Innonsh Technologies Pvt. Ltd.</div>
+            <div>All rights reserved.</div>
           </div>
         </div>
       </footer>
 
-      {/* Careers Modal */}
+      {/* ============ CAREERS MODAL ============ */}
       {isCareersModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-gray-100 flex flex-col max-h-[90vh]">
-            <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50/50">
+        <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: "16px", background: "rgba(31, 27, 22, 0.4)", backdropFilter: "blur(4px)" }}>
+          <div style={{ background: "#ffffff", borderRadius: "var(--radius)", boxShadow: "var(--shadow-lg)", width: "100%", maxWidth: "500px", overflow: "hidden", border: "1px solid var(--line)", display: "flex", flexDirection: "column", maxHeight: "90vh", transform: "translateY(-40px)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "24px", borderBottom: "1px solid var(--line)", background: "var(--bg-tint)" }}>
               <div>
-                <h3 className="text-2xl font-bold text-gray-900">Join Our Team</h3>
-                <p className="text-gray-500 text-sm mt-1">We aren't actively hiring, but we'd love to have your profile on file.</p>
+                <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 500, color: "var(--ink)" }}>Join Our Team</h3>
+                <p style={{ color: "var(--ink-soft)", fontSize: "0.85rem", marginTop: "4px" }}>We aren&apos;t actively hiring, but we&apos;d love to have your profile on file.</p>
               </div>
-              <button
-                onClick={() => { setIsCareersModalOpen(false); setResumeName(""); }}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-6 h-6" />
+              <button onClick={() => { setIsCareersModalOpen(false); setResumeName(""); }} style={{ padding: "8px", borderRadius: "50%", background: "var(--surface)", border: "1px solid var(--line)" }}>
+                <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto custom-scrollbar">
-              <form className="space-y-5" onSubmit={handleCareerSubmit}>
-                {/* Prevent Captcha from FormSubmit when using AJAX */}
+            <div className="custom-scrollbar" style={{ padding: "24px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "20px" }}>
+              <form onSubmit={handleCareerSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                 <input type="hidden" name="_captcha" value="false" />
                 <input type="hidden" name="_template" value="table" />
                 <input type="hidden" name="_subject" value="New Career Application: Innonsh TinySteps" />
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Full Name</label>
-                  <input
-                    type="text"
-                    name="Full Name"
-                    required
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                    placeholder="John Doe"
-                  />
+                  <label style={{ display: "block", fontSize: "0.88rem", fontWeight: 600, color: "var(--ink-soft)", marginBottom: "6px" }}>Full Name</label>
+                  <input type="text" name="Full Name" required className="form-input" placeholder="John Doe" style={{ width: "100%", padding: "12px 14px", background: "var(--bg-tint)", border: "1px solid var(--line)", borderRadius: "var(--radius-sm)", fontFamily: "inherit", fontSize: "0.95rem", color: "var(--ink)", outline: "none" }} />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email Address</label>
-                  <input
-                    type="email"
-                    name="email"
-                    required
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                    placeholder="john@example.com"
-                  />
+                  <label style={{ display: "block", fontSize: "0.88rem", fontWeight: 600, color: "var(--ink-soft)", marginBottom: "6px" }}>Email Address</label>
+                  <input type="email" name="email" required className="form-input" placeholder="john@example.com" style={{ width: "100%", padding: "12px 14px", background: "var(--bg-tint)", border: "1px solid var(--line)", borderRadius: "var(--radius-sm)", fontFamily: "inherit", fontSize: "0.95rem", color: "var(--ink)", outline: "none" }} />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Highest Education</label>
-                  <input
-                    type="text"
-                    name="Education"
-                    required
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                    placeholder="e.g. B.Tech in Computer Science"
-                  />
+                  <label style={{ display: "block", fontSize: "0.88rem", fontWeight: 600, color: "var(--ink-soft)", marginBottom: "6px" }}>Highest Education</label>
+                  <input type="text" name="Education" required className="form-input" placeholder="e.g. B.Tech in Computer Science" style={{ width: "100%", padding: "12px 14px", background: "var(--bg-tint)", border: "1px solid var(--line)", borderRadius: "var(--radius-sm)", fontFamily: "inherit", fontSize: "0.95rem", color: "var(--ink)", outline: "none" }} />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Key Skills</label>
-                  <textarea
-                    rows={3}
-                    name="Key Skills"
-                    required
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-none"
-                    placeholder="e.g. React, Node.js, Design, Management..."
-                  />
+                  <label style={{ display: "block", fontSize: "0.88rem", fontWeight: 600, color: "var(--ink-soft)", marginBottom: "6px" }}>Key Skills</label>
+                  <textarea name="Key Skills" rows={3} required className="form-textarea" placeholder="e.g. React, Node.js, Design, Management..." style={{ width: "100%", padding: "12px 14px", background: "var(--bg-tint)", border: "1px solid var(--line)", borderRadius: "var(--radius-sm)", fontFamily: "inherit", fontSize: "0.95rem", color: "var(--ink)", outline: "none", resize: "none" }}></textarea>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Resume / CV</label>
-                  <label className="block border-2 border-dashed border-gray-200 rounded-xl p-6 text-center hover:bg-gray-50 hover:border-primary/50 transition-colors cursor-pointer group relative">
-                    <UploadCloud className="w-8 h-8 text-gray-400 mx-auto mb-2 group-hover:text-primary transition-colors" />
-                    <span className="block text-sm text-gray-600 font-medium">
-                      {resumeName ? <span className="text-primary font-bold">{resumeName}</span> : "Click to upload or drag and drop"}
+                  <label style={{ display: "block", fontSize: "0.88rem", fontWeight: 600, color: "var(--ink-soft)", marginBottom: "6px" }}>Resume / CV</label>
+                  <label style={{ display: "block", border: "2px dashed var(--line)", borderRadius: "var(--radius-sm)", padding: "24px", textAlign: "center", cursor: "pointer", background: "var(--bg-tint)", position: "relative" }}>
+                    <UploadCloud className="w-8 h-8 mx-auto mb-2" style={{ color: "var(--coral)" }} />
+                    <span style={{ display: "block", fontSize: "0.88rem", fontWeight: 600, color: "var(--ink-soft)" }}>
+                      {resumeName ? <span style={{ color: "var(--coral-deep)" }}>{resumeName}</span> : "Click to upload or drag and drop"}
                     </span>
-                    <span className="block text-xs text-gray-400 mt-1">PDF, DOCX up to 5MB</span>
+                    <span style={{ display: "block", fontSize: "0.75rem", color: "var(--ink-muted)", marginTop: "4px" }}>PDF, DOCX up to 5MB</span>
                     <input
                       type="file"
                       name="attachment"
                       accept=".pdf,.doc,.docx"
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, cursor: "pointer" }}
                       onChange={(e) => setResumeName(e.target.files?.[0]?.name || "")}
                       required
                     />
                   </label>
                 </div>
 
-                <div className="pt-4 border-t border-gray-100">
-                  <button
-                    type="submit"
-                    disabled={isSubmittingForm}
-                    className="w-full flex items-center justify-center py-3 bg-gradient-to-r from-orange-400 to-pink-500 text-white font-bold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-orange-500/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
+                <div style={{ paddingTop: "16px", borderTop: "1px solid var(--line)", display: "flex", justifyContent: "flex-end" }}>
+                  <button type="submit" disabled={isSubmittingForm} className="btn btn-primary">
                     {isSubmittingForm ? "Submitting..." : "Submit Application"}
                   </button>
                 </div>
@@ -882,6 +1359,7 @@ export default function LandingPage() {
           </div>
         </div>
       )}
+
     </div>
   );
 }

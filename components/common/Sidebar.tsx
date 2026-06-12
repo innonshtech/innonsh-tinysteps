@@ -241,7 +241,6 @@ export default function Sidebar({
             </div>
             <div>
               <h1 className="text-base font-bold text-gray-800">Innonsh TinySteps</h1>
-              <p className="text-xs text-gray-500">School Management</p>
             </div>
           </div>
         )}
