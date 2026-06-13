@@ -414,7 +414,7 @@
   align-items: center;
   gap: 12px;
   font-size: 0.85rem;
-  animation: floatY 4s ease-in-out infinite;
+  animation: floatCardJump 4s ease-in-out infinite;
 }
 .landing-page-wrapper .float-card-1 {
   top: -20px;
@@ -425,6 +425,10 @@
   bottom: 30px;
   right: -32px;
   animation-delay: 1s;
+}
+@keyframes floatCardJump {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-16px); }
 }
 @keyframes floatY {
   0%, 100% { transform: translateY(0); }
