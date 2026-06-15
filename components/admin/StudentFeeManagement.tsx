@@ -340,11 +340,11 @@ export default function StudentFeeManagement() {
     };
 
     return (
-        <div className="p-6 bg-gray-50 min-h-screen">
+        <div className="p-4 pt-2 bg-gray-50 min-h-screen">
             {/* Header */}
             <div className="mb-6">
-                <h1 className="text-3xl font-bold text-gray-800">Student Fee Management</h1>
-                <p className="text-gray-600 mt-1">Track and manage student fee payments</p>
+                <h1 className="text-2xl font-bold text-gray-800">Student Fee Management</h1>
+                <p className="text-sm text-gray-600 mt-1">Track and manage student fee payments</p>
             </div>
 
             {/* Stats Cards */}
@@ -353,10 +353,10 @@ export default function StudentFeeManagement() {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-blue-700 text-sm font-medium mb-2">Total Students</p>
-                            <p className="text-4xl font-bold text-blue-600">{totalStats.totalStudents}</p>
+                            <p className="text-2xl font-bold text-blue-600">{totalStats.totalStudents}</p>
                         </div>
-                        <div className="w-14 h-14 bg-blue-500 rounded-xl flex items-center justify-center">
-                            <User className="w-7 h-7 text-white" />
+                        <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-blue-600">
+                            <User className="w-5 h-5 text-current" />
                         </div>
                     </div>
                 </div>
@@ -367,8 +367,8 @@ export default function StudentFeeManagement() {
                             <p className="text-green-700 text-sm font-medium mb-2">Total Collected</p>
                             <p className="text-2xl font-bold text-green-600">{formatCurrency(totalStats.totalPaid)}</p>
                         </div>
-                        <div className="w-14 h-14 bg-green-500 rounded-xl flex items-center justify-center">
-                            <CheckCircle2 className="w-7 h-7 text-white" />
+                        <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-green-600">
+                            <CheckCircle2 className="w-5 h-5 text-current" />
                         </div>
                     </div>
                 </div>
@@ -379,8 +379,8 @@ export default function StudentFeeManagement() {
                             <p className="text-red-700 text-sm font-medium mb-2">Total Pending</p>
                             <p className="text-2xl font-bold text-red-600">{formatCurrency(totalStats.totalPending)}</p>
                         </div>
-                        <div className="w-14 h-14 bg-red-500 rounded-xl flex items-center justify-center">
-                            <AlertCircle className="w-7 h-7 text-white" />
+                        <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-red-600">
+                            <AlertCircle className="w-5 h-5 text-current" />
                         </div>
                     </div>
                 </div>
@@ -395,8 +395,8 @@ export default function StudentFeeManagement() {
                                 <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded">{totalStats.dueCount} Due</span>
                             </div>
                         </div>
-                        <div className="w-14 h-14 bg-purple-500 rounded-xl flex items-center justify-center">
-                            <IndianRupee className="w-7 h-7 text-white" />
+                        <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-purple-600">
+                            <IndianRupee className="w-5 h-5 text-current" />
                         </div>
                     </div>
                 </div>

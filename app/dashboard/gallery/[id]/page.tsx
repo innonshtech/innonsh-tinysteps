@@ -73,7 +73,7 @@ export default function GalleryDetailPage() {
     if (!gallery) return null;
 
     return (
-        <div className="p-6 bg-gray-50 min-h-screen">
+        <div className="p-4 pt-2 bg-gray-50 min-h-screen">
             {/* Back Button */}
             <button
                 onClick={() => router.push("/dashboard/gallery")}
@@ -92,7 +92,7 @@ export default function GalleryDetailPage() {
                                 <h1 className="text-2xl font-bold text-gray-800">{gallery.albumName}</h1>
                                 <Badge variant={getCategoryColor(gallery.category)}>{gallery.category}</Badge>
                             </div>
-                            <p className="text-gray-600 text-lg">{gallery.title}</p>
+                            <p className="text-gray-600 text-sm">{gallery.title}</p>
                         </div>
                         <div className="flex items-center gap-2">
                             {gallery.isPublished ? (

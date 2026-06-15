@@ -20,7 +20,17 @@ export async function GET(req: Request) {
         if (decoded.role === "admin" || decoded.role === "parent") {
             user = await User.findById(decoded.id).select("-password").lean();
         } else if (decoded.role === "teacher") {
+            // Primary: find by ID in Teacher collection
             user = await Teacher.findById(decoded.id).select("-password").lean();
+            // Fallback: token might store a User._id (old sessions) - look up by email
+            if (!user && decoded.email) {
+                user = await Teacher.findOne({ email: decoded.email }).select("-password").lean();
+            }
+            // Fallback 2: try User model (edge case where teacher logged in via User table)
+            if (!user) {
+                const userRecord = await User.findById(decoded.id).select("-password").lean() as any;
+                if (userRecord) user = userRecord;
+            }
         } else if (decoded.role === "student") {
             user = await Student.findById(decoded.id).select("-password").lean();
         }

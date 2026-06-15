@@ -194,7 +194,7 @@ export default function StudentDashboard() {
 
   if (loading) {
     return (
-      <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="p-4 pt-2 bg-gray-50 min-h-screen">
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
         </div>
@@ -203,14 +203,12 @@ export default function StudentDashboard() {
   }
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <Breadcrumbs items={[{ label: "My Dashboard" }]} />
-
+    <div className="p-4 pt-2 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="mt-6 mb-6">
+      <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
               <Smile className="w-8 h-8 text-pink-500" />
               {getGreeting()}, {studentInfo?.firstName || "Student"}!
             </h1>
@@ -237,12 +235,12 @@ export default function StudentDashboard() {
       )}
 
       {/* Stats Cards */}
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <div className={`bg-gradient-to-br ${getAttendanceColor()} border-2 border-white shadow-lg rounded-xl p-6`}>
           <div className="flex items-center justify-between">
             <div className="text-white">
               <p className="text-sm font-medium mb-2 opacity-90">My Attendance</p>
-              <p className="text-4xl font-bold">{stats.attendancePercentage}%</p>
+              <p className="text-2xl font-bold">{stats.attendancePercentage}%</p>
               <p className="text-xs mt-1 opacity-80">{stats.presentDays} / {stats.totalDays} days</p>
             </div>
             <div className="text-5xl">{getAttendanceEmoji()}</div>
@@ -253,11 +251,11 @@ export default function StudentDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-blue-700 text-sm font-medium mb-2">Pending Work</p>
-              <p className="text-4xl font-bold text-blue-600">{stats.pendingAssignments}</p>
+              <p className="text-2xl font-bold text-blue-600">{stats.pendingAssignments}</p>
               <p className="text-xs text-blue-600 mt-1">assignments</p>
             </div>
-            <div className="w-14 h-14 bg-blue-500 rounded-xl flex items-center justify-center">
-              <ClipboardCheck className="w-7 h-7 text-white" />
+            <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-blue-600">
+              <ClipboardCheck className="w-5 h-5 text-current" />
             </div>
           </div>
         </div>
@@ -266,11 +264,11 @@ export default function StudentDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-purple-700 text-sm font-medium mb-2">Upcoming Tests</p>
-              <p className="text-4xl font-bold text-purple-600">{stats.upcomingExams}</p>
+              <p className="text-2xl font-bold text-purple-600">{stats.upcomingExams}</p>
               <p className="text-xs text-purple-600 mt-1">exams scheduled</p>
             </div>
-            <div className="w-14 h-14 bg-purple-500 rounded-xl flex items-center justify-center">
-              <FileText className="w-7 h-7 text-white" />
+            <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-purple-600">
+              <FileText className="w-5 h-5 text-current" />
             </div>
           </div>
         </div>
@@ -279,11 +277,11 @@ export default function StudentDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-yellow-700 text-sm font-medium mb-2">My Grade</p>
-              <p className="text-4xl font-bold text-yellow-600">{stats.averageGrade}</p>
+              <p className="text-2xl font-bold text-yellow-600">{stats.averageGrade}</p>
               <p className="text-xs text-yellow-600 mt-1">average</p>
             </div>
-            <div className="w-14 h-14 bg-yellow-500 rounded-xl flex items-center justify-center">
-              <Trophy className="w-7 h-7 text-white" />
+            <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-yellow-600">
+              <Trophy className="w-5 h-5 text-current" />
             </div>
           </div>
         </div>
@@ -312,7 +310,7 @@ export default function StudentDashboard() {
                     className="p-4 border border-gray-200 rounded-lg hover:bg-blue-50 transition-all"
                   >
                     <div className="flex items-start justify-between">
-                      <div className="flex-1">
+                      <div>
                         <h3 className="font-semibold text-gray-800">{assignment.title}</h3>
                         <p className="text-sm text-gray-600 mt-1">{assignment.subject}</p>
                       </div>
@@ -357,7 +355,7 @@ export default function StudentDashboard() {
                     className="p-4 border border-gray-200 rounded-lg hover:bg-purple-50 transition-all"
                   >
                     <div className="flex items-start justify-between">
-                      <div className="flex-1">
+                      <div>
                         <h3 className="font-semibold text-gray-800">{exam.name}</h3>
                         <div className="flex flex-wrap gap-2 mt-2">
                           {exam.subjects.map((subject, idx) => (
@@ -489,7 +487,7 @@ export default function StudentDashboard() {
           {/* Motivational Card */}
           <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200 rounded-xl p-6">
             <div className="text-center">
-              <div className="text-5xl mb-3">🌟</div>
+              <div className="text-5xl mb-2 font-medium">🌟</div>
               <h3 className="font-semibold text-yellow-900 mb-2">Keep Going!</h3>
               <p className="text-sm text-yellow-700">
                 You&apos;re doing great! Keep up the awesome work! 💪

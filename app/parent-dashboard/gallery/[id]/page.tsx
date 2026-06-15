@@ -81,7 +81,7 @@ export default function ParentGalleryDetailPage() {
     if (!gallery) return null;
 
     return (
-        <div className="p-6 bg-gray-50 min-h-screen">
+        <div className="p-4 pt-2 bg-gray-50 min-h-screen">
             {/* Back Button */}
             <button
                 onClick={() => router.push(`/${user?.role}-dashboard/gallery`)}
@@ -217,7 +217,7 @@ export default function ParentGalleryDetailPage() {
                                 <ImageIcon className="w-10 h-10 text-gray-300" />
                             </div>
                             <h3 className="text-xl font-bold text-gray-800">No memories yet</h3>
-                            <p className="text-gray-500 mt-2">Check back later for photos and videos!</p>
+                            <p className="text-gray-600 mt-1 text-sm">Check back later for photos and videos!</p>
                         </div>
                     )}
                 </div>

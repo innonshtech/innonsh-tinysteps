@@ -1,6 +1,7 @@
 export const PERMISSIONS: any = {
   admin: [
     "dashboard",
+    "admission",
     "students",
     "teachers",
     "classes",

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
 import Alert from "@/components/common/Alert";
+import Badge from "@/components/common/Badge";
 import { showToast } from "@/lib/toast";
 import Breadcrumbs from "@/components/common/Breadcrumbs";
 import {
@@ -155,14 +156,50 @@ export default function SettingsManagement() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleFeatureToggle = (key: string) => {
+  const handleFeatureToggle = async (key: string) => {
+    const currentValue = formData.featureFlags![key as keyof typeof formData.featureFlags];
+    const newValue = !currentValue;
+
+    // Optimistic UI update
     setFormData(prev => ({
       ...prev,
       featureFlags: {
         ...prev.featureFlags!,
-        [key]: !prev.featureFlags![key as keyof typeof prev.featureFlags]
+        [key]: newValue
       }
     }));
+
+    try {
+      const response = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...formData,
+          featureFlags: {
+            ...formData.featureFlags,
+            [key]: newValue
+          }
+        }),
+      });
+
+      if (response.ok) {
+        showToast.success(`Feature ${newValue ? 'enabled' : 'disabled'} successfully`);
+        // Dispatch custom event to notify Sidebar to silently refresh
+        window.dispatchEvent(new Event("feature-flags-updated"));
+      } else {
+        showToast.error("Failed to update feature");
+        // Revert on failure
+        setFormData(prev => ({
+          ...prev,
+          featureFlags: {
+            ...prev.featureFlags!,
+            [key]: currentValue
+          }
+        }));
+      }
+    } catch (err) {
+      showToast.error("Error updating feature");
+    }
   };
 
   const handleAddSubject = () => {
@@ -191,29 +228,27 @@ export default function SettingsManagement() {
     : 0;
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <Breadcrumbs items={[{ label: "Dashboard", href: "/dashboard" }, { label: "Settings" }]} />
-
+    <div className="p-4 pt-2 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="mt-6 mb-6">
+      <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">School Settings</h1>
-            <p className="text-gray-600 mt-1">Manage school information and system features</p>
+            <h1 className="text-2xl font-bold text-gray-800">School Settings</h1>
+            <p className="text-sm text-gray-600 mt-1">Manage school information and system features</p>
           </div>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-blue-700 text-sm font-medium mb-2">Academic Year</p>
-              <p className="text-3xl font-bold text-blue-600">{formData.academicYear || "Not Set"}</p>
+              <p className="text-2xl font-bold text-blue-600">{formData.academicYear || "Not Set"}</p>
             </div>
-            <div className="w-14 h-14 bg-blue-500 rounded-xl flex items-center justify-center">
-              <Calendar className="w-7 h-7 text-white" />
+            <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-blue-600">
+              <Calendar className="w-5 h-5 text-current" />
             </div>
           </div>
         </div>
@@ -222,10 +257,10 @@ export default function SettingsManagement() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-green-700 text-sm font-medium mb-2">Active Features</p>
-              <p className="text-3xl font-bold text-green-600">{enabledFeaturesCount} / 6</p>
+              <p className="text-2xl font-bold text-green-600">{enabledFeaturesCount} / 6</p>
             </div>
-            <div className="w-14 h-14 bg-green-500 rounded-xl flex items-center justify-center">
-              <Zap className="w-7 h-7 text-white" />
+            <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-green-600">
+              <Zap className="w-5 h-5 text-current" />
             </div>
           </div>
         </div>
@@ -397,14 +432,11 @@ export default function SettingsManagement() {
                         <p className="text-sm text-gray-600">{feature.description}</p>
                       </div>
                       <div className="flex items-center">
-                        <label className="relative inline-flex items-center cursor-pointer">
+                        <label className="relative inline-flex items-center cursor-pointer pointer-events-none">
                           <input
                             type="checkbox"
                             checked={isEnabled}
-                            onChange={(e) => {
-                              e.stopPropagation();
-                              handleFeatureToggle(feature.key);
-                            }}
+                            readOnly
                             className="sr-only peer"
                           />
                           <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
@@ -486,6 +518,38 @@ export default function SettingsManagement() {
                   </>
                 )}
               </button>
+            </div>
+          </div>
+
+          {/* System Information */}
+          <div className="bg-white border border-gray-200 rounded-xl p-6">
+            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
+              <div className="w-10 h-10 bg-gradient-to-br from-gray-500 to-gray-600 rounded-lg flex items-center justify-center">
+                <Settings className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-800">System Information</h2>
+                <p className="text-sm text-gray-600">Current version and status of the ERP system</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div>
+                <p className="text-gray-600 text-sm mb-1 font-medium">System Version</p>
+                <p className="text-lg font-semibold text-gray-800">1.0.0</p>
+              </div>
+              <div>
+                <p className="text-gray-600 text-sm mb-1 font-medium">Last Updated</p>
+                <p className="text-lg font-semibold text-gray-800" suppressHydrationWarning>{new Date().toLocaleDateString()}</p>
+              </div>
+              <div>
+                <p className="text-gray-600 text-sm mb-1 font-medium">Database Status</p>
+                <div className="mt-1"><Badge variant="success">Connected</Badge></div>
+              </div>
+              <div>
+                <p className="text-gray-600 text-sm mb-1 font-medium">System Status</p>
+                <div className="mt-1"><Badge variant="success">Operational</Badge></div>
+              </div>
             </div>
           </div>
         </div>

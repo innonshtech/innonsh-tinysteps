@@ -439,15 +439,13 @@ export default function MealPlanManagement() {
   ];
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <Breadcrumbs items={[{ label: "Dashboard", href: "/dashboard" }, { label: "Meal Plans" }]} />
-
+    <div className="p-4 pt-2 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="mt-6 mb-6">
+      <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">Meal Plan Management</h1>
-            <p className="text-gray-600 mt-1">Manage weekly meal schedules and nutrition plans</p>
+            <h1 className="text-2xl font-bold text-gray-800">Meal Plan Management</h1>
+            <p className="text-sm text-gray-600 mt-1">Manage weekly meal schedules and nutrition plans</p>
           </div>
           <div className="flex gap-3">
             <button onClick={() => exportToCSV(plans, "meal-plans.csv")} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
@@ -459,15 +457,15 @@ export default function MealPlanManagement() {
       </div>
 
       {/* Header */}
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+      <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-xl p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-green-700 text-sm font-medium mb-2">Total Plans</p>
-              <p className="text-4xl font-bold text-green-600">{totalPlans}</p>
+              <p className="text-2xl font-bold text-green-600">{totalPlans}</p>
             </div>
-            <div className="w-14 h-14 bg-green-500 rounded-xl flex items-center justify-center">
-              <Utensils className="w-7 h-7 text-white" />
+            <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-green-600">
+              <Utensils className="w-5 h-5 text-current" />
             </div>
           </div>
         </div>
@@ -476,10 +474,10 @@ export default function MealPlanManagement() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-emerald-700 text-sm font-medium mb-2">Active Plans</p>
-              <p className="text-4xl font-bold text-emerald-600">{activePlans}</p>
+              <p className="text-2xl font-bold text-emerald-600">{activePlans}</p>
             </div>
-            <div className="w-14 h-14 bg-emerald-500 rounded-xl flex items-center justify-center">
-              <CheckCircle2 className="w-7 h-7 text-white" />
+            <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-emerald-600">
+              <CheckCircle2 className="w-5 h-5 text-current" />
             </div>
           </div>
         </div>
@@ -488,10 +486,10 @@ export default function MealPlanManagement() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-lime-700 text-sm font-medium mb-2">Total Meals</p>
-              <p className="text-4xl font-bold text-lime-600">{totalMeals}</p>
+              <p className="text-2xl font-bold text-lime-600">{totalMeals}</p>
             </div>
-            <div className="w-14 h-14 bg-lime-500 rounded-xl flex items-center justify-center">
-              <Apple className="w-7 h-7 text-white" />
+            <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-lime-600">
+              <Apple className="w-5 h-5 text-current" />
             </div>
           </div>
         </div>
