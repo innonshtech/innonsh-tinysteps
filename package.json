@@ -12,6 +12,7 @@
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.8.0",
     "dotenv": "^17.2.3",
+    "firebase-admin": "^14.0.0",
     "formidable": "^3.5.4",
     "fs": "^0.0.1-security",
     "jose": "^6.1.3",

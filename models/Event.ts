@@ -22,6 +22,10 @@ const EventSchema = new mongoose.Schema(
     status: { type: String, enum: ["draft", "published", "archived"], default: "draft" },
     notify: { type: Boolean, default: true },
     notificationType: { type: String, enum: ["email", "sms", "in-app", "all"], default: "all" },
+    // FCM push notification tracking — set after dispatch
+    fcmSent: { type: Boolean, default: false },
+    fcmSentAt: { type: Date },
+    fcmRecipientCount: { type: Number, default: 0 }, // how many parents were targeted
   },
   { timestamps: true }
 );

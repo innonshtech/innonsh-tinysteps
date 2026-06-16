@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/db";
 import Event from "@/models/Event";
 import { verifyToken } from "@/lib/auth";
 import { logAdminActivity } from "@/lib/logAdminActivity";
+import { dispatchEventNotification } from "@/lib/notification.service";
 
 export async function GET(req: Request) {
   try {
@@ -103,6 +104,28 @@ export async function POST(req: Request) {
       });
     }
 
+    // ── FCM Publish Hook (for events created as published) ─────────────────
+    if (event.status === "published" && event.notify) {
+      const eventForDispatch = {
+        _id: String(event._id),
+        title: event.title,
+        description: event.description,
+        eventType: event.eventType,
+        startDate: event.startDate,
+        targetAudience: event.targetAudience,
+        classIds: (event.classIds || []).map((c: any) => String(c._id || c)),
+        notify: event.notify,
+        notificationType: event.notificationType,
+        location: event.location,
+        image: event.image,
+      };
+      // Fire-and-forget: dispatch runs in background
+      dispatchEventNotification(eventForDispatch).catch((err) =>
+        console.error("[POST /api/events] FCM dispatch error:", err)
+      );
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
     return NextResponse.json({ success: true, event }, { status: 201 });
   } catch (error) {
     console.error("[POST /api/events]", error);
@@ -137,6 +160,27 @@ export async function PUT(req: Request) {
       );
     }
 
+    // ── FCM Publish Hook ────────────────────────────────────────────────────
+    // Fetch the event BEFORE update to detect status transition
+    const existingEvent = await Event.findById(id).lean() as {
+      status: string;
+      fcmSent?: boolean;
+      _id: unknown;
+      title: string;
+      description?: string;
+      eventType: string;
+      startDate?: Date;
+      targetAudience: string;
+      classIds?: string[];
+      notify: boolean;
+      notificationType: string;
+      location?: string;
+      image?: string;
+    } | null;
+    const wasPublished = existingEvent?.status === "published";
+    const isBeingPublished = updateData.status === "published";
+    // ────────────────────────────────────────────────────────────────────────
+
     const event = await Event.findByIdAndUpdate(id, updateData, { new: true }).populate(
       "classIds",
       "name section"
@@ -148,6 +192,32 @@ export async function PUT(req: Request) {
         { status: 404 }
       );
     }
+
+    // ── Trigger FCM push asynchronously (non-blocking) ──────────────────────
+    // Only dispatch if:
+    //  1. Status just changed FROM non-published TO published (first publish)
+    //  2. Event has never had FCM sent before (!fcmSent)
+    //  3. The event has notify=true
+    if (isBeingPublished && !wasPublished && !existingEvent?.fcmSent && event.notify) {
+      const eventForDispatch = {
+        _id: String(event._id),
+        title: event.title,
+        description: event.description,
+        eventType: event.eventType,
+        startDate: event.startDate,
+        targetAudience: event.targetAudience,
+        classIds: (event.classIds || []).map((c: unknown) => String((c as { _id: unknown })._id || c)),
+        notify: event.notify,
+        notificationType: event.notificationType,
+        location: event.location,
+        image: event.image,
+      };
+      // Fire-and-forget: dispatch runs in background
+      dispatchEventNotification(eventForDispatch).catch((err) =>
+        console.error("[PUT /api/events] FCM dispatch error:", err)
+      );
+    }
+    // ────────────────────────────────────────────────────────────────────────
 
     return NextResponse.json({ success: true, event });
   } catch (error) {
