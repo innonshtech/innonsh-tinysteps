@@ -696,7 +696,7 @@ export default function EventManagement() {
           </div>
 
           {/* Classes */}
-          {formData.targetAudience === "students" && (
+          {(formData.targetAudience === "students" || formData.targetAudience === "parents") && (
             <div className="border-t pt-5">
               <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                 <Users className="w-4 h-4" />

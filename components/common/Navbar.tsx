@@ -48,7 +48,7 @@ export default function Navbar({
         setUnreadCount(data.unreadCount || 0);
       }
     } catch (e) {
-      console.error("Failed to fetch notifications", e);
+      console.warn("Failed to fetch notifications", e);
     }
   };
 
