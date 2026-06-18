@@ -252,7 +252,7 @@ async function resolveTargetParents(event: EventDoc): Promise<string[]> {
   await connectDB();
 
   // If audience excludes parents entirely, return empty
-  if (event.targetAudience === "students" || event.targetAudience === "teachers") {
+  if (event.targetAudience === "teachers" || event.targetAudience === "staff") {
     return [];
   }
 
@@ -263,27 +263,20 @@ async function resolveTargetParents(event: EventDoc): Promise<string[]> {
     studentQuery.classId = { $in: event.classIds };
   }
 
-  // Find all relevant students and extract their parent userIds
-  const students = await Student.find(studentQuery)
-    .select("parents")
-    .lean() as { parents?: { parentId?: { toString(): string } }[] }[];
-
-  const parentIdSet = new Set<string>();
-  students.forEach((student) => {
-    (student.parents || []).forEach((parent) => {
-      if (parent.parentId) {
-        parentIdSet.add(parent.parentId.toString());
-      }
-    });
-  });
-
-  if (parentIdSet.size === 0) {
-    // Fallback: get all Users with role=parent
-    const parentUsers = await User.find({ role: "parent" }).select("_id").lean() as { _id: { toString(): string } }[];
-    parentUsers.forEach((u) => parentIdSet.add(u._id.toString()));
+  // Parents log into the app using the student's email/password, and their JWT 
+  // uses the student's _id as the user.id. Therefore, the recipient of the 
+  // notifications and FCM tokens is actually the student's _id.
+  const students = await Student.find(studentQuery).select("_id").lean() as { _id: { toString(): string } }[];
+  
+  const recipientIds = students.map((s) => s._id.toString());
+  
+  if (recipientIds.length === 0) {
+    // Fallback: get all students if none matched (should rarely happen unless class is empty)
+    const allStudents = await Student.find({}).select("_id").lean() as { _id: { toString(): string } }[];
+    return allStudents.map(s => s._id.toString());
   }
 
-  return Array.from(parentIdSet);
+  return recipientIds;
 }
 
 async function _markEventFcmSent(
