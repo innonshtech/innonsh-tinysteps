@@ -217,7 +217,7 @@ export default function LeaveManagement() {
               loading={loading}
               actions={(row) => row.status === "pending" && (
                 <button type="button"
-                  onClick={() => handleCancelLeave(row._id)}
+                  onClick={() => handleCancelLeave(row._id as string)}
                   className="text-xs font-medium text-red-600 hover:text-red-800 hover:underline"
                 >
                   Cancel
