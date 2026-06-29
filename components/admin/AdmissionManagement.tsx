@@ -235,14 +235,14 @@ export default function AdmissionManagement() {
               <div className="flex gap-1">
                 {(row as Admission).status === "submitted" && (
                   <>
-                    <button
+                    <button type="button"
                       onClick={(e) => { e.stopPropagation(); handleStatusChange((row as Admission)._id, "approved"); }}
                       className="p-1.5 text-green-600 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
                       title="Approve"
                     >
                       <Check className="w-4 h-4" />
                     </button>
-                    <button
+                    <button type="button"
                       onClick={(e) => { e.stopPropagation(); handleStatusChange((row as Admission)._id, "rejected"); }}
                       className="p-1.5 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
                       title="Reject"
@@ -251,7 +251,7 @@ export default function AdmissionManagement() {
                     </button>
                   </>
                 )}
-                <button
+                <button type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     setEditingAdmission(row as Admission);

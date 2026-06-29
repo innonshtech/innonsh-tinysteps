@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDB } from "@/lib/db";
-import FeeTransaction from "@/models/FeeTransaction";
-import User from "@/models/User";
 import { verifyToken } from "@/lib/auth";
+import { FeeTransactionRepository, FeeTransactionItemRepository } from "@/repositories/fee.repository";
+import { TeacherRepository } from "@/repositories/teacher.repository";
+import { UserRepository } from "@/repositories/user.repository";
 
 // Helper to check authorized access (admin or teacher)
 async function checkAuth(req: NextRequest) {
@@ -10,14 +10,14 @@ async function checkAuth(req: NextRequest) {
     const decoded = verifyToken(token);
     if (!decoded) return null;
 
-    await connectDB();
     let user: any = null;
     if (decoded.role === "teacher") {
-        const Teacher = (await import("@/models/Teacher")).default;
-        user = await Teacher.findById(decoded.id);
+        const teacherRepo = new TeacherRepository();
+        user = await teacherRepo.findById(decoded.id);
         if (user) user.role = "teacher";
     } else {
-        user = await User.findById(decoded.id);
+        const userRepo = new UserRepository();
+        user = await userRepo.findById(decoded.id);
     }
 
     if (!user || !["admin", "teacher"].includes(user.role)) return null;
@@ -27,7 +27,7 @@ async function checkAuth(req: NextRequest) {
 
 export async function DELETE(
     req: NextRequest,
-    { params }: { params: Promise<{ id: string }> } // Params is a Promise in Next.js 15
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const user = await checkAuth(req);
@@ -36,20 +36,21 @@ export async function DELETE(
         }
 
         const { id } = await params;
-        const transaction = await FeeTransaction.findById(id);
+        const feeTxRepo = new FeeTransactionRepository();
+        const transaction = await feeTxRepo.findById(id);
 
         if (!transaction) {
             return NextResponse.json({ success: false, error: "Transaction not found" }, { status: 404 });
         }
 
-        if (transaction.amountPaid > 0) {
+        if (transaction.amount_paid > 0) {
             return NextResponse.json(
                 { success: false, error: "Cannot delete a transaction that has collected payments. Please delete/refund payments first mainly by database access for now." },
                 { status: 400 }
             );
         }
 
-        await FeeTransaction.findByIdAndDelete(id);
+        await feeTxRepo.delete(id);
 
         return NextResponse.json({ success: true, message: "Transaction deleted successfully" });
     } catch (error: any) {
@@ -72,36 +73,50 @@ export async function PUT(
         const body = await req.json();
         const { note, dueDate, items } = body;
 
-        const transaction = await FeeTransaction.findById(id);
+        const feeTxRepo = new FeeTransactionRepository();
+        const feeTxItemRepo = new FeeTransactionItemRepository();
+        const transaction = await feeTxRepo.findById(id);
+        
         if (!transaction) {
             return NextResponse.json({ success: false, error: "Transaction not found" }, { status: 404 });
         }
 
-        // update allowed fields
-        if (note !== undefined) transaction.note = note;
-        if (dueDate !== undefined) transaction.dueDate = new Date(dueDate);
+        const updateData: any = {};
+        if (note !== undefined) updateData.note = note;
+        if (dueDate !== undefined) updateData.due_date = new Date(dueDate);
 
-        // Update items/amount only if no payments made (to avoid data inconsistency)
         if (items && items.length > 0) {
-            if (transaction.amountPaid > 0) {
-                // For now restrictive: don't allow changing amount if paid. 
-                // We could allow if new amount >= paid, but let's be safe.
-                // Ideally we allow changing items but ensure total amount is valid.
-                // Let's Skip item update if paid > 0 for now or verify logic.
+            if (transaction.amount_paid > 0) {
                 return NextResponse.json(
                     { success: false, error: "Cannot update fee items/amount when partial payment exists." },
                     { status: 400 }
                 );
             } else {
-                transaction.items = items;
-                // Recalculate total
-                transaction.amountDue = items.reduce((sum: number, item: any) => sum + Number(item.amount), 0);
+                updateData.amount_due = items.reduce((sum: number, item: any) => sum + Number(item.amount), 0);
+                
+                // Fetch and delete existing items
+                const { data: existingItemsData } = await feeTxRepo.findWithDetails({ id: transaction.id });
+                if (existingItemsData.length > 0) {
+                   const existingItems = existingItemsData[0].items;
+                   for(const exItem of existingItems) {
+                       await feeTxItemRepo.delete(exItem.id);
+                   }
+                }
+                
+                // Insert new items
+                for (const item of items) {
+                    await feeTxItemRepo.create({
+                        transaction_id: transaction.id,
+                        head: item.head || item.name,
+                        amount: Number(item.amount),
+                    });
+                }
             }
         }
 
-        await transaction.save();
+        const updated = await feeTxRepo.update(id, updateData);
 
-        return NextResponse.json({ success: true, transaction });
+        return NextResponse.json({ success: true, transaction: updated });
     } catch (error: any) {
         console.error("Update transaction error:", error);
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });

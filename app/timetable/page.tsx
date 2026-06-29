@@ -17,7 +17,7 @@ export default function TimetablePage() {
     <div className="p-4">
       <div className="flex justify-between mb-4">
         <h1 className="text-2xl font-bold">Timetable</h1>
-        <Link href="/timetable/new"><button>Create Entry</button></Link>
+        <Link href="/timetable/new"><button type="button">Create Entry</button></Link>
       </div>
 
       <div className="space-y-4">

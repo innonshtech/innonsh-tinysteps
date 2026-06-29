@@ -13,7 +13,7 @@ export default function DashboardFeesPage() {
       {/* Tab Navigation */}
       <div className="bg-white border-b border-gray-200 px-6 pt-4 sticky top-0 z-10 shadow-sm">
         <div className="flex space-x-8">
-          <button
+          <button type="button"
             onClick={() => setActiveTab("collections")}
             className={`flex items-center gap-2 pb-4 text-sm font-medium border-b-2 transition-colors ${activeTab === "collections"
                 ? "border-blue-500 text-blue-600"
@@ -24,7 +24,7 @@ export default function DashboardFeesPage() {
             Fee Collections
           </button>
 
-          <button
+          <button type="button"
             onClick={() => setActiveTab("structures")}
             className={`flex items-center gap-2 pb-4 text-sm font-medium border-b-2 transition-colors ${activeTab === "structures"
                 ? "border-emerald-500 text-emerald-600"
@@ -35,7 +35,7 @@ export default function DashboardFeesPage() {
             Fee Structures
           </button>
 
-          <button
+          <button type="button"
             onClick={() => setActiveTab("heads")}
             className={`flex items-center gap-2 pb-4 text-sm font-medium border-b-2 transition-colors ${activeTab === "heads"
                 ? "border-purple-500 text-purple-600"

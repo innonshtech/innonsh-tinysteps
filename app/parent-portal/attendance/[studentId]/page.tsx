@@ -21,7 +21,7 @@ export default function ParentAttendance({ params }: any) {
   return (
     <div className="p-4">
       <Link href={`/parent-portal/students/${studentId}`}>
-        <button className="border px-4 py-1 rounded">← Back</button>
+        <button type="button" className="border px-4 py-1 rounded">← Back</button>
       </Link>
 
       <h1 className="text-xl font-bold my-4">Attendance</h1>

@@ -75,7 +75,7 @@ export default function ParentAdmissionApply() {
               <input placeholder="Relation" value={p.relation} onChange={(e)=>setParent(i,"relation",e.target.value)} />
             </div>
           ))}
-          <button onClick={addParent}>Add another parent</button>
+          <button type="button" onClick={addParent}>Add another parent</button>
         </div>
 
         <div>
@@ -88,7 +88,7 @@ export default function ParentAdmissionApply() {
         </div>
 
         <div className="mt-4">
-          <button onClick={submit}>Submit Application</button>
+          <button type="button" onClick={submit}>Submit Application</button>
         </div>
       </div>
     </div>

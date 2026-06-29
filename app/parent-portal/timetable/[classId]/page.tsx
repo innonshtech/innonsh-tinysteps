@@ -17,7 +17,7 @@ export default function TimetablePage({ params }: any) {
   return (
     <div className="p-4">
       <Link href="/parent-portal">
-        <button className="border px-4 py-1 rounded">← Back</button>
+        <button type="button" className="border px-4 py-1 rounded">← Back</button>
       </Link>
 
       <h1 className="text-xl font-bold my-4">Class Timetable</h1>

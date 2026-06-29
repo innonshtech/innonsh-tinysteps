@@ -27,7 +27,7 @@ export default function NewAssessmentPage() {
         <textarea name="motor" placeholder="Motor" value={form.motor} onChange={onChange} />
         <textarea name="social" placeholder="Social" value={form.social} onChange={onChange} />
         <textarea name="notes" placeholder="Notes" value={form.notes} onChange={onChange} />
-        <button onClick={submit}>Save</button>
+        <button type="button" onClick={submit}>Save</button>
       </div>
     </div>
   );

@@ -533,7 +533,7 @@ export default function StudentManagement() {
             <p className="text-sm text-gray-600 mt-1">Manage all students in the system</p>
           </div>
           <div className="flex gap-3">
-            <button onClick={() => exportStudentsToCSV(students, "students.csv")} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
+            <button type="button" onClick={() => exportStudentsToCSV(students, "students.csv")} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
               <Download className="w-4 h-4" />
               <span className="text-sm font-medium">Export</span>
             </button>
@@ -594,7 +594,7 @@ export default function StudentManagement() {
               {filteredStudents.length} {filteredStudents.length === 1 ? "student" : "students"} found
             </p>
           </div>
-          <button
+          <button type="button"
             onClick={() => {
               setEditingStudent(null);
               setFormData({
@@ -654,7 +654,7 @@ export default function StudentManagement() {
               ))}
             </select>
             {selectedClass && (
-              <button
+              <button type="button"
                 onClick={() => setSelectedClass("")}
                 className="px-3 py-2.5 text-xs text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-100"
               >
@@ -672,7 +672,7 @@ export default function StudentManagement() {
             loading={loading}
             actions={(row) => (
               <div className="flex gap-2">
-                <button
+                <button type="button"
                   onClick={() => router.push(`/dashboard/fees/${(row as Student)._id}`)}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-200 text-green-700 rounded-lg hover:bg-green-100 transition-all text-sm font-medium"
                   title="View Fee Details"
@@ -680,14 +680,14 @@ export default function StudentManagement() {
                   <Eye className="w-3.5 h-3.5" />
                   Details
                 </button>
-                <button
+                <button type="button"
                   onClick={() => handleEditStudent(row as Student)}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-100 transition-all text-sm font-medium"
                 >
                   <Edit2 className="w-3.5 h-3.5" />
                   Edit
                 </button>
-                <button
+                <button type="button"
                   onClick={() => handleDeleteStudent(row as Student)}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 border border-red-200 text-red-700 rounded-lg hover:bg-red-100 transition-all text-sm font-medium"
                 >
@@ -712,7 +712,7 @@ export default function StudentManagement() {
         size="lg"
         footer={
           <>
-            <Button
+            <Button type="button"
               onClick={() => {
                 setModalOpen(false);
                 setEditingStudent(null);
@@ -721,7 +721,7 @@ export default function StudentManagement() {
             >
               Cancel
             </Button>
-            <Button onClick={handleAddStudent} variant="primary">
+            <Button type="button" onClick={handleAddStudent} variant="primary">
               {editingStudent ? "Update" : "Add"} Student
             </Button>
           </>
@@ -1145,7 +1145,7 @@ export default function StudentManagement() {
         size="sm"
         footer={
           <div className="flex gap-3 justify-end w-full">
-            <Button
+            <Button type="button"
               variant="secondary"
               onClick={() => {
                 setShowDeleteModal(false);
@@ -1154,7 +1154,7 @@ export default function StudentManagement() {
             >
               Cancel
             </Button>
-            <button
+            <button type="button"
               onClick={confirmDelete}
               className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors"
             >

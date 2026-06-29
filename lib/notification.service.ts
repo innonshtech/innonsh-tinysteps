@@ -13,11 +13,7 @@
  * Can also be called manually via /api/notifications/send
  */
 
-import { connectDB } from "@/lib/db";
-import Notification from "@/models/Notification";
-import Student from "@/models/Student";
-import User from "@/models/User";
-import Event from "@/models/Event";
+import { supabaseAdmin } from "@/lib/supabase";
 import {
   sendToTokens,
   createDeliveryLogs,
@@ -59,8 +55,6 @@ export interface EventDoc {
  */
 export async function dispatchEventNotification(eventDoc: EventDoc): Promise<void> {
   try {
-    await connectDB();
-
     if (!eventDoc.notify) {
       console.log(`[NotificationService] Skipping — notify=false for event ${eventDoc._id}`);
       return;
@@ -92,15 +86,15 @@ export async function dispatchEventNotification(eventDoc: EventDoc): Promise<voi
 
     // Step 3: Create in-app Notification documents (one per parent)
     const notifications = parentUserIds.map((userId) => ({
-      recipientId: userId,
+      recipient_id: userId,
       type: _mapEventTypeToNotifType(eventDoc.eventType),
-      fcmCategory: fcmMeta.fcmCategory,
+      fcm_category: fcmMeta.fcmCategory,
       title: notifTitle,
       message: notifBody,
-      relatedId: eventDoc._id,
-      relatedModel: "Event",
+      related_id: eventDoc._id,
+      related_model: "Event",
       priority: fcmMeta.priority === "high" ? "high" : "normal",
-      actionUrl: `/events/${eventDoc._id}`,
+      action_url: `/events/${eventDoc._id}`,
       icon: fcmMeta.fcmCategory,
       metadata: {
         eventId: String(eventDoc._id),
@@ -109,12 +103,14 @@ export async function dispatchEventNotification(eventDoc: EventDoc): Promise<voi
         location: eventDoc.location,
         image: eventDoc.image,
       },
-      fcmSent: false,
+      fcm_sent: false,
     }));
 
-    let savedNotifications: (typeof notifications[0] & { _id: unknown })[];
+    let savedNotifications: any[];
     try {
-      savedNotifications = await Notification.insertMany(notifications, { ordered: false }) as unknown as (typeof notifications[0] & { _id: unknown })[];
+      const { data } = await supabaseAdmin.from('notifications').insert(notifications).select();
+      if (!data) throw new Error("No data returned from insert");
+      savedNotifications = data;
     } catch (err) {
       console.error("[NotificationService] insertMany notifications error:", err);
       return;
@@ -143,7 +139,7 @@ export async function dispatchEventNotification(eventDoc: EventDoc): Promise<voi
     // In practice link to each user's own notification
     const notifMap = new Map<string, string>(); // userId → notificationId
     savedNotifications.forEach((n, i) => {
-      notifMap.set(String(parentUserIds[i]), String(n._id));
+      notifMap.set(String(parentUserIds[i]), String(n.id));
     });
 
     // Create delivery logs
@@ -173,10 +169,9 @@ export async function dispatchEventNotification(eventDoc: EventDoc): Promise<voi
     );
 
     // Step 9: Mark in-app notifications as fcmSent
-    await Notification.updateMany(
-      { _id: { $in: savedNotifications.map((n) => n._id) } },
-      { fcmSent: true, fcmSentAt: new Date() }
-    );
+    await supabaseAdmin.from('notifications')
+      .update({ fcm_sent: true, fcm_sent_at: new Date().toISOString() })
+      .in('id', savedNotifications.map((n) => n.id));
 
     // Step 10: Update event
     await _markEventFcmSent(String(eventDoc._id), parentUserIds.length, true);
@@ -199,7 +194,6 @@ export async function sendManualNotification(params: {
   relatedModel?: string;
   metadata?: Record<string, unknown>;
 }): Promise<{ notificationsCreated: number; fcmSent: number; fcmFailed: number }> {
-  await connectDB();
 
   const fcmCat = params.fcmCategory || "general";
   const channelId = `tinysteps_${fcmCat}`;
@@ -207,24 +201,25 @@ export async function sendManualNotification(params: {
 
   // Create in-app notifications
   const notifications = params.userIds.map((userId) => ({
-    recipientId: userId,
+    recipient_id: userId,
     type: params.type,
-    fcmCategory: fcmCat,
+    fcm_category: fcmCat,
     title: params.title,
     message: params.message,
-    relatedId: params.relatedId,
-    relatedModel: params.relatedModel,
+    related_id: params.relatedId,
+    related_model: params.relatedModel,
     priority: params.priority || "normal",
     metadata: params.metadata,
-    fcmSent: false,
+    fcm_sent: false,
   }));
 
-  const saved = await Notification.insertMany(notifications, { ordered: false }) as unknown as { _id: unknown }[];
+  const { data: saved } = await supabaseAdmin.from('notifications').insert(notifications).select();
+  const count = saved ? saved.length : 0;
 
   // Fetch tokens and send
   const { tokens, userTokenMap } = await getActiveTokensForUsers(params.userIds);
   if (tokens.length === 0) {
-    return { notificationsCreated: saved.length, fcmSent: 0, fcmFailed: 0 };
+    return { notificationsCreated: count, fcmSent: 0, fcmFailed: 0 };
   }
 
   const result = await sendToTokens(tokens, {
@@ -236,7 +231,7 @@ export async function sendManualNotification(params: {
   }, undefined, userTokenMap);
 
   return {
-    notificationsCreated: saved.length,
+    notificationsCreated: count,
     fcmSent: result.successCount,
     fcmFailed: result.failureCount,
   };
@@ -249,34 +244,27 @@ export async function sendManualNotification(params: {
  * based on event.targetAudience and event.classIds.
  */
 async function resolveTargetParents(event: EventDoc): Promise<string[]> {
-  await connectDB();
-
   // If audience excludes parents entirely, return empty
   if (event.targetAudience === "teachers" || event.targetAudience === "staff") {
     return [];
   }
 
-  let studentQuery: Record<string, unknown> = {};
+  let query = supabaseAdmin.from('students').select('id');
 
   // If specific classes are targeted, filter by classId
   if (event.classIds && event.classIds.length > 0) {
-    studentQuery.classId = { $in: event.classIds };
+    query = query.in('class_id', event.classIds);
   }
 
-  // Parents log into the app using the student's email/password, and their JWT 
-  // uses the student's _id as the user.id. Therefore, the recipient of the 
-  // notifications and FCM tokens is actually the student's _id.
-  const students = await Student.find(studentQuery).select("_id").lean() as { _id: { toString(): string } }[];
+  const { data: students } = await query;
   
-  const recipientIds = students.map((s) => s._id.toString());
-  
-  if (recipientIds.length === 0) {
-    // Fallback: get all students if none matched (should rarely happen unless class is empty)
-    const allStudents = await Student.find({}).select("_id").lean() as { _id: { toString(): string } }[];
-    return allStudents.map(s => s._id.toString());
+  if (students && students.length > 0) {
+      return students.map(s => s.id);
   }
 
-  return recipientIds;
+  // Fallback: get all students if none matched (should rarely happen unless class is empty)
+  const { data: allStudents } = await supabaseAdmin.from('students').select('id');
+  return allStudents ? allStudents.map(s => s.id) : [];
 }
 
 async function _markEventFcmSent(
@@ -284,11 +272,11 @@ async function _markEventFcmSent(
   recipientCount: number,
   fcmSent: boolean
 ): Promise<void> {
-  await Event.findByIdAndUpdate(eventId, {
-    fcmSent,
-    fcmSentAt: new Date(),
-    fcmRecipientCount: recipientCount,
-  });
+  await supabaseAdmin.from('events').update({
+    fcm_sent: fcmSent,
+    fcm_sent_at: new Date().toISOString(),
+    fcm_recipient_count: recipientCount,
+  }).eq('id', eventId);
 }
 
 /** Maps ERP eventType to Notification.type enum */

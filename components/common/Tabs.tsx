@@ -17,7 +17,7 @@ export default function Tabs({ tabs, onChange }: TabsProps) {
     <div>
       <div className="border-b border-gray-200 flex gap-1">
         {tabs.map((tab, idx) => (
-          <button
+          <button type="button"
             key={idx}
             onClick={() => handleTabChange(idx)}
             className={`px-4 py-3 font-medium text-sm border-b-2 transition-all ${

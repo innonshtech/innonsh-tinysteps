@@ -526,7 +526,7 @@ export default function StudentFeeDetails({ studentId }: { studentId: string }) 
         return (
             <div className="p-6 text-center">
                 <h3 className="text-xl font-semibold text-gray-700">Student not found</h3>
-                <Button onClick={() => router.back()} className="mt-4">Go Back</Button>
+                <Button type="button" onClick={() => router.back()} className="mt-4">Go Back</Button>
             </div>
         );
     }
@@ -537,7 +537,7 @@ export default function StudentFeeDetails({ studentId }: { studentId: string }) 
         <div className="p-4 pt-2 bg-gray-50 min-h-screen">
             {/* Header / Nav */}
             <div className="flex items-center gap-4 mb-6">
-                <button
+                <button type="button"
                     onClick={() => router.back()}
                     className="p-2 hover:bg-gray-200 rounded-full transition-colors bg-white border border-gray-200 flex items-center justify-center"
                 >
@@ -718,7 +718,7 @@ export default function StudentFeeDetails({ studentId }: { studentId: string }) 
                         <h2 className="text-lg font-bold text-gray-800">Transaction History</h2>
                         <p className="text-gray-500 text-sm">Manage fee transactions and payments</p>
                     </div>
-                    <Button onClick={() => setShowTransactionModal(true)}>
+                    <Button type="button" onClick={() => setShowTransactionModal(true)}>
                         <Plus className="w-4 h-4 mr-2" />
                         Create Transaction
                     </Button>
@@ -777,7 +777,7 @@ export default function StudentFeeDetails({ studentId }: { studentId: string }) 
                                         <td className="px-6 py-4">
                                             <div className="flex items-center justify-center gap-2">
                                                 {t.status !== 'paid' && (
-                                                    <button
+                                                    <button type="button"
                                                         onClick={() => handleOpenPaymentModal(t)}
                                                         className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                                         title="Record Payment"
@@ -785,7 +785,7 @@ export default function StudentFeeDetails({ studentId }: { studentId: string }) 
                                                         <CreditCard className="w-4 h-4" />
                                                     </button>
                                                 )}
-                                                <button
+                                                <button type="button"
                                                     onClick={() => handleDownloadReceipt(t)}
                                                     className="p-1.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                                                     title="Download Receipt"
@@ -793,7 +793,7 @@ export default function StudentFeeDetails({ studentId }: { studentId: string }) 
                                                     <Download className="w-4 h-4" />
                                                 </button>
 
-                                                <button
+                                                <button type="button"
                                                     onClick={() => handleOpenEditModal(t)}
                                                     className="p-1.5 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
                                                     title="Edit Transaction"
@@ -802,7 +802,7 @@ export default function StudentFeeDetails({ studentId }: { studentId: string }) 
                                                 </button>
 
                                                 {t.amountPaid === 0 && (
-                                                    <button
+                                                    <button type="button"
                                                         onClick={() => handleDeleteTransaction(t._id, t.amountPaid)}
                                                         className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                                         title="Delete Transaction"
@@ -839,7 +839,7 @@ export default function StudentFeeDetails({ studentId }: { studentId: string }) 
                             Your payment of <span className="text-gray-900 font-semibold">{formatCurrency(paymentSuccessDetails.amount)}</span> was approved.
                         </p>
                         <p className="text-xs text-gray-400 pb-4">Transaction ID: {paymentSuccessDetails.transactionId}</p>
-                        <button
+                        <button type="button"
                             onClick={() => { setShowPaymentModal(false); setPaymentSuccessDetails(null); }}
                             className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-full font-medium transition-colors"
                         >
@@ -946,8 +946,8 @@ export default function StudentFeeDetails({ studentId }: { studentId: string }) 
                     </div>
 
                     <div className="flex justify-end gap-3 pt-1">
-                        <Button variant="secondary" onClick={() => setShowPaymentModal(false)}>Cancel</Button>
-                        <Button onClick={handleRecordPayment}>✓ Confirm Payment</Button>
+                        <Button type="button" variant="secondary" onClick={() => setShowPaymentModal(false)}>Cancel</Button>
+                        <Button type="button" onClick={handleRecordPayment}>✓ Confirm Payment</Button>
                     </div>
                 </div>
                 )}
@@ -1016,13 +1016,13 @@ export default function StudentFeeDetails({ studentId }: { studentId: string }) 
                     </div>
 
                     <div className="flex justify-end gap-3 mt-6">
-                        <Button
+                        <Button type="button"
                             variant="secondary"
                             onClick={() => setShowTransactionModal(false)}
                         >
                             Cancel
                         </Button>
-                        <Button onClick={handleCreateTransaction}>
+                        <Button type="button" onClick={handleCreateTransaction}>
                             Create Transaction
                         </Button>
                     </div>
@@ -1093,13 +1093,13 @@ export default function StudentFeeDetails({ studentId }: { studentId: string }) 
                     </div>
 
                     <div className="flex justify-end gap-3 mt-6">
-                        <Button
+                        <Button type="button"
                             variant="secondary"
                             onClick={() => setShowEditModal(false)}
                         >
                             Cancel
                         </Button>
-                        <Button onClick={handleUpdateTransaction}>
+                        <Button type="button" onClick={handleUpdateTransaction}>
                             Update Transaction
                         </Button>
                     </div>

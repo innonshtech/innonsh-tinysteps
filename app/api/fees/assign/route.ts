@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDB } from "@/lib/db";
-import FeeStructure from "@/models/FeeStructure";
-import Student from "@/models/Student";
-import FeeTransaction from "@/models/FeeTransaction";
-import User from "@/models/User";
 import { verifyToken } from "@/lib/auth";
+import { FeeStructureRepository, FeeTransactionRepository, FeeTransactionItemRepository } from "@/repositories/fee.repository";
+import { StudentRepository } from "@/repositories/student.repository";
+import { TeacherRepository } from "@/repositories/teacher.repository";
+import { UserRepository } from "@/repositories/user.repository";
 
 // Helper to check authorized access (admin or teacher)
 async function checkAuth(req: NextRequest) {
@@ -12,14 +11,14 @@ async function checkAuth(req: NextRequest) {
     const decoded = verifyToken(token);
     if (!decoded) return null;
 
-    await connectDB();
     let user: any = null;
     if (decoded.role === "teacher") {
-        const Teacher = (await import("@/models/Teacher")).default;
-        user = await Teacher.findById(decoded.id);
+        const teacherRepo = new TeacherRepository();
+        user = await teacherRepo.findById(decoded.id);
         if (user) user.role = "teacher";
     } else {
-        user = await User.findById(decoded.id);
+        const userRepo = new UserRepository();
+        user = await userRepo.findById(decoded.id);
     }
 
     if (!user || !["admin", "teacher"].includes(user.role)) return null;
@@ -42,14 +41,20 @@ export async function POST(req: NextRequest) {
         }
 
         // 1. Fetch Structure
-        const structure = await FeeStructure.findById(structureId);
+        const structRepo = new FeeStructureRepository();
+        const structures = await structRepo.findWithHeads({ id: structureId });
+        const structure = structures.length > 0 ? structures[0] : null;
+
         if (!structure) {
             return NextResponse.json({ success: false, error: "Fee Structure not found" }, { status: 404 });
         }
 
         // 2. Fetch Students by classId
-        const students = await Student.find({ classId: classId, active: { $ne: false } });
-        if (students.length === 0) {
+        const studentRepo = new StudentRepository();
+        const { data: students } = await studentRepo.findWithRelations({ class_id: classId });
+        const activeStudents = students.filter(s => s.status !== 'inactive'); // Assuming status logic
+        
+        if (activeStudents.length === 0) {
             return NextResponse.json({ success: false, error: "No active students found in this class" }, { status: 404 });
         }
 
@@ -61,33 +66,44 @@ export async function POST(req: NextRequest) {
             title = `${structure.name} - ${monthNames[parseInt(month)]} ${year}`;
         }
 
-        const totalAmount = structure.heads.reduce((sum: number, head: any) => sum + head.amount, 0);
+        const totalAmount = structure.heads?.reduce((sum: number, head: any) => sum + Number(head.amount), 0) || 0;
 
-        const items = structure.heads.map((head: any) => ({
+        const items = structure.heads?.map((head: any) => ({
             head: head.title,
             amount: head.amount,
-        }));
+        })) || [];
 
         const finalDueDate = dueDate ? new Date(dueDate) : new Date();
 
-        // 4. Create Transactions
-        const transactionsToCreate = students.map((student: any) => ({
-            studentId: student._id,
-            amountDue: totalAmount,
-            amountPaid: 0,
-            status: "due",
-            dueDate: finalDueDate,
-            items: items,
-            note: title,
-        }));
+        const feeTxRepo = new FeeTransactionRepository();
+        const feeTxItemRepo = new FeeTransactionItemRepository();
 
-        // Bulk Insert
-        await FeeTransaction.insertMany(transactionsToCreate);
+        for (const student of activeStudents) {
+            const tx = await feeTxRepo.create({
+                student_id: student.id,
+                structure_id: structure.id,
+                amount_due: totalAmount,
+                amount_paid: 0,
+                fine_amount: 0,
+                status: "due",
+                due_date: finalDueDate,
+                note: title,
+                created_by: authUser.id,
+            });
+
+            for (const item of items) {
+                await feeTxItemRepo.create({
+                    transaction_id: tx.id,
+                    head: item.head,
+                    amount: item.amount,
+                });
+            }
+        }
 
         return NextResponse.json({
             success: true,
-            message: `Successfully generated fees for ${students.length} students.`,
-            count: students.length
+            message: `Successfully generated fees for ${activeStudents.length} students.`,
+            count: activeStudents.length
         });
 
     } catch (error: any) {

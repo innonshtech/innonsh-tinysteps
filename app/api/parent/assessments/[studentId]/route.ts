@@ -1,15 +1,12 @@
 import { NextResponse, NextRequest } from "next/server";
-import { connectDB } from "@/lib/db";
-import Assessment from "@/models/Assessment";
 import { verifyToken } from "@/lib/auth";
 import { parentOwnsStudent } from "@/lib/parent";
+import { AssessmentRepository } from "@/repositories/exam.repository";
 
 export async function GET(
   req: NextRequest,
   context: { params: Promise<{ studentId: string }> }
 ) {
-  await connectDB();
-
   const { studentId } = await context.params;   // ✅ FIX THAT REMOVES ERROR
 
   const token = req.cookies.get("token")?.value;
@@ -25,9 +22,16 @@ export async function GET(
     return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
   }
 
-  const assessments = await Assessment.find({ studentId })
-    .sort({ createdAt: -1 })
-    .lean();
+  const repo = new AssessmentRepository();
+  const assessments = await repo.find({ student_id: studentId }, { sort: { field: 'created_at', ascending: false } });
 
-  return NextResponse.json({ success: true, assessments });
+  const mappedAssessments = assessments.map((a: any) => ({
+    ...a,
+    _id: a.id,
+    studentId: a.student_id,
+    classId: a.class_id,
+    subjectId: a.subject_id
+  }));
+
+  return NextResponse.json({ success: true, assessments: mappedAssessments });
 }

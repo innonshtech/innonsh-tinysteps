@@ -177,7 +177,7 @@ export default function AdminLeaveManagement() {
           <h1 className="text-2xl font-bold text-gray-800">Leave Approvals & Substitutes</h1>
           <p className="text-sm text-gray-600 mt-1">Manage teacher leaves and assign substitute classes.</p>
         </div>
-        <Button onClick={() => setSettingsModal(true)} variant="secondary" className="flex items-center gap-2">
+        <Button type="button" onClick={() => setSettingsModal(true)} variant="secondary" className="flex items-center gap-2">
           <Settings className="w-4 h-4" /> Global Settings
         </Button>
       </div>
@@ -228,16 +228,16 @@ export default function AdminLeaveManagement() {
             <div className="flex gap-2">
               {row.status === "pending" && (
                 <>
-                  <button onClick={() => setActionModal({ open: true, type: "approve", leave: row })} className="p-1.5 text-green-600 bg-green-50 rounded hover:bg-green-100" title="Approve">
+                  <button type="button" onClick={() => setActionModal({ open: true, type: "approve", leave: row })} className="p-1.5 text-green-600 bg-green-50 rounded hover:bg-green-100" title="Approve">
                     <Check className="w-4 h-4" />
                   </button>
-                  <button onClick={() => setActionModal({ open: true, type: "reject", leave: row })} className="p-1.5 text-red-600 bg-red-50 rounded hover:bg-red-100" title="Reject">
+                  <button type="button" onClick={() => setActionModal({ open: true, type: "reject", leave: row })} className="p-1.5 text-red-600 bg-red-50 rounded hover:bg-red-100" title="Reject">
                     <X className="w-4 h-4" />
                   </button>
                 </>
               )}
               {row.status === "approved" && (
-                <button 
+                <button type="button" 
                   onClick={() => {
                     setSubFormData({ ...subFormData, date: new Date((row as any).startDate).toISOString().split('T')[0] });
                     setSubstituteModal({ open: true, leave: row });
@@ -268,8 +268,8 @@ export default function AdminLeaveManagement() {
             />
           </div>
           <div className="pt-4 flex justify-end gap-3">
-            <Button variant="secondary" onClick={() => setActionModal({ ...actionModal, open: false })}>Cancel</Button>
-            <Button onClick={handleUpdateStatus} className={actionModal.type === "reject" ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"}>
+            <Button type="button" variant="secondary" onClick={() => setActionModal({ ...actionModal, open: false })}>Cancel</Button>
+            <Button type="button" onClick={handleUpdateStatus} className={actionModal.type === "reject" ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"}>
               Confirm {actionModal.type === "approve" ? "Approval" : "Rejection"}
             </Button>
           </div>
@@ -315,8 +315,8 @@ export default function AdminLeaveManagement() {
             </div>
           </div>
           <div className="pt-4 flex justify-end gap-3">
-            <Button variant="secondary" onClick={() => setSubstituteModal({ open: false, leave: null })}>Cancel</Button>
-            <Button onClick={handleAssignSubstitute}>Assign Substitute</Button>
+            <Button type="button" variant="secondary" onClick={() => setSubstituteModal({ open: false, leave: null })}>Cancel</Button>
+            <Button type="button" onClick={handleAssignSubstitute}>Assign Substitute</Button>
           </div>
         </div>
       </Modal>
@@ -349,8 +349,8 @@ export default function AdminLeaveManagement() {
             />
           </div>
           <div className="pt-4 flex justify-end gap-3">
-            <Button variant="secondary" onClick={() => setSettingsModal(false)}>Cancel</Button>
-            <Button onClick={handleUpdateQuotas}>Save Settings</Button>
+            <Button type="button" variant="secondary" onClick={() => setSettingsModal(false)}>Cancel</Button>
+            <Button type="button" onClick={handleUpdateQuotas}>Save Settings</Button>
           </div>
         </div>
       </Modal>

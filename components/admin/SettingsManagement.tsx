@@ -119,8 +119,10 @@ export default function SettingsManagement() {
       const res = await fetch("/api/settings");
       if (res.ok) {
         const data = await res.json();
-        setSettings(data.settings);
-        setFormData(data.settings);
+        if (data.settings) {
+          setSettings(data.settings);
+          setFormData(data.settings);
+        }
       }
     } catch (err) {
       showToast.error("Failed to fetch settings");
@@ -471,7 +473,7 @@ export default function SettingsManagement() {
                     placeholder="Enter subject name (e.g. Mathematics)"
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition-all"
                   />
-                  <button
+                  <button type="button"
                     onClick={() => handleRemoveSubject(idx)}
                     className="flex items-center gap-1.5 px-3 py-2 bg-red-50 border border-red-200 text-red-700 rounded-lg hover:bg-red-100 transition-all"
                     title="Remove Subject"
@@ -480,7 +482,7 @@ export default function SettingsManagement() {
                   </button>
                 </div>
               ))}
-              <button
+              <button type="button"
                 onClick={handleAddSubject}
                 className="flex items-center gap-2 px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-indigo-400 hover:text-indigo-600 transition-all w-full justify-center mt-2"
               >
@@ -493,7 +495,7 @@ export default function SettingsManagement() {
           {/* Save Actions */}
           <div className="bg-white border border-gray-200 rounded-xl p-6">
             <div className="flex justify-end gap-3">
-              <button
+              <button type="button"
                 onClick={() => fetchSettings()}
                 disabled={saving}
                 className="flex items-center gap-2 px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
@@ -501,7 +503,7 @@ export default function SettingsManagement() {
                 <RotateCcw className="w-4 h-4" />
                 Reset Changes
               </button>
-              <button
+              <button type="button"
                 onClick={handleSubmit}
                 disabled={saving}
                 className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-400 to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"

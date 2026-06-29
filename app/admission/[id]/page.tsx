@@ -46,8 +46,8 @@ export default function AdmissionDetail({ params }: any) {
       </div>
 
       <div className="mt-6 flex gap-2">
-        <button onClick={approve} className="bg-green-600 text-white px-3 py-1 rounded">Approve</button>
-        <button onClick={reject} className="bg-red-600 text-white px-3 py-1 rounded">Reject</button>
+        <button type="button" onClick={approve} className="bg-green-600 text-white px-3 py-1 rounded">Approve</button>
+        <button type="button" onClick={reject} className="bg-red-600 text-white px-3 py-1 rounded">Reject</button>
       </div>
     </div>
   );

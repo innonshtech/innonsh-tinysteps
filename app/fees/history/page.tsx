@@ -30,13 +30,13 @@ export default function FeesHistoryPage() {
       <FeeHistoryList items={items} />
 
       <div className="flex gap-2 mt-4">
-        <button disabled={page <= 1} onClick={() => fetchPage(page - 1)}>
+        <button type="button" disabled={page <= 1} onClick={() => fetchPage(page - 1)}>
           Prev
         </button>
 
         <div>Page {page} / {pages}</div>
 
-        <button disabled={page >= pages} onClick={() => fetchPage(page + 1)}>
+        <button type="button" disabled={page >= pages} onClick={() => fetchPage(page + 1)}>
           Next
         </button>
       </div>

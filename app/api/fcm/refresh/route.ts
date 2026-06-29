@@ -9,14 +9,11 @@
  */
 
 import { NextResponse } from "next/server";
-import { connectDB } from "@/lib/db";
-import UserFcmToken from "@/models/UserFcmToken";
 import { verifyToken } from "@/lib/auth";
+import { supabaseAdmin } from "@/lib/supabase";
 
 export async function PUT(req: Request) {
   try {
-    await connectDB();
-
     const cookie = req.headers.get("cookie") || "";
     const token = cookie.match(/token=([^;]+)/)?.[1];
     const user = verifyToken(token);
@@ -34,28 +31,32 @@ export async function PUT(req: Request) {
 
     // Deactivate old token
     if (oldToken) {
-      await UserFcmToken.findOneAndUpdate(
-        { token: oldToken, userId: user.id },
-        { isActive: false }
-      );
+      await supabaseAdmin.from('user_fcm_tokens')
+        .update({ is_active: false })
+        .eq('token', oldToken)
+        .eq('user_id', user.id);
     }
 
     // Activate / create new token
-    const savedToken = await UserFcmToken.findOneAndUpdate(
-      { token: newToken },
-      {
-        userId: user.id,
-        token: newToken,
-        platform,
-        deviceId,
-        appVersion,
-        isActive: true,
-        lastSeen: new Date(),
-      },
-      { upsert: true, new: true }
-    );
+    const { data: savedToken, error } = await supabaseAdmin.from('user_fcm_tokens')
+      .upsert(
+        {
+          user_id: user.id,
+          token: newToken,
+          platform,
+          device_id: deviceId,
+          app_version: appVersion,
+          is_active: true,
+          last_seen: new Date().toISOString()
+        },
+        { onConflict: 'token' }
+      )
+      .select('id')
+      .single();
 
-    return NextResponse.json({ success: true, tokenId: savedToken._id });
+    if (error) throw error;
+
+    return NextResponse.json({ success: true, tokenId: savedToken.id });
   } catch (error) {
     console.error("[PUT /api/fcm/refresh]", error);
     return NextResponse.json({ success: false, error: "Failed to refresh FCM token" }, { status: 500 });

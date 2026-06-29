@@ -398,12 +398,8 @@ export default function TeacherManagement() {
   });
 
 
-  const teachersWithSubjects = teachers.filter(
-    (t) => t.subjects && t.subjects.length > 0
-  ).length;
-  const teachersWithClasses = teachers.filter(
-    (t) => t.classes && t.classes.length > 0
-  ).length;
+  const totalSubjectsAssigned = teachers.reduce((sum, t) => sum + (t.subjects?.length || 0), 0);
+  const totalClassesAssigned = teachers.reduce((sum, t) => sum + (t.classes?.length || 0), 0);
 
   const columns: Column[] = [
     {
@@ -452,7 +448,7 @@ export default function TeacherManagement() {
             <p className="text-sm text-gray-600 mt-1">Manage all teaching staff members</p>
           </div>
           <div className="flex gap-3">
-            <button onClick={() => exportToCSV(teachers, "teachers.csv")} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
+            <button type="button" onClick={() => exportToCSV(teachers, "teachers.csv")} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
               <Download className="w-4 h-4" />
               <span className="text-sm font-medium">Export</span>
             </button>
@@ -477,8 +473,8 @@ export default function TeacherManagement() {
         <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-xl p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-green-700 text-sm font-medium mb-2">With Subjects</p>
-              <p className="text-2xl font-bold text-green-600">{teachersWithSubjects}</p>
+              <p className="text-green-700 text-sm font-medium mb-2">Total Subjects Assigned</p>
+              <p className="text-2xl font-bold text-green-600">{totalSubjectsAssigned}</p>
             </div>
             <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-green-600">
               <BookOpen className="w-5 h-5 text-current" />
@@ -489,8 +485,8 @@ export default function TeacherManagement() {
         <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-xl p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-orange-700 text-sm font-medium mb-2">With Classes</p>
-              <p className="text-2xl font-bold text-orange-600">{teachersWithClasses}</p>
+              <p className="text-orange-700 text-sm font-medium mb-2">Total Classes Assigned</p>
+              <p className="text-2xl font-bold text-orange-600">{totalClassesAssigned}</p>
             </div>
             <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-orange-600">
               <UserCheck className="w-5 h-5 text-current" />
@@ -509,7 +505,7 @@ export default function TeacherManagement() {
               {filteredTeachers.length} {filteredTeachers.length === 1 ? "teacher" : "teachers"} found
             </p>
           </div>
-          <button
+          <button type="button"
             onClick={() => {
               setEditingTeacher(null);
               setFormData({
@@ -555,7 +551,7 @@ export default function TeacherManagement() {
               ))}
             </select>
             {selectedClass && (
-              <button
+              <button type="button"
                 onClick={() => setSelectedClass("")}
                 className="px-3 py-2.5 text-xs text-gray-500 border border-gray-100 rounded-lg hover:bg-gray-50 transition-all"
               >
@@ -576,14 +572,14 @@ export default function TeacherManagement() {
             onRowDoubleClick={handleRowDoubleClick}
             actions={(row) => (
               <div className="flex gap-2">
-                <button
+                <button type="button"
                   onClick={() => handleEditTeacher(row as Teacher)}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-100 transition-all text-sm font-medium"
                 >
                   <Edit2 className="w-3.5 h-3.5" />
                   Edit
                 </button>
-                <button
+                <button type="button"
                   onClick={() => handleDeleteTeacher(row as Teacher)}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 border border-red-200 text-red-700 rounded-lg hover:bg-red-100 transition-all text-sm font-medium"
                 >
@@ -608,7 +604,7 @@ export default function TeacherManagement() {
         size="lg"
         footer={
           <>
-            <Button
+            <Button type="button"
               onClick={() => {
                 setModalOpen(false);
                 setEditingTeacher(null);
@@ -617,7 +613,7 @@ export default function TeacherManagement() {
             >
               Cancel
             </Button>
-            <Button onClick={handleAddTeacher} variant="primary" loading={saving}>
+            <Button type="button" onClick={handleAddTeacher} variant="primary" loading={saving}>
               {editingTeacher ? "Update" : "Add"} Teacher
             </Button>
           </>
@@ -764,6 +760,7 @@ export default function TeacherManagement() {
                     className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition-all"
                   />
                   <button
+                    type="button"
                     onClick={() => handleRemoveQualification(idx)}
                     className="flex items-center gap-1.5 px-3 py-2.5 bg-red-50 border border-red-200 text-red-700 rounded-lg hover:bg-red-100 transition-all"
                   >
@@ -772,6 +769,7 @@ export default function TeacherManagement() {
                 </div>
               ))}
               <button
+                type="button"
                 onClick={handleAddQualification}
                 className="flex items-center gap-2 px-4 py-2.5 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-purple-400 hover:text-purple-600 transition-all w-full justify-center"
               >
@@ -803,6 +801,7 @@ export default function TeacherManagement() {
                     ))}
                   </select>
                   <button
+                    type="button"
                     onClick={() => handleRemoveClass(idx)}
                     className="flex items-center gap-1.5 px-3 py-2.5 bg-red-50 border border-red-200 text-red-700 rounded-lg hover:bg-red-100 transition-all"
                   >
@@ -811,6 +810,7 @@ export default function TeacherManagement() {
                 </div>
               ))}
               <button
+                type="button"
                 onClick={handleAddClass}
                 className="flex items-center gap-2 px-4 py-2.5 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-purple-400 hover:text-purple-600 transition-all w-full justify-center"
               >
@@ -833,7 +833,7 @@ export default function TeacherManagement() {
         size="sm"
         footer={
           <div className="flex gap-3 justify-end w-full">
-            <Button
+            <Button type="button"
               variant="secondary"
               onClick={() => {
                 setShowDeleteModal(false);
@@ -842,7 +842,7 @@ export default function TeacherManagement() {
             >
               Cancel
             </Button>
-            <button
+            <button type="button"
               onClick={confirmDelete}
               className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors"
             >
@@ -877,11 +877,11 @@ export default function TeacherManagement() {
         size="xl"
         footer={
           <div className="flex gap-2 w-full justify-end">
-            <Button onClick={() => setScheduleModalOpen(false)} variant="secondary">
+            <Button type="button" onClick={() => setScheduleModalOpen(false)} variant="secondary">
               Close
             </Button>
             <a href={`/dashboard/timetable?view=teacher&teacherId=${selectedTeacherForSchedule?._id}`}>
-              <Button variant="primary">
+              <Button type="button" variant="primary">
                 Edit Schedule
               </Button>
             </a>
@@ -891,7 +891,7 @@ export default function TeacherManagement() {
         <div className="mt-4">
           <div className="flex justify-center mb-6">
             <div className="flex items-center bg-gray-100 rounded-lg p-1">
-              <button
+              <button type="button"
                 onClick={() => setScheduleViewRange("Today")}
                 className={`px-6 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
                   scheduleViewRange === "Today" ? "bg-white text-purple-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
@@ -900,7 +900,7 @@ export default function TeacherManagement() {
                 <List className="w-4 h-4" />
                 Today
               </button>
-              <button
+              <button type="button"
                 onClick={() => setScheduleViewRange("Weekly")}
                 className={`px-6 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
                   scheduleViewRange === "Weekly" ? "bg-white text-purple-600 shadow-sm" : "text-gray-500 hover:text-gray-700"

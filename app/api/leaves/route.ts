@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
-import { connectDB } from "@/lib/db";
-import TeacherLeave from "@/models/TeacherLeave";
 import { verifyToken } from "@/lib/auth";
-import { logAdminActivity } from "@/lib/logAdminActivity";
-import Notification from "@/models/Notification";
-import User from "@/models/User";
+import { LeaveRepository } from "@/repositories/leave.repository";
+import { NotificationRepository } from "@/repositories/notification.repository";
+import { UserRepository } from "@/repositories/user.repository";
+import { LogActivityRepository } from "@/repositories/logactivity.repository";
 
 export async function GET(req: Request) {
   try {
-    await connectDB();
     const token = req.headers.get("cookie")?.match(/token=([^;]+)/)?.[1];
     const user = verifyToken(token);
 
@@ -22,19 +20,38 @@ export async function GET(req: Request) {
 
     // Teachers can only see their own leaves
     if (user.role === "teacher") {
-      filter.teacherId = user.id;
+      filter.teacher_id = user.id;
     } else if (teacherId) {
-      filter.teacherId = teacherId;
+      filter.teacher_id = teacherId;
     }
 
     if (status) filter.status = status;
 
-    const leaves = await TeacherLeave.find(filter)
-      .populate("teacherId", "name email")
-      .sort({ createdAt: -1 })
-      .lean();
+    const repo = new LeaveRepository();
+    const leaves = await repo.find(filter, { sort: { field: 'created_at', ascending: false } });
 
-    return NextResponse.json({ success: true, leaves });
+    // Fetch teachers to populate teacher name
+    const teacherRepo = new UserRepository(); // Or use TeacherRepository
+    const { data: teachers } = await repo.getClient().from('teachers').select('id, name');
+    const teacherMap: Record<string, any> = {};
+    if (teachers) {
+      for (const t of teachers) {
+        teacherMap[t.id] = t;
+      }
+    }
+
+    const mappedLeaves = leaves.map(l => ({
+      ...l,
+      _id: l.id,
+      teacherId: teacherMap[l.teacher_id as string] || l.teacher_id,
+      leaveType: l.leave_type,
+      startDate: l.start_date,
+      endDate: l.end_date,
+      createdAt: l.created_at,
+      adminRemarks: l.admin_remarks
+    }));
+
+    return NextResponse.json({ success: true, leaves: mappedLeaves });
   } catch (error) {
     console.error("[GET /api/leaves]", error);
     return NextResponse.json({ success: false, error: "Failed to fetch leaves" }, { status: 500 });
@@ -43,7 +60,6 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    await connectDB();
     const token = req.headers.get("cookie")?.match(/token=([^;]+)/)?.[1];
     const user = verifyToken(token);
 
@@ -58,36 +74,35 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
     }
 
-    const newLeave = new TeacherLeave({
-      teacherId: user.id,
-      leaveType,
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
+    const repo = new LeaveRepository();
+    const newLeave = await repo.create({
+      teacher_id: user.id,
+      leave_type: leaveType,
+      start_date: new Date(startDate),
+      end_date: new Date(endDate),
       reason,
       attachment,
       status: "pending",
     });
 
-    await newLeave.save();
-
     // Fetch all admins to notify them
-    const admins = await User.find({ role: "admin" }).select("_id");
+    const userRepo = new UserRepository();
+    const admins = await userRepo.find({ role: "admin" });
     
-    const notifications = admins.map(admin => ({
-      recipientId: admin._id,
-      type: "leave",
-      title: "New Leave Request",
-      message: `A new ${leaveType} leave request was submitted.`,
-      priority: "normal",
-      icon: "Clock",
-      actionUrl: "/dashboard/leaves"
-    }));
-    
-    if (notifications.length > 0) {
-      await Notification.insertMany(notifications);
+    const notifRepo = new NotificationRepository();
+    for (const admin of admins) {
+      await notifRepo.create({
+        recipient_id: admin.id,
+        type: "leave",
+        title: "New Leave Request",
+        message: `A new ${leaveType} leave request was submitted.`,
+        priority: "normal",
+        icon: "Clock",
+        action_url: "/dashboard/leaves"
+      });
     }
 
-    return NextResponse.json({ success: true, leave: newLeave }, { status: 201 });
+    return NextResponse.json({ success: true, leave: { ...newLeave, _id: newLeave.id } }, { status: 201 });
   } catch (error) {
     console.error("[POST /api/leaves]", error);
     return NextResponse.json({ success: false, error: "Failed to apply for leave" }, { status: 500 });
@@ -96,7 +111,6 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
   try {
-    await connectDB();
     const token = req.headers.get("cookie")?.match(/token=([^;]+)/)?.[1];
     const user = verifyToken(token);
 
@@ -112,45 +126,46 @@ export async function PUT(req: Request) {
       return NextResponse.json({ success: false, error: "Invalid status or missing ID" }, { status: 400 });
     }
 
-    const leave = await TeacherLeave.findByIdAndUpdate(
-      id,
-      { status, adminRemarks, approvedBy: user.id },
-      { new: true }
-    ).populate("teacherId", "name email");
+    const repo = new LeaveRepository();
+    const leave = await repo.update(id, {
+      status,
+      admin_remarks: adminRemarks
+    });
 
     if (!leave) return NextResponse.json({ success: false, error: "Leave not found" }, { status: 404 });
 
-    await logAdminActivity({
-      actorId: String(user.id),
-      actorRole: user.role,
+    const logRepo = new LogActivityRepository();
+    await logRepo.create({
+      actor_id: String(user.id),
+      actor_role: user.role,
       action: "update:leave",
-      message: `Leave ${status} for teacher ${leave.teacherId?.name || "Unknown"}`,
-      metadata: { leaveId: leave._id, status },
+      message: `Leave ${status} for teacher ${leave.teacher_id || "Unknown"}`,
+      metadata: { leaveId: leave.id, status },
     });
 
     // Notify the teacher if they still exist
-    if (leave.teacherId && leave.teacherId._id) {
-      await Notification.create({
-        recipientId: leave.teacherId._id,
+    if (leave.teacher_id) {
+      const notifRepo = new NotificationRepository();
+      await notifRepo.create({
+        recipient_id: leave.teacher_id,
         type: "leave",
         title: `Leave Request ${status.charAt(0).toUpperCase() + status.slice(1)}`,
-        message: `Your leave request for ${new Date(leave.startDate).toLocaleDateString()} has been ${status}.`,
+        message: `Your leave request for ${new Date(leave.start_date).toLocaleDateString()} has been ${status}.`,
         priority: "normal",
         icon: status === "approved" ? "CheckCircle2" : "XCircle",
-        actionUrl: "/teacher-dashboard/leaves"
+        action_url: "/teacher-dashboard/leaves"
       });
     }
 
-    return NextResponse.json({ success: true, leave });
-  } catch (error) {
+    return NextResponse.json({ success: true, leave: { ...leave, _id: leave.id } });
+  } catch (error: any) {
     console.error("[PUT /api/leaves]", error);
-    return NextResponse.json({ success: false, error: "Failed to update leave" }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message || "Failed to update leave" }, { status: 500 });
   }
 }
 
 export async function DELETE(req: Request) {
   try {
-    await connectDB();
     const token = req.headers.get("cookie")?.match(/token=([^;]+)/)?.[1];
     const user = verifyToken(token);
 
@@ -161,12 +176,13 @@ export async function DELETE(req: Request) {
 
     if (!id) return NextResponse.json({ success: false, error: "Missing leave ID" }, { status: 400 });
 
-    const leave = await TeacherLeave.findById(id);
+    const repo = new LeaveRepository();
+    const leave = await repo.findById(id);
     if (!leave) return NextResponse.json({ success: false, error: "Leave not found" }, { status: 404 });
 
     // A teacher can only cancel their own pending leave
     if (user.role === "teacher") {
-      if (String(leave.teacherId) !== String(user.id)) {
+      if (String(leave.teacher_id) !== String(user.id)) {
         return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
       }
       if (leave.status !== "pending") {
@@ -174,8 +190,7 @@ export async function DELETE(req: Request) {
       }
     }
 
-    leave.status = "cancelled";
-    await leave.save();
+    await repo.update(id, { status: "cancelled" });
 
     return NextResponse.json({ success: true, message: "Leave cancelled successfully" });
   } catch (error) {

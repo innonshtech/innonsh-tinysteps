@@ -7,7 +7,7 @@ export default function TeacherCard({ teacher }: any) {
       <div>{teacher.email}</div>
       <div>{teacher.subjects?.join?.(", ")}</div>
       <div className="mt-2">
-        <Link href={`/teachers/${teacher._id}`}><button>View</button></Link>
+        <Link href={`/teachers/${teacher._id}`}><button type="button">View</button></Link>
       </div>
     </div>
   );

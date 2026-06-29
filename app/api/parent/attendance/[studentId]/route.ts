@@ -1,15 +1,12 @@
 import { NextResponse, NextRequest } from "next/server";
-import { connectDB } from "@/lib/db";
-import Attendance from "@/models/Attendance";
 import { verifyToken } from "@/lib/auth";
 import { parentOwnsStudent } from "@/lib/parent";
+import { AttendanceRepository } from "@/repositories/attendance.repository";
 
 export async function GET(
   req: NextRequest,
   context: { params: Promise<{ studentId: string }> }
 ) {
-  await connectDB();
-
   const { studentId } = await context.params;   // ✅ IMPORTANT FIX
 
   const token = req.cookies.get("token")?.value;
@@ -24,7 +21,15 @@ export async function GET(
     return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
   }
 
-  const attendance = await Attendance.find({ studentId }).lean();
+  const repo = new AttendanceRepository();
+  const attendance = await repo.find({ student_id: studentId });
 
-  return NextResponse.json({ success: true, attendance });
+  const mappedAttendance = attendance.map(a => ({
+    ...a,
+    _id: a.id,
+    studentId: a.student_id,
+    classId: a.class_id
+  }));
+
+  return NextResponse.json({ success: true, attendance: mappedAttendance });
 }

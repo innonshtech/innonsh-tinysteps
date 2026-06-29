@@ -297,7 +297,7 @@ export default function StudentDashboard() {
                 <ClipboardCheck className="w-5 h-5 text-blue-600" />
                 My Assignments
               </h2>
-              <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+              <button type="button" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
                 View All
               </button>
             </div>
@@ -342,7 +342,7 @@ export default function StudentDashboard() {
                 <FileText className="w-5 h-5 text-purple-600" />
                 Upcoming Tests
               </h2>
-              <button className="text-sm text-purple-600 hover:text-purple-700 font-medium">
+              <button type="button" className="text-sm text-purple-600 hover:text-purple-700 font-medium">
                 View All
               </button>
             </div>
@@ -393,22 +393,22 @@ export default function StudentDashboard() {
               Quick Actions
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <button className="flex flex-col items-center gap-2 p-4 border-2 border-gray-200 rounded-lg hover:border-pink-400 hover:bg-pink-50 transition-all">
+              <button type="button" className="flex flex-col items-center gap-2 p-4 border-2 border-gray-200 rounded-lg hover:border-pink-400 hover:bg-pink-50 transition-all">
                 <div className="text-4xl">📚</div>
                 <span className="text-sm font-medium text-gray-700">My Classes</span>
               </button>
 
-              <button className="flex flex-col items-center gap-2 p-4 border-2 border-gray-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-all">
+              <button type="button" className="flex flex-col items-center gap-2 p-4 border-2 border-gray-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-all">
                 <div className="text-4xl">📝</div>
                 <span className="text-sm font-medium text-gray-700">Homework</span>
               </button>
 
-              <button className="flex flex-col items-center gap-2 p-4 border-2 border-gray-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-all">
+              <button type="button" className="flex flex-col items-center gap-2 p-4 border-2 border-gray-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-all">
                 <div className="text-4xl">⭐</div>
                 <span className="text-sm font-medium text-gray-700">My Grades</span>
               </button>
 
-              <button className="flex flex-col items-center gap-2 p-4 border-2 border-gray-200 rounded-lg hover:border-green-400 hover:bg-green-50 transition-all">
+              <button type="button" className="flex flex-col items-center gap-2 p-4 border-2 border-gray-200 rounded-lg hover:border-green-400 hover:bg-green-50 transition-all">
                 <div className="text-4xl">📅</div>
                 <span className="text-sm font-medium text-gray-700">Schedule</span>
               </button>

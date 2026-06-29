@@ -11,11 +11,11 @@ export default function TeachersListClient() {
     <div>
       <div className="flex justify-between items-center mb-4">
         <h2>All Teachers</h2>
-        <Link href="/teachers/new"><button>Create Teacher</button></Link>
+        <Link href="/teachers/new"><button type="button">Create Teacher</button></Link>
       </div>
 
       {loading ? <div>Loading...</div> : <TeacherTable teachers={teachers} />}
-      <div className="mt-4"><button onClick={fetchAll}>Refresh</button></div>
+      <div className="mt-4"><button type="button" onClick={fetchAll}>Refresh</button></div>
     </div>
   );
 }

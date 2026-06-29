@@ -1,15 +1,12 @@
 import { NextResponse, NextRequest } from "next/server";
-import { connectDB } from "@/lib/db";
-import Timetable from "@/models/Timetable";
-import Student from "@/models/Student";
 import { verifyToken } from "@/lib/auth";
+import { supabaseAdmin } from "@/lib/supabase";
+import { TimetableRepository } from "@/repositories/timetable.repository";
 
 export async function GET(
   req: NextRequest,
   context: { params: Promise<{ classId: string }> }
 ) {
-  await connectDB();
-
   const { classId } = await context.params;   // ✅ FIX — MUST await params
 
   const token = req.cookies.get("token")?.value;
@@ -23,27 +20,36 @@ export async function GET(
   const studentId = (parent as any).studentId || parent.id;
   const parentEmail = (parent as any).email;
 
-  const authQuery: any = {
-    classId: classId,
-    $or: [
-      { _id: studentId },
-      { "parents.parentId": parent.id }
-    ]
-  };
-
+  let queryBuilder = supabaseAdmin.from('student_parents').select('student_id');
   if (parentEmail) {
-    authQuery.$or.push({ "parents.email": parentEmail });
+    queryBuilder = queryBuilder.or(`parent_user_id.eq.${parent.id},email.eq.${parentEmail}`);
+  } else {
+    queryBuilder = queryBuilder.eq('parent_user_id', parent.id);
   }
 
-  const student = await Student.findOne(authQuery).lean();
+  const { data: mappings } = await queryBuilder;
+  const mappedStudentIds = mappings?.map(m => m.student_id) || [];
+  
+  const allStudentIds = [...new Set([studentId, ...mappedStudentIds])];
 
-  if (!student) {
+  const { data: students } = await supabaseAdmin.from('students')
+    .select('id')
+    .eq('class_id', classId)
+    .in('id', allStudentIds);
+
+  if (!students || students.length === 0) {
     return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
   }
 
-  const timetable = await Timetable.find({ classId })
-    .populate("teacherId", "name")
-    .lean();
+  const repo = new TimetableRepository();
+  const timetable = await repo.find({ class_id: classId });
 
-  return NextResponse.json({ success: true, timetable });
+  const mappedTimetable = timetable.map(t => ({
+    ...t,
+    _id: t.id,
+    classId: t.class_id,
+    teacherId: t.teacher, // Repositories join teacher automatically if implemented or we can just send teacher object
+  }));
+
+  return NextResponse.json({ success: true, timetable: mappedTimetable });
 }

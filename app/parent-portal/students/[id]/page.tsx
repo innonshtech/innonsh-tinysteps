@@ -22,7 +22,7 @@ export default function ParentChildDetails({ params }: any) {
   return (
     <div className="p-4 space-y-4">
       <Link href="/parent-portal">
-        <button className="px-4 py-1 border rounded">← Back</button>
+        <button type="button" className="px-4 py-1 border rounded">← Back</button>
       </Link>
 
       <h1 className="text-2xl font-bold">

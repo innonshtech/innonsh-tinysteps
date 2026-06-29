@@ -1,37 +1,39 @@
 // lib/admissionNumber.ts
-import Counter from "@/models/Counter";
+import { supabaseAdmin } from "@/lib/supabase";
 
 /**
  * Generate a new Admission Number in the format:
  *   ADM-<YEAR>-<6_DIGIT_SEQUENCE>
  * Example: ADM-2026-000001
- *
- * Uses a dedicated Counter collection to guarantee atomic increments and
- * year‑based resetting. The Counter document key is "admissionNo".
  */
 export async function generateAdmissionNo(prefix = "ADM") {
   const year = new Date().getFullYear();
+  const searchPattern = `${prefix}-${year}-%`;
 
-  // Find the counter for the current year or create one if it doesn't exist.
-  const result = await Counter.findOneAndUpdate(
-    { _id: "admissionNo" },
-    [
-      // MongoDB aggregation pipeline update (requires MongoDB >=4.2)
-      {
-        $set: {
-          year: {
-            $cond: [{ $eq: ["$year", year] }, "$year", year]
-          },
-          seq: {
-            $cond: [{ $eq: ["$year", year] }, { $add: ["$seq", 1] }, 1]
-          }
-        }
+  const { data, error } = await supabaseAdmin
+    .from("students")
+    .select("admission_no")
+    .like("admission_no", searchPattern)
+    .order("admission_no", { ascending: false })
+    .limit(1);
+
+  if (error) {
+    console.error("Error generating admission number:", error);
+    throw error;
+  }
+
+  let nextSeq = 1;
+  if (data && data.length > 0 && data[0].admission_no) {
+    const parts = data[0].admission_no.split("-");
+    if (parts.length === 3) {
+      const currentSeq = parseInt(parts[2], 10);
+      if (!isNaN(currentSeq)) {
+        nextSeq = currentSeq + 1;
       }
-    ],
-    { new: true, upsert: true }
-  );
+    }
+  }
 
-  const seqPadded = String(result?.seq ?? 1).padStart(6, "0");
+  const seqPadded = String(nextSeq).padStart(6, "0");
   return `${prefix}-${year}-${seqPadded}`;
 }
 

@@ -36,7 +36,7 @@ export default function TeacherDetail({ params }: any) {
       </div>
 
       <div className="mt-6">
-        <button onClick={handleDelete} className="bg-red-500 text-white px-3 py-1 rounded">Delete</button>
+        <button type="button" onClick={handleDelete} className="bg-red-500 text-white px-3 py-1 rounded">Delete</button>
       </div>
     </div>
   );

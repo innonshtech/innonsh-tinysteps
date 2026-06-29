@@ -387,7 +387,7 @@ export default function GalleryManagement({ isViewer = false }: { isViewer?: boo
           </div>
           <div className="flex gap-3">
             {isAdmin && (
-              <button onClick={() => exportToCSV(galleries, "galleries.csv")} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
+              <button type="button" onClick={() => exportToCSV(galleries, "galleries.csv")} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
                 <Download className="w-4 h-4" />
                 <span className="text-sm font-medium">Export</span>
               </button>
@@ -576,7 +576,7 @@ export default function GalleryManagement({ isViewer = false }: { isViewer?: boo
                   {filteredGalleries.length} {filteredGalleries.length === 1 ? "album" : "albums"} found
                 </p>
               </div>
-              <button
+              <button type="button"
                 onClick={() => {
                   resetForm();
                   setShowModal(true);
@@ -622,21 +622,21 @@ export default function GalleryManagement({ isViewer = false }: { isViewer?: boo
               loading={loading}
               actions={(row) => (
                 <div className="flex gap-2">
-                  <button
+                  <button type="button"
                     onClick={() => router.push(`/dashboard/gallery/${(row as GalleryItem)._id}`)}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-100 transition-all text-sm font-medium"
                   >
                     <Eye className="w-3.5 h-3.5" />
                     View
                   </button>
-                  <button
+                  <button type="button"
                     onClick={() => handleEdit(row as GalleryItem)}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-100 transition-all text-sm font-medium"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
                     Edit
                   </button>
-                  <button
+                  <button type="button"
                     onClick={() => handleDelete((row as GalleryItem)._id)}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 border border-red-200 text-red-700 rounded-lg hover:bg-red-100 transition-all text-sm font-medium"
                   >
@@ -661,7 +661,7 @@ export default function GalleryManagement({ isViewer = false }: { isViewer?: boo
         size="md"
         footer={
           <>
-            <Button
+            <Button type="button"
               onClick={() => {
                 setShowModal(false);
                 setEditingId(null);
@@ -670,7 +670,7 @@ export default function GalleryManagement({ isViewer = false }: { isViewer?: boo
             >
               Cancel
             </Button>
-            <Button onClick={handleSubmit} variant="primary">
+            <Button type="button" onClick={handleSubmit} variant="primary">
               {editingId ? "Update" : "Create"} Album
             </Button>
           </>
@@ -822,7 +822,7 @@ export default function GalleryManagement({ isViewer = false }: { isViewer?: boo
                         className="w-full h-full object-cover"
                       />
                     )}
-                    <button
+                    <button type="button"
                       onClick={() => removeImage(index)}
                       className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-100 transition-opacity transform hover:scale-110"
                       title="Remove item"
@@ -886,7 +886,7 @@ export default function GalleryManagement({ isViewer = false }: { isViewer?: boo
         size="sm"
         footer={
           <>
-            <Button
+            <Button type="button"
               onClick={() => {
                 setShowDeleteModal(false);
                 setDeletingId(null);
@@ -895,7 +895,7 @@ export default function GalleryManagement({ isViewer = false }: { isViewer?: boo
             >
               Cancel
             </Button>
-            <Button 
+            <Button type="button" 
               onClick={confirmDelete} 
               variant="danger"
               className="bg-red-600 hover:bg-red-700 text-white"

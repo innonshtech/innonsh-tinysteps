@@ -473,7 +473,7 @@ export default function TransportManagement() {
             <p className="text-sm text-gray-600 mt-1">Manage transport routes, vehicles, and student assignments</p>
           </div>
           <div className="flex gap-3">
-            <button onClick={() => exportToCSV(routes, "transport-routes.csv")} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
+            <button type="button" onClick={() => exportToCSV(routes, "transport-routes.csv")} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
               <Download className="w-4 h-4" />
               <span className="text-sm font-medium">Export</span>
             </button>
@@ -541,7 +541,7 @@ export default function TransportManagement() {
               {filteredRoutes.length} {filteredRoutes.length === 1 ? "route" : "routes"} found
             </p>
           </div>
-          <button
+          <button type="button"
             onClick={() => {
               setEditingRoute(null);
               resetForm();
@@ -582,14 +582,14 @@ export default function TransportManagement() {
           loading={loading}
           actions={(row) => (
             <div className="flex gap-2">
-              <button
+              <button type="button"
                 onClick={() => handleEditRoute(row as TransportRoute)}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-100 transition-all text-sm font-medium"
               >
                 <Edit2 className="w-3.5 h-3.5" />
                 Edit
               </button>
-              <button
+              <button type="button"
                 onClick={() => handleDeleteRoute(row as TransportRoute)}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 border border-red-200 text-red-700 rounded-lg hover:bg-red-100 transition-all text-sm font-medium"
               >
@@ -613,7 +613,7 @@ export default function TransportManagement() {
         size="lg"
         footer={
           <>
-            <Button
+            <Button type="button"
               onClick={() => {
                 setModalOpen(false);
                 setEditingRoute(null);
@@ -623,7 +623,7 @@ export default function TransportManagement() {
             >
               Cancel
             </Button>
-            <Button onClick={handleSaveRoute} variant="primary">
+            <Button type="button" onClick={handleSaveRoute} variant="primary">
               {editingRoute ? "Update" : "Create"} Route
             </Button>
           </>
@@ -981,7 +981,7 @@ export default function TransportManagement() {
         size="sm"
         footer={
           <div className="flex gap-3 justify-end w-full">
-            <Button
+            <Button type="button"
               variant="secondary"
               onClick={() => {
                 setShowDeleteModal(false);
@@ -990,7 +990,7 @@ export default function TransportManagement() {
             >
               Cancel
             </Button>
-            <button
+            <button type="button"
               onClick={confirmDelete}
               className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors"
             >

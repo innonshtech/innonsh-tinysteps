@@ -123,7 +123,7 @@ export default function FeeHeadManagement() {
                     <h2 className="text-lg font-bold text-gray-800">Fee Heads Master</h2>
                     <p className="text-sm text-gray-500">Manage standard fee categories</p>
                 </div>
-                <Button onClick={() => handleOpenModal()}>
+                <Button type="button" onClick={() => handleOpenModal()}>
                     <Plus className="w-4 h-4 mr-2" />
                     Add Fee Head
                 </Button>
@@ -163,10 +163,10 @@ export default function FeeHeadManagement() {
                                         )}
                                     </td>
                                     <td className="px-6 py-4 text-right flex justify-end gap-2">
-                                        <button onClick={() => handleOpenModal(head)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded">
+                                        <button type="button" onClick={() => handleOpenModal(head)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded">
                                             <Edit2 className="w-4 h-4" />
                                         </button>
-                                        <button onClick={() => handleDelete(head._id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded">
+                                        <button type="button" onClick={() => handleDelete(head._id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded">
                                             <Trash2 className="w-4 h-4" />
                                         </button>
                                     </td>
@@ -225,8 +225,8 @@ export default function FeeHeadManagement() {
                         />
                     </div>
                     <div className="flex justify-end gap-3 mt-6">
-                        <Button variant="secondary" onClick={() => setShowModal(false)}>Cancel</Button>
-                        <Button onClick={handleSubmit}>{editingHead ? "Update" : "Create"}</Button>
+                        <Button type="button" variant="secondary" onClick={() => setShowModal(false)}>Cancel</Button>
+                        <Button type="button" onClick={handleSubmit}>{editingHead ? "Update" : "Create"}</Button>
                     </div>
                 </div>
             </Modal>

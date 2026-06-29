@@ -1,34 +1,51 @@
 import { NextResponse, NextRequest } from "next/server";
-import { connectDB } from "@/lib/db";
-import ClassModel from "@/models/Class";
-import Teacher from "@/models/Teacher"; // ✅ Fixed missing import
 import { verifyToken } from "@/lib/auth";
 import { ClassCreateZ } from "@/lib/validations/classSchema";
-import { logAdminActivity } from "@/lib/logAdminActivity";
+import { supabaseAdmin } from "@/lib/supabase";
+import { LogActivityRepository } from "@/repositories/logactivity.repository";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
-  await connectDB();
-  const { id } = await params;
+  const { id } = await context.params;
 
-  const classData = await ClassModel.findById(id)
-    .populate("teachers")
-    .populate("students")
-    .lean();
+  const { data: classData, error } = await supabaseAdmin
+    .from('classes')
+    .select('*')
+    .eq('id', id)
+    .single();
 
-  if (!classData) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
+  if (!classData || error) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
 
-  return NextResponse.json({ success: true, class: classData });
+  // Get students
+  const { data: students } = await supabaseAdmin.from('students').select('*').eq('class_id', id);
+  
+  // Get teachers
+  const { data: teacherAssignments } = await supabaseAdmin.from('teacher_class_assignments').select('teacher_id').eq('class_id', id);
+  const teacherIds = teacherAssignments?.map(t => t.teacher_id) || [];
+  let teachers: any[] = [];
+  if (teacherIds.length > 0) {
+    const { data: teacherData } = await supabaseAdmin.from('teachers').select('*').in('id', teacherIds);
+    teachers = teacherData || [];
+  }
+
+  const mappedClass = {
+    ...classData,
+    _id: classData.id,
+    roomNumber: classData.room_number,
+    teachers: teachers.map(t => ({ ...t, _id: t.id })),
+    students: (students || []).map(s => ({ ...s, _id: s.id }))
+  };
+
+  return NextResponse.json({ success: true, class: mappedClass });
 }
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
-  await connectDB();
-  const { id } = await params;
+  const { id } = await context.params;
 
   const token = req.cookies.get("token")?.value;
   const user = verifyToken(token);
@@ -39,55 +56,65 @@ export async function PUT(
     const body = await req.json();
     const parsed = ClassCreateZ.partial().parse(body);
 
-    // Get old class data to compare teachers
-    const oldClass = await ClassModel.findById(id);
+    const { data: oldClass } = await supabaseAdmin.from('classes').select('*').eq('id', id).single();
     if (!oldClass) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
 
-    const updated = await ClassModel.findByIdAndUpdate(id, parsed, { new: true });
+    const updateData: any = {};
+    if (parsed.name) updateData.name = parsed.name;
+    if (parsed.section) updateData.section = parsed.section;
+    if (parsed.roomNumber !== undefined) updateData.room_number = parsed.roomNumber;
 
-    if (!updated) {
+    const { data: updated, error } = await supabaseAdmin.from('classes').update(updateData).eq('id', id).select('*').single();
+
+    if (!updated || error) {
       return NextResponse.json({ success: false, error: "Class not found after update" }, { status: 404 });
     }
 
     // --- SYNC LOGIC: Class -> Teacher ---
     if (parsed.teachers) {
-      const oldTeacherIds = oldClass.teachers.map((t: any) => t.toString());
-      const newTeacherIds = parsed.teachers.map((t: any) => t.toString());
+      const { data: existingAssignments } = await supabaseAdmin.from('teacher_class_assignments').select('teacher_id').eq('class_id', id);
+      const oldTeacherIds = existingAssignments?.map(a => a.teacher_id) || [];
+      const newTeacherIds = parsed.teachers;
 
       const added = newTeacherIds.filter((tid: string) => !oldTeacherIds.includes(tid));
       const removed = oldTeacherIds.filter((tid: string) => !newTeacherIds.includes(tid));
 
       if (added.length > 0) {
-        await Teacher.updateMany(
-          { _id: { $in: added } },
-          { $addToSet: { classes: { classId: updated._id, section: updated.section } } }
-        );
+        const insertData = added.map((tid: string) => ({ teacher_id: tid, class_id: id }));
+        await supabaseAdmin.from('teacher_class_assignments').insert(insertData);
       }
 
       if (removed.length > 0) {
-        await Teacher.updateMany(
-          { _id: { $in: removed } },
-          { $pull: { classes: { classId: updated._id } } }
-        );
+        await supabaseAdmin.from('teacher_class_assignments')
+          .delete()
+          .eq('class_id', id)
+          .in('teacher_id', removed);
       }
     }
     // ------------------------------------
 
     // Log admin activity
-    await logAdminActivity({
-      actorId: String(user.id),
-      actorRole: user.role,
+    const logRepo = new LogActivityRepository();
+    await logRepo.create({
+      actor_id: String(user.id),
+      actor_role: user.role,
       action: "update:class",
       message: `Class updated: ${updated.name} - ${updated.section}`,
       metadata: {
-        classId: updated._id,
+        classId: updated.id,
         name: updated.name,
         section: updated.section,
-        roomNumber: updated.roomNumber,
+        roomNumber: updated.room_number,
       }
     });
 
-    return NextResponse.json({ success: true, class: updated });
+    const mappedUpdated = {
+      ...updated,
+      _id: updated.id,
+      roomNumber: updated.room_number
+    };
+
+    return NextResponse.json({ success: true, class: mappedUpdated });
   } catch (err: any) {
     console.error("[api/classes/[id]] Update failed:", err);
     return NextResponse.json({ success: false, error: err.message }, { status: 400 });
@@ -96,10 +123,9 @@ export async function PUT(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
-  await connectDB();
-  const { id } = await params;
+  const { id } = await context.params;
 
   const token = req.cookies.get("token")?.value;
   const user = verifyToken(token);
@@ -107,21 +133,22 @@ export async function DELETE(
   if (!user || user.role !== "admin")
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
 
-  const deleted = await ClassModel.findByIdAndDelete(id);
+  const { data: deleted, error } = await supabaseAdmin.from('classes').delete().eq('id', id).select('*').single();
 
-  if (!deleted) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
+  if (!deleted || error) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
 
   // Log admin activity
-  await logAdminActivity({
-    actorId: String(user.id),
-    actorRole: user.role,
+  const logRepo = new LogActivityRepository();
+  await logRepo.create({
+    actor_id: String(user.id),
+    actor_role: user.role,
     action: "delete:class",
     message: `Class deleted: ${deleted.name} - ${deleted.section}`,
     metadata: {
-      classId: deleted._id,
+      classId: deleted.id,
       name: deleted.name,
       section: deleted.section,
-      roomNumber: deleted.roomNumber,
+      roomNumber: deleted.room_number,
     }
   });
 

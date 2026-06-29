@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDB } from "@/lib/db";
-import FeeHead from "@/models/FeeHead";
-import User from "@/models/User";
 import { verifyToken } from "@/lib/auth";
+import { FeeHeadRepository } from "@/repositories/fee.repository";
+import { TeacherRepository } from "@/repositories/teacher.repository";
+import { UserRepository } from "@/repositories/user.repository";
 
 // Helper to check authorized access (admin or teacher)
 async function checkAuth(req: NextRequest) {
@@ -10,14 +10,14 @@ async function checkAuth(req: NextRequest) {
     const decoded = verifyToken(token);
     if (!decoded) return null;
 
-    await connectDB();
     let user: any = null;
     if (decoded.role === "teacher") {
-        const Teacher = (await import("@/models/Teacher")).default;
-        user = await Teacher.findById(decoded.id);
+        const teacherRepo = new TeacherRepository();
+        user = await teacherRepo.findById(decoded.id);
         if (user) user.role = "teacher";
     } else {
-        user = await User.findById(decoded.id);
+        const userRepo = new UserRepository();
+        user = await userRepo.findById(decoded.id);
     }
 
     if (!user || !["admin", "teacher"].includes(user.role)) return null;
@@ -32,7 +32,21 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
         }
 
-        const heads = await FeeHead.find({ active: true }).sort({ createdAt: -1 });
+        const repo = new FeeHeadRepository();
+        const headsData = await repo.find({}, { sort: { field: "created_at", ascending: false }});
+        
+        const heads = headsData.filter(h => h.active).map(h => ({
+          _id: h.id,
+          id: h.id,
+          name: h.name,
+          type: h.type,
+          defaultAmount: h.default_amount,
+          description: h.description,
+          active: h.active,
+          createdAt: h.created_at,
+          updatedAt: h.updated_at
+        }));
+
         return NextResponse.json({ success: true, heads });
     } catch (error: any) {
         console.error("Fetch fee heads error:", error);
@@ -54,17 +68,31 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: false, error: "Name is required" }, { status: 400 });
         }
 
-        const existing = await FeeHead.findOne({ name });
+        const repo = new FeeHeadRepository();
+        const existing = await repo.findOne({ name });
         if (existing) {
             return NextResponse.json({ success: false, error: "Fee Head with this name already exists" }, { status: 400 });
         }
 
-        const newHead = await FeeHead.create({
+        const created = await repo.create({
             name,
             type,
-            defaultAmount: Number(defaultAmount) || 0,
+            default_amount: Number(defaultAmount) || 0,
             description,
+            active: true
         });
+
+        const newHead = {
+          _id: created.id,
+          id: created.id,
+          name: created.name,
+          type: created.type,
+          defaultAmount: created.default_amount,
+          description: created.description,
+          active: created.active,
+          createdAt: created.created_at,
+          updatedAt: created.updated_at
+        };
 
         return NextResponse.json({ success: true, head: newHead });
     } catch (error: any) {

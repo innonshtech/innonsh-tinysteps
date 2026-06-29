@@ -36,7 +36,7 @@ export default function Alert({
       </span>
       <div className="flex-1">{children}</div>
       {closable && (
-        <button onClick={onClose} className="text-lg font-bold shrink-0 hover:opacity-70">
+        <button type="button" onClick={onClose} className="text-lg font-bold shrink-0 hover:opacity-70">
           ×
         </button>
       )}

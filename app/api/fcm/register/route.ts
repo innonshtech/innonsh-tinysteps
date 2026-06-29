@@ -9,14 +9,11 @@
  */
 
 import { NextResponse } from "next/server";
-import { connectDB } from "@/lib/db";
-import UserFcmToken from "@/models/UserFcmToken";
 import { verifyToken } from "@/lib/auth";
+import { supabaseAdmin } from "@/lib/supabase";
 
 export async function POST(req: Request) {
   try {
-    await connectDB();
-
     // Authenticate
     const cookie = req.headers.get("cookie") || "";
     const token = cookie.match(/token=([^;]+)/)?.[1];
@@ -39,37 +36,37 @@ export async function POST(req: Request) {
       );
     }
 
-    // Upsert: if token already exists, reactivate and update lastSeen.
-    // If it's a new token for the same deviceId, deactivate old one first.
     if (deviceId) {
-      // Deactivate any OTHER active tokens for this device (handles token refresh)
-      await UserFcmToken.updateMany(
-        {
-          userId: user.id,
-          deviceId,
-          token: { $ne: fcmToken },
-          isActive: true,
-        },
-        { isActive: false }
-      );
+      // Deactivate any OTHER active tokens for this device
+      await supabaseAdmin.from('user_fcm_tokens')
+        .update({ is_active: false })
+        .eq('user_id', user.id)
+        .eq('device_id', deviceId)
+        .neq('token', fcmToken)
+        .eq('is_active', true);
     }
 
-    const savedToken = await UserFcmToken.findOneAndUpdate(
-      { token: fcmToken },
-      {
-        userId: user.id,
-        token: fcmToken,
-        platform,
-        deviceId,
-        appVersion,
-        isActive: true,
-        lastSeen: new Date(),
-      },
-      { upsert: true, new: true }
-    );
+    // Upsert token
+    const { data: savedToken, error } = await supabaseAdmin.from('user_fcm_tokens')
+      .upsert(
+        {
+          user_id: user.id,
+          token: fcmToken,
+          platform,
+          device_id: deviceId,
+          app_version: appVersion,
+          is_active: true,
+          last_seen: new Date().toISOString()
+        },
+        { onConflict: 'token' }
+      )
+      .select('id')
+      .single();
+
+    if (error) throw error;
 
     return NextResponse.json(
-      { success: true, tokenId: savedToken._id },
+      { success: true, tokenId: savedToken.id },
       { status: 200 }
     );
   } catch (error) {

@@ -63,6 +63,7 @@ export default function Modal({
           <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-white/50">
             <h2 className="text-xl font-bold text-gray-900 tracking-tight">{title}</h2>
             <button
+              type="button"
               onClick={onClose}
               className="w-10 h-10 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all text-2xl leading-none"
             >

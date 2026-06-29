@@ -71,7 +71,7 @@ export default function TeacherAssignmentsPage() {
           />
         </div>
 
-        <Button variant="primary" onClick={handleAddAssignment} className="mt-4">
+        <Button type="button" variant="primary" onClick={handleAddAssignment} className="mt-4">
           Create Assignment
         </Button>
       </Card>
@@ -94,8 +94,8 @@ export default function TeacherAssignmentsPage() {
               label: "Actions",
               render: () => (
                 <div className="flex gap-2">
-                  <Button variant="secondary" size="sm">View</Button>
-                  <Button variant="danger" size="sm">Delete</Button>
+                  <Button type="button" variant="secondary" size="sm">View</Button>
+                  <Button type="button" variant="danger" size="sm">Delete</Button>
                 </div>
               ),
             },

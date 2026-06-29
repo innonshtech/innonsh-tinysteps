@@ -1,13 +1,10 @@
 import { NextResponse } from "next/server";
-import { connectDB } from "@/lib/db";
-import TransportRoute from "@/models/TransportRoute";
 import { verifyToken } from "@/lib/auth";
 import { logAdminActivity } from "@/lib/logAdminActivity";
+import { TransportRouteRepository, TransportStopRepository, TransportStudentAssignmentRepository } from "@/repositories/transport.repository";
 
 export async function GET(req: Request) {
   try {
-    await connectDB();
-
     const token = req.headers.get("cookie")?.match(/token=([^;]+)/)?.[1];
     const user = verifyToken(token);
 
@@ -18,25 +15,55 @@ export async function GET(req: Request) {
     const limit = Math.max(1, Math.min(100, parseInt(url.searchParams.get("limit") || "10")));
     const status = url.searchParams.get("status") || "active";
 
-    const filter: Record<string, unknown> = { status };
-
     const skip = (page - 1) * limit;
 
-    const [routes, total] = await Promise.all([
-      TransportRoute.find(filter)
-        .populate("driverId", "name phone email")
-        .populate("students", "firstName lastName admissionNo")
-        .sort({ routeName: 1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      TransportRoute.countDocuments(filter),
-    ]);
+    const repo = new TransportRouteRepository();
+    const { data: rawRoutes, count, error } = await repo.getClient().from('transport_routes')
+        .select('*, driverId:users(id, name, email), stops:transport_stops(*), studentAssignments:transport_student_assignments(students(id, first_name, last_name, admission_no))', { count: 'exact' })
+        .eq('status', status)
+        .order('route_name', { ascending: true })
+        .range(skip, skip + limit - 1);
+        
+    if (error) throw error;
+
+    const routes = (rawRoutes || []).map((r: any) => ({
+      _id: r.id,
+      id: r.id,
+      routeName: r.route_name,
+      routeCode: r.route_code,
+      description: r.description,
+      driverId: r.driverId ? { _id: r.driverId.id, name: r.driverId.name, phone: r.driverId.phone, email: r.driverId.email } : null,
+      driverName: r.driver_name,
+      driverPhone: r.driver_phone,
+      vehicleNumber: r.vehicle_number,
+      vehicleType: r.vehicle_type,
+      capacity: r.capacity,
+      status: r.status,
+      isActive: r.is_active,
+      stops: r.stops ? r.stops.map((s: any) => ({
+          _id: s.id,
+          stopName: s.stop_name,
+          location: s.location,
+          pickupTime: s.pickup_time,
+          dropTime: s.drop_time,
+          sequence: s.sequence,
+          lat: s.lat,
+          lng: s.lng
+      })) : [],
+      students: r.studentAssignments ? r.studentAssignments.map((sa: any) => ({
+          _id: sa.students.id,
+          firstName: sa.students.first_name,
+          lastName: sa.students.last_name,
+          admissionNo: sa.students.admission_no
+      })) : [],
+      createdAt: r.created_at,
+      updatedAt: r.updated_at
+    }));
 
     return NextResponse.json({
       success: true,
       routes,
-      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+      pagination: { page, limit, total: count || 0, pages: Math.ceil((count || 0) / limit) },
     });
   } catch (error) {
     console.error("[GET /api/transport/routes]", error);
@@ -49,8 +76,6 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    await connectDB();
-
     const token = req.headers.get("cookie")?.match(/token=([^;]+)/)?.[1];
     const user = verifyToken(token);
 
@@ -85,26 +110,84 @@ export async function POST(req: Request) {
       );
     }
 
-    const routeData = {
-      routeName,
-      routeCode: routeCode?.trim() || undefined,
+    const repo = new TransportRouteRepository();
+    const createdRaw = await repo.create({
+      route_name: routeName,
+      route_code: routeCode?.trim() || undefined,
       description,
-      driverId: driverId && driverId !== "" ? driverId : null,
-      driverName,
-      driverPhone,
-      vehicleNumber,
-      vehicleType,
+      driver_id: driverId && driverId !== "" ? driverId : null,
+      driver_name: driverName,
+      driver_phone: driverPhone,
+      vehicle_number: vehicleNumber,
+      vehicle_type: vehicleType,
       capacity,
-      stops,
-      students: students || [],
       status: status || "active",
-      isActive: isActive !== undefined ? isActive : true,
+      is_active: isActive !== undefined ? isActive : true,
+    });
+    
+    if (stops && Array.isArray(stops) && stops.length > 0) {
+        const stopRepo = new TransportStopRepository();
+        const stopInserts = stops.map((s: any) => ({
+            route_id: createdRaw.id,
+            stop_name: s.stopName,
+            location: s.location,
+            pickup_time: s.pickupTime,
+            drop_time: s.dropTime,
+            sequence: s.sequence,
+            lat: s.lat,
+            lng: s.lng
+        }));
+        await stopRepo.getClient().from('transport_stops').insert(stopInserts);
+    }
+    
+    if (students && Array.isArray(students) && students.length > 0) {
+        const studentAssignments = students.map((sId: any) => ({
+            route_id: createdRaw.id,
+            student_id: sId._id || sId.id || sId
+        }));
+        await repo.getClient().from('transport_student_assignments').insert(studentAssignments);
+    }
+    
+    // fetch full
+    const { data: fullRoutes } = await repo.getClient().from('transport_routes')
+        .select('*, driverId:users(id, name, email), stops:transport_stops(*), studentAssignments:transport_student_assignments(students(id, first_name, last_name, admission_no))')
+        .eq('id', createdRaw.id);
+        
+    const r = fullRoutes && fullRoutes.length > 0 ? fullRoutes[0] : createdRaw;
+    
+    const route = {
+      _id: r.id,
+      id: r.id,
+      routeName: r.route_name,
+      routeCode: r.route_code,
+      description: r.description,
+      driverId: r.driverId ? { _id: r.driverId.id, name: r.driverId.name, phone: r.driverId.phone, email: r.driverId.email } : null,
+      driverName: r.driver_name,
+      driverPhone: r.driver_phone,
+      vehicleNumber: r.vehicle_number,
+      vehicleType: r.vehicle_type,
+      capacity: r.capacity,
+      status: r.status,
+      isActive: r.is_active,
+      stops: r.stops ? r.stops.map((s: any) => ({
+          _id: s.id,
+          stopName: s.stop_name,
+          location: s.location,
+          pickupTime: s.pickup_time,
+          dropTime: s.drop_time,
+          sequence: s.sequence,
+          lat: s.lat,
+          lng: s.lng
+      })) : (stops || []),
+      students: r.studentAssignments ? r.studentAssignments.map((sa: any) => ({
+          _id: sa.students.id,
+          firstName: sa.students.first_name,
+          lastName: sa.students.last_name,
+          admissionNo: sa.students.admission_no
+      })) : (students || []),
+      createdAt: r.created_at,
+      updatedAt: r.updated_at
     };
-
-    const route = new TransportRoute(routeData);
-
-    await route.save();
-    await route.populate("driverId", "name phone email");
 
     // Log admin activity
     await logAdminActivity({
@@ -113,7 +196,7 @@ export async function POST(req: Request) {
       action: "create:transport",
       message: `Transport route created: ${route.routeName}`,
       metadata: {
-        routeId: route._id,
+        routeId: route.id,
         routeName: route.routeName,
         routeCode: route.routeCode,
       },
@@ -131,8 +214,6 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
   try {
-    await connectDB();
-
     const token = req.headers.get("cookie")?.match(/token=([^;]+)/)?.[1];
     const user = verifyToken(token);
 
@@ -144,7 +225,7 @@ export async function PUT(req: Request) {
     }
 
     const body = await req.json();
-    const { id, ...updateData } = body;
+    const { id, stops, students, ...updateDataRaw } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -154,19 +235,109 @@ export async function PUT(req: Request) {
     }
 
     // Clean up empty strings for IDs and unique fields
-    if (updateData.driverId === "") updateData.driverId = null;
-    if (updateData.routeCode === "") updateData.routeCode = undefined;
+    if (updateDataRaw.driverId === "") updateDataRaw.driverId = null;
+    if (updateDataRaw.routeCode === "") updateDataRaw.routeCode = undefined;
+    
+    const updatePayload: any = { ...updateDataRaw };
+    delete updatePayload._id;
+    if (updatePayload.routeName !== undefined) updatePayload.route_name = updatePayload.routeName;
+    if (updatePayload.routeCode !== undefined) updatePayload.route_code = updatePayload.routeCode;
+    if (updatePayload.driverId !== undefined) updatePayload.driver_id = updatePayload.driverId;
+    if (updatePayload.driverName !== undefined) updatePayload.driver_name = updatePayload.driverName;
+    if (updatePayload.driverPhone !== undefined) updatePayload.driver_phone = updatePayload.driverPhone;
+    if (updatePayload.vehicleNumber !== undefined) updatePayload.vehicle_number = updatePayload.vehicleNumber;
+    if (updatePayload.vehicleType !== undefined) updatePayload.vehicle_type = updatePayload.vehicleType;
+    if (updatePayload.isActive !== undefined) updatePayload.is_active = updatePayload.isActive;
+    
+    delete updatePayload.routeName;
+    delete updatePayload.routeCode;
+    delete updatePayload.driverId;
+    delete updatePayload.driverName;
+    delete updatePayload.driverPhone;
+    delete updatePayload.vehicleNumber;
+    delete updatePayload.vehicleType;
+    delete updatePayload.isActive;
+    delete updatePayload.createdAt;
+    delete updatePayload.updatedAt;
 
-    const route = await TransportRoute.findByIdAndUpdate(id, updateData, {
-      new: true,
-    }).populate("driverId", "name phone email");
+    const repo = new TransportRouteRepository();
+    const updatedRaw = await repo.update(id, updatePayload);
 
-    if (!route) {
+    if (!updatedRaw) {
       return NextResponse.json(
         { success: false, error: "Route not found" },
         { status: 404 }
       );
     }
+    
+    if (stops && Array.isArray(stops)) {
+        await repo.getClient().from('transport_stops').delete().eq('route_id', id);
+        if (stops.length > 0) {
+            const stopInserts = stops.map((s: any) => ({
+                route_id: id,
+                stop_name: s.stopName,
+                location: s.location,
+                pickup_time: s.pickupTime,
+                drop_time: s.dropTime,
+                sequence: s.sequence,
+                lat: s.lat,
+                lng: s.lng
+            }));
+            await repo.getClient().from('transport_stops').insert(stopInserts);
+        }
+    }
+    
+    if (students && Array.isArray(students)) {
+        await repo.getClient().from('transport_student_assignments').delete().eq('route_id', id);
+        if (students.length > 0) {
+            const studentAssignments = students.map((sId: any) => ({
+                route_id: id,
+                student_id: sId._id || sId.id || sId
+            }));
+            await repo.getClient().from('transport_student_assignments').insert(studentAssignments);
+        }
+    }
+    
+    // fetch full
+    const { data: fullRoutes } = await repo.getClient().from('transport_routes')
+        .select('*, driverId:users(id, name, email), stops:transport_stops(*), studentAssignments:transport_student_assignments(students(id, first_name, last_name, admission_no))')
+        .eq('id', id);
+        
+    const r = fullRoutes && fullRoutes.length > 0 ? fullRoutes[0] : updatedRaw;
+    
+    const route = {
+      _id: r.id,
+      id: r.id,
+      routeName: r.route_name,
+      routeCode: r.route_code,
+      description: r.description,
+      driverId: r.driverId ? { _id: r.driverId.id, name: r.driverId.name, phone: r.driverId.phone, email: r.driverId.email } : null,
+      driverName: r.driver_name,
+      driverPhone: r.driver_phone,
+      vehicleNumber: r.vehicle_number,
+      vehicleType: r.vehicle_type,
+      capacity: r.capacity,
+      status: r.status,
+      isActive: r.is_active,
+      stops: r.stops ? r.stops.map((s: any) => ({
+          _id: s.id,
+          stopName: s.stop_name,
+          location: s.location,
+          pickupTime: s.pickup_time,
+          dropTime: s.drop_time,
+          sequence: s.sequence,
+          lat: s.lat,
+          lng: s.lng
+      })) : [],
+      students: r.studentAssignments ? r.studentAssignments.map((sa: any) => ({
+          _id: sa.students.id,
+          firstName: sa.students.first_name,
+          lastName: sa.students.last_name,
+          admissionNo: sa.students.admission_no
+      })) : [],
+      createdAt: r.created_at,
+      updatedAt: r.updated_at
+    };
 
     return NextResponse.json({ success: true, route });
   } catch (error) {
@@ -180,8 +351,6 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    await connectDB();
-
     const token = req.headers.get("cookie")?.match(/token=([^;]+)/)?.[1];
     const user = verifyToken(token);
 
@@ -202,14 +371,8 @@ export async function DELETE(req: Request) {
       );
     }
 
-    const route = await TransportRoute.findByIdAndDelete(id);
-
-    if (!route) {
-      return NextResponse.json(
-        { success: false, error: "Route not found" },
-        { status: 404 }
-      );
-    }
+    const repo = new TransportRouteRepository();
+    const route = await repo.delete(id);
 
     return NextResponse.json({ success: true, message: "Route deleted successfully" });
   } catch (error) {

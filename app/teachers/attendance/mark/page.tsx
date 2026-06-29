@@ -55,7 +55,7 @@ export default function MarkAttendancePage() {
       </div>
 
       <div className="mt-4">
-        <button onClick={submit}>Save Attendance</button>
+        <button type="button" onClick={submit}>Save Attendance</button>
       </div>
     </div>
   );

@@ -1,34 +1,26 @@
-import Student from "@/models/Student";
+import { supabaseAdmin } from "@/lib/supabase";
 
-// Define the Parent type for the parents array
-interface Parent {
-  parentId: string; // Adjust to ObjectId if needed
-  [key: string]: unknown; // Allow additional fields
-}
-
-// Define the Student type for lean() result
-interface StudentLean {
-  _id: string;
-  parents?: Parent[];
-  [key: string]: unknown; // Allow additional fields
-}
-
-export async function parentOwnsStudent(studentId: string, loggedInParentId: string, parentEmail?: string): Promise<StudentLean | null> {
+export async function parentOwnsStudent(studentId: string, loggedInParentId: string, parentEmail?: string) {
   // If the logged in user is directly the student (student login scenario)
   if (String(studentId) === String(loggedInParentId)) {
-    return await Student.findById(studentId).lean<StudentLean>() as StudentLean | null;
+    const { data } = await supabaseAdmin.from('students').select('*').eq('id', studentId).single();
+    if (data) return data;
   }
 
-  // Otherwise, logged in as Parent (User model). Check the student's parents array.
-  const query: any = {
-    _id: studentId,
-    $or: [{ "parents.parentId": loggedInParentId }]
-  };
-
+  // Otherwise, logged in as Parent (User model). Check the student_parents mapping.
+  let query = supabaseAdmin.from('student_parents').select('*, students(*)').eq('student_id', studentId);
+  
   if (parentEmail) {
-    query.$or.push({ "parents.email": parentEmail });
+    query = query.or(`parent_user_id.eq.${loggedInParentId},email.eq.${parentEmail}`);
+  } else {
+    query = query.eq('parent_user_id', loggedInParentId);
   }
 
-  const student = await Student.findOne(query).lean<StudentLean>();
-  return student as StudentLean | null;
+  const { data } = await query.single();
+  
+  if (data?.students) {
+    return { ...data.students, parents: [data] };
+  }
+
+  return null;
 }

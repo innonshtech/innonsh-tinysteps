@@ -72,7 +72,7 @@ export default function NewTimetablePage() {
       <input type="time" name="endTime" onChange={onChange} />
       <input name="roomNumber" placeholder="Room #" onChange={onChange} />
 
-      <button onClick={submit}>Save</button>
+      <button type="button" onClick={submit}>Save</button>
     </div>
   );
 }

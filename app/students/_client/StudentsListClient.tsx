@@ -30,15 +30,15 @@ export default function StudentsListClient() {
     <div>
       <div className="flex justify-between items-center mb-4">
         <h2>All Students</h2>
-        <Link href="/students/new"><button>Create Student</button></Link>
+        <Link href="/students/new"><button type="button">Create Student</button></Link>
       </div>
 
       {loading ? <div>Loading...</div> : <StudentTable students={students} />}
 
       <div className="flex gap-2 items-center mt-4">
-        <button disabled={pageInfo.page <= 1} onClick={() => fetchPage(pageInfo.page - 1)}>Prev</button>
+        <button type="button" disabled={pageInfo.page <= 1} onClick={() => fetchPage(pageInfo.page - 1)}>Prev</button>
         <div>Page {pageInfo.page} / {pageInfo.pages} — Total {pageInfo.total}</div>
-        <button disabled={pageInfo.page >= pageInfo.pages} onClick={() => fetchPage(pageInfo.page + 1)}>Next</button>
+        <button type="button" disabled={pageInfo.page >= pageInfo.pages} onClick={() => fetchPage(pageInfo.page + 1)}>Next</button>
       </div>
     </div>
   );

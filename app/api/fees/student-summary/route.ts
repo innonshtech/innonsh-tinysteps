@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDB } from "@/lib/db";
-import Student from "@/models/Student";
-import FeeTransaction from "@/models/FeeTransaction";
-import User from "@/models/User";
 import { verifyToken } from "@/lib/auth";
+import { FeeTransactionRepository } from "@/repositories/fee.repository";
+import { StudentRepository } from "@/repositories/student.repository";
+import { TeacherRepository } from "@/repositories/teacher.repository";
+import { UserRepository } from "@/repositories/user.repository";
 
 export async function GET(req: NextRequest) {
     try {
-        // Verify authentication
         const token = req.cookies.get("token")?.value;
         const decoded = verifyToken(token);
 
@@ -18,15 +17,14 @@ export async function GET(req: NextRequest) {
             );
         }
 
-        // Fetch user to check role
-        await connectDB();
         let user: any = null;
         if (decoded.role === "teacher") {
-            const Teacher = (await import("@/models/Teacher")).default;
-            user = await Teacher.findById(decoded.id);
-            if (user) user.role = "teacher"; // Ensure role property exists for check
+            const teacherRepo = new TeacherRepository();
+            user = await teacherRepo.findById(decoded.id);
+            if (user) user.role = "teacher";
         } else {
-            user = await User.findById(decoded.id);
+            const userRepo = new UserRepository();
+            user = await userRepo.findById(decoded.id);
         }
 
         if (!user || !["admin", "teacher"].includes(user.role)) {
@@ -36,75 +34,68 @@ export async function GET(req: NextRequest) {
             );
         }
 
-        // Fetch all students with their class information
-        const students = await Student.find()
-            .populate({
-                path: "classId",
-                select: "name section teachers",
-                populate: { path: "teachers", select: "name email phone" }
-            })
-            .lean();
+        const studentRepo = new StudentRepository();
+        const { data: students } = await studentRepo.findWithRelations();
 
-        // Fetch all fee transactions
-        const allTransactions = await FeeTransaction.find().lean();
+        const feeTxRepo = new FeeTransactionRepository();
+        const { data: allTransactions } = await feeTxRepo.findWithDetails();
 
-        // Build student fee data
-        const studentFeeData = await Promise.all(
-            students.map(async (student: any) => {
-                // Get transactions for this student
-                const transactions = allTransactions.filter(
-                    (t: any) => t.studentId.toString() === student._id.toString()
-                );
+        const studentFeeData = students.map((student: any) => {
+            const transactions = allTransactions.filter(
+                (t: any) => t.student_id === student.id
+            );
 
-                // Calculate totals
-                const totalDue = transactions.reduce((sum: number, t: any) => sum + (t.amountDue || 0), 0);
-                const totalPaid = transactions.reduce((sum: number, t: any) => sum + (t.amountPaid || 0), 0);
-                const totalFine = transactions.reduce((sum: number, t: any) => sum + (t.fineAmount || 0), 0);
-                const totalPending = totalDue - totalPaid;
+            const totalDue = transactions.reduce((sum: number, t: any) => sum + (t.amount_due || 0), 0);
+            const totalPaid = transactions.reduce((sum: number, t: any) => sum + (t.amount_paid || 0), 0);
+            const totalFine = transactions.reduce((sum: number, t: any) => sum + (t.fine_amount || 0), 0);
+            const totalPending = totalDue - totalPaid;
 
-                // Determine overall status
-                let status: "paid" | "partial" | "due" = "due";
-                if (totalPending === 0 && totalDue > 0) {
-                    status = "paid";
-                } else if (totalPaid > 0 && totalPending > 0) {
-                    status = "partial";
-                }
+            let status: "paid" | "partial" | "due" = "due";
+            if (totalPending === 0 && totalDue > 0) {
+                status = "paid";
+            } else if (totalPaid > 0 && totalPending > 0) {
+                status = "partial";
+            }
 
-                return {
-                    student: {
-                        _id: student._id,
-                        firstName: student.firstName,
-                        lastName: student.lastName,
-                        email: student.email,
-                        admissionNo: student.admissionNo,
-                        classId: student.classId,
-                        dob: student.dob,
-                        gender: student.gender,
-                        parents: student.parents,
-                        medical: student.medical,
-                        photo: student.photo,
-                    },
-                    totalDue,
-                    totalPaid,
-                    totalPending,
-                    totalFine,
-                    transactions: transactions.map((t: any) => ({
-                        _id: t._id,
-                        studentId: t.studentId,
-                        amountDue: t.amountDue,
-                        amountPaid: t.amountPaid,
-                        fineAmount: t.fineAmount,
-                        status: t.status,
-                        items: t.items,
-                        dueDate: t.dueDate,
-                        note: t.note || "",
-                        createdAt: t.createdAt,
-                        updatedAt: t.updatedAt,
-                    })),
-                    status,
-                };
-            })
-        );
+            return {
+                student: {
+                    _id: student.id,
+                    firstName: student.first_name,
+                    lastName: student.last_name,
+                    email: student.email,
+                    admissionNo: student.admission_no,
+                    classId: student.class ? {
+                       _id: student.class.id,
+                       name: student.class.name,
+                       section: student.class.section,
+                       teachers: student.class.teachers
+                    } : student.class_id,
+                    dob: student.dob,
+                    gender: student.gender,
+                    parents: student.parents,
+                    medical: { allergies: student.medical_allergies, notes: student.medical_notes },
+                    photo: student.photo,
+                },
+                totalDue,
+                totalPaid,
+                totalPending,
+                totalFine,
+                transactions: transactions.map((t: any) => ({
+                    _id: t.id,
+                    studentId: t.student_id,
+                    amountDue: t.amount_due,
+                    amountPaid: t.amount_paid,
+                    fineAmount: t.fine_amount,
+                    status: t.status,
+                    items: t.items.map((i: any) => ({ name: i.head, amount: i.amount })),
+                    dueDate: t.due_date,
+                    note: t.note || "",
+                    createdAt: t.created_at,
+                    updatedAt: t.updated_at,
+                })),
+                status,
+            };
+        });
 
         return NextResponse.json({
             success: true,

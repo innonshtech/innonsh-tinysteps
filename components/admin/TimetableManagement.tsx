@@ -62,7 +62,7 @@ interface Column {
   render?: (value: unknown, row: Record<string, unknown>) => ReactNode;
 }
 
-const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 export default function TimetableManagement() {
   const searchParams = useSearchParams();
@@ -292,9 +292,9 @@ export default function TimetableManagement() {
     )
     : timetables;
 
-  const totalEntries = timetables.length;
-  const uniqueSubjects = new Set(timetables.map((t) => t.subject)).size;
-  const teacherIds = timetables
+  const totalEntries = filteredTimetables.length;
+  const uniqueSubjects = new Set(filteredTimetables.map((t) => t.subject)).size;
+  const teacherIds = filteredTimetables
     .map((t) => (typeof (t.teacherId as any) === "string" ? (t.teacherId as any) : (t.teacherId as any)?._id))
     .filter(Boolean);
   const uniqueTeachers = new Set(teacherIds).size;
@@ -386,7 +386,7 @@ export default function TimetableManagement() {
             <p className="text-sm text-gray-600 mt-1">Manage class schedules and time slots</p>
           </div>
           <div className="flex gap-3">
-            <button onClick={() => exportToCSV([], "timetables.csv")} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
+            <button type="button" onClick={() => exportToCSV([], "timetables.csv")} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
               <Download className="w-4 h-4" />
               <span className="text-sm font-medium">Export</span>
             </button>
@@ -439,7 +439,7 @@ export default function TimetableManagement() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
-              <button
+              <button type="button"
                 onClick={() => setViewMode("calendar")}
                 className={`px-4 py-2 rounded-md transition-all flex items-center gap-2 ${viewMode === "calendar"
                   ? "bg-white text-indigo-600 shadow-sm"
@@ -449,7 +449,7 @@ export default function TimetableManagement() {
                 <Calendar className="w-4 h-4" />
                 <span className="text-sm font-medium">Calendar</span>
               </button>
-              <button
+              <button type="button"
                 onClick={() => setViewMode("table")}
                 className={`px-4 py-2 rounded-md transition-all flex items-center gap-2 ${viewMode === "table"
                   ? "bg-white text-indigo-600 shadow-sm"
@@ -464,7 +464,7 @@ export default function TimetableManagement() {
             {viewMode === "calendar" && (
               <div className="flex items-center gap-3 border-l border-gray-200 pl-4">
                 <div className="flex items-center bg-gray-100 rounded-lg p-1">
-                  <button
+                  <button type="button"
                     onClick={() => setViewBy("class")}
                     className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
                       viewBy === "class" ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
@@ -472,7 +472,7 @@ export default function TimetableManagement() {
                   >
                     Class View
                   </button>
-                  <button
+                  <button type="button"
                     onClick={() => setViewBy("teacher")}
                     className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
                       viewBy === "teacher" ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
@@ -510,7 +510,7 @@ export default function TimetableManagement() {
             )}
           </div>
 
-          <button
+          <button type="button"
             onClick={() => {
               setEditingEntry(null);
               setFormData({
@@ -533,7 +533,7 @@ export default function TimetableManagement() {
 
         {/* Calendar View */}
         {viewMode === "calendar" && (viewBy === "class" ? selectedClass : selectedTeacher) && (
-          <div className="grid grid-cols-6 gap-2">
+          <div className="grid grid-cols-7 gap-2">
             {DAYS.map((day) => {
               const entries = getEntriesForDayAndFilter(day);
               return (
@@ -577,21 +577,21 @@ export default function TimetableManagement() {
                                 </span>
                                 {/* Action buttons on hover */}
                                 <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 rounded shadow-sm flex flex-col sm:flex-row divide-y sm:divide-y-0 sm:divide-x divide-gray-200 border border-gray-200">
-                                  <button
+                                  <button type="button"
                                     onClick={() => handleDuplicateEntry(entry)}
                                     className="p-1 text-gray-500 hover:text-green-600 hover:bg-green-50 transition-colors"
                                     title="Duplicate Entry"
                                   >
                                     <Plus className="w-3 h-3" />
                                   </button>
-                                  <button
+                                  <button type="button"
                                     onClick={() => handleEditEntry(entry)}
                                     className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
                                     title="Edit Entry"
                                   >
                                     <Edit2 className="w-3 h-3" />
                                   </button>
-                                  <button
+                                  <button type="button"
                                     onClick={() => handleDeleteEntry(entry._id)}
                                     className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors"
                                     title="Delete Entry"
@@ -697,14 +697,14 @@ export default function TimetableManagement() {
               loading={loading}
               actions={(row) => (
                 <div className="flex gap-2">
-                  <button
+                  <button type="button"
                     onClick={() => handleEditEntry(row as Timetable)}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-100 transition-all text-sm font-medium"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
                     Edit
                   </button>
-                  <button
+                  <button type="button"
                     onClick={() => handleDeleteEntry((row as Timetable)._id)}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 border border-red-200 text-red-700 rounded-lg hover:bg-red-100 transition-all text-sm font-medium"
                   >
@@ -729,7 +729,7 @@ export default function TimetableManagement() {
         size="lg"
         footer={
           <>
-            <Button
+            <Button type="button"
               onClick={() => {
                 setModalOpen(false);
                 setEditingEntry(null);
@@ -738,7 +738,7 @@ export default function TimetableManagement() {
             >
               Cancel
             </Button>
-            <Button onClick={handleSaveEntry} variant="primary">
+            <Button type="button" onClick={handleSaveEntry} variant="primary">
               {editingEntry ? "Update" : "Add"} Entry
             </Button>
           </>

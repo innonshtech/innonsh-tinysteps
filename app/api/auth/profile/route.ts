@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
-import { connectDB } from "@/lib/db";
-import User from "@/models/User";
-import Teacher from "@/models/Teacher";
-import Student from "@/models/Student";
 import { verifyToken } from "@/lib/auth";
 import bcrypt from "bcryptjs";
+import { UserRepository } from "@/repositories/user.repository";
+import { TeacherRepository } from "@/repositories/teacher.repository";
+import { StudentRepository } from "@/repositories/student.repository";
 
 export async function GET(req: Request) {
     try {
-        await connectDB();
         const token = req.headers.get("cookie")?.match(/token=([^;]+)/)?.[1];
         const decoded = verifyToken(token);
 
@@ -16,31 +14,38 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        let user = null;
+        let user: any = null;
         if (decoded.role === "admin" || decoded.role === "parent") {
-            user = await User.findById(decoded.id).select("-password").lean();
+            const repo = new UserRepository();
+            user = await repo.findById(decoded.id);
         } else if (decoded.role === "teacher") {
+            const repo = new TeacherRepository();
             // Primary: find by ID in Teacher collection
-            user = await Teacher.findById(decoded.id).select("-password").lean();
+            user = await repo.findById(decoded.id);
             // Fallback: token might store a User._id (old sessions) - look up by email
             if (!user && decoded.email) {
-                user = await Teacher.findOne({ email: decoded.email }).select("-password").lean();
+                const teachers = await repo.find({ email: decoded.email });
+                if (teachers.length > 0) user = teachers[0];
             }
             // Fallback 2: try User model (edge case where teacher logged in via User table)
             if (!user) {
-                const userRecord = await User.findById(decoded.id).select("-password").lean() as any;
+                const userRepo = new UserRepository();
+                const userRecord = await userRepo.findById(decoded.id);
                 if (userRecord) user = userRecord;
             }
         } else if (decoded.role === "student") {
-            user = await Student.findById(decoded.id).select("-password").lean();
+            const repo = new StudentRepository();
+            user = await repo.findById(decoded.id);
         }
 
         if (!user) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
-        user.id = user._id.toString();
+        user.id = user.id.toString();
+        user._id = user.id; // For frontend compatibility
         user.role = decoded.role;
+        delete user.password;
 
         return NextResponse.json({ success: true, user });
     } catch (error) {
@@ -51,7 +56,6 @@ export async function GET(req: Request) {
 
 export async function PUT(req: Request) {
     try {
-        await connectDB();
         const token = req.headers.get("cookie")?.match(/token=([^;]+)/)?.[1];
         const decoded = verifyToken(token);
 
@@ -64,26 +68,32 @@ export async function PUT(req: Request) {
 
         let updateData: any = {};
         if (name) updateData.name = name;
-        if (firstName) updateData.firstName = firstName;
-        if (lastName) updateData.lastName = lastName;
+        if (firstName) updateData.first_name = firstName;
+        if (lastName) updateData.last_name = lastName;
         if (email) updateData.email = email;
         if (password) {
             const salt = await bcrypt.genSalt(10);
             updateData.password = await bcrypt.hash(password, salt);
         }
 
-        let updatedUser = null;
+        let updatedUser: any = null;
         if (decoded.role === "admin" || decoded.role === "parent") {
-            updatedUser = await User.findByIdAndUpdate(decoded.id, updateData, { new: true }).select("-password").lean();
+            const repo = new UserRepository();
+            updatedUser = await repo.update(decoded.id, updateData);
         } else if (decoded.role === "teacher") {
-            updatedUser = await Teacher.findByIdAndUpdate(decoded.id, updateData, { new: true }).select("-password").lean();
+            const repo = new TeacherRepository();
+            updatedUser = await repo.update(decoded.id, updateData);
         } else if (decoded.role === "student") {
-            updatedUser = await Student.findByIdAndUpdate(decoded.id, updateData, { new: true }).select("-password").lean();
+            const repo = new StudentRepository();
+            updatedUser = await repo.update(decoded.id, updateData);
         }
 
         if (!updatedUser) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
+
+        updatedUser._id = updatedUser.id;
+        delete updatedUser.password;
 
         return NextResponse.json({ success: true, user: updatedUser });
     } catch (error) {
