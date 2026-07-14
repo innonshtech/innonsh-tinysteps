@@ -37,7 +37,7 @@ export default function StudentDetailClient({ studentId }: { studentId: string }
     <div>
       <h1>{student.firstName} {student.lastName}</h1>
       <div className="mb-4">
-        <button onClick={handleDelete}>Delete</button>
+        <button type="button" onClick={handleDelete}>Delete</button>
       </div>
       <div className="mb-6">
         <h2>Edit</h2>

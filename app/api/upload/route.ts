@@ -26,8 +26,8 @@ export async function POST(req: Request) {
 
         const buffer = Buffer.from(await file.arrayBuffer());
 
-        // Upload to Cloudinary folder "gallery_uploads"
-        const result = await uploadFile(buffer, "gallery_uploads");
+        // Upload to Supabase folder "gallery_uploads"
+        const result = await uploadFile(buffer, "gallery_uploads", file.name, file.type);
 
         return NextResponse.json({
             success: true,

@@ -394,242 +394,242 @@ export default function AttendanceManagement() {
         </div>
       </div>
 
-          {/* Main Action Area - flex col to allow inner scrolling */}
-          <div className="bg-white border border-gray-200 rounded-2xl shadow-sm flex flex-col" style={{ minHeight: '480px' }}>
+      {/* Main Action Area - flex col to allow inner scrolling */}
+      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm flex flex-col" style={{ minHeight: '480px' }}>
 
-            {/* Toolbar */}
-            <div className="px-5 pt-4 pb-4 border-b border-gray-100 bg-white sticky top-[64px] z-20 shadow-sm">
+        {/* Toolbar */}
+        <div className="px-5 pt-4 pb-4 border-b border-gray-100 bg-white sticky top-[64px] z-20 shadow-sm">
 
-              {/* Row 1: Tabs + Actions */}
-              <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-                {/* View Mode Tabs */}
-                <div className="flex bg-gray-100 p-1 rounded-xl">
-                  <button
-                    onClick={() => setViewMode("mark")}
-                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 whitespace-nowrap ${viewMode === "mark" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+          {/* Row 1: Tabs + Actions */}
+          <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+            {/* View Mode Tabs */}
+            <div className="flex bg-gray-100 p-1 rounded-xl">
+              <button type="button"
+                onClick={() => setViewMode("mark")}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 whitespace-nowrap ${viewMode === "mark" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+              >
+                Mark Register
+              </button>
+              <button type="button"
+                onClick={() => setViewMode("history")}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 whitespace-nowrap ${viewMode === "history" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+              >
+                View History
+              </button>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {viewMode === "mark" && (
+                <>
+                  <button type="button"
+                    onClick={() => markAll("present")}
+                    className="px-4 py-2 text-sm font-semibold text-green-700 bg-green-50 rounded-xl hover:bg-green-100 border border-green-200 whitespace-nowrap transition-colors"
                   >
-                    Mark Register
+                    Mark All Present
                   </button>
-                  <button
-                    onClick={() => setViewMode("history")}
-                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 whitespace-nowrap ${viewMode === "history" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+                  <button type="button"
+                    onClick={saveAttendance}
+                    className="flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold rounded-xl hover:shadow-lg hover:from-orange-600 hover:to-red-600 transition-all active:scale-95 whitespace-nowrap"
                   >
-                    View History
+                    <Save className="w-4 h-4" />
+                    Save Changes
                   </button>
+                </>
+              )}
+              {viewMode === "history" && (
+                <button type="button" onClick={() => exportToCSV(attendances, "attendance.csv")} className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 transition-colors text-sm font-medium">
+                  <Download className="w-4 h-4" />
+                  Export
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Row 2: Class Selector + Date Selector */}
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Class Selector */}
+            <div className="relative flex-1 min-w-[160px] max-w-[260px]">
+              <select
+                value={selectedClass}
+                onChange={(e) => setSelectedClass(e.target.value)}
+                className="w-full appearance-none pl-4 pr-8 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400 font-medium text-gray-700 text-sm"
+              >
+                <option value="" disabled>Select Class</option>
+                {classes.map((c) => (
+                  <option key={c._id} value={c._id}>{c.name} - {c.section}</option>
+                ))}
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                <ChevronDown className="w-4 h-4" />
+              </div>
+            </div>
+
+            {/* Date Selector */}
+            <div className="relative group">
+              <Calendar className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="date"
+                value={attendanceDate}
+                onChange={(e) => setAttendanceDate(e.target.value)}
+                className="pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400 font-medium text-gray-700 text-sm transition-all"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Content Area - fills remaining space and scrolls */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-5 md:p-6 bg-gray-50/30" style={{ minHeight: '200px' }}>
+          {viewMode === "mark" ? (
+            <>
+              {!selectedClass ? (
+                <div className="text-center py-32 text-gray-400 bg-white rounded-2xl border border-dashed border-gray-200">
+                  <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Users className="w-10 h-10 text-gray-300" />
+                  </div>
+                  <p className="text-lg font-medium text-gray-600">Select a class to mark attendance</p>
+                  <p className="text-sm text-gray-400 mt-1">Choose from the dropdown above</p>
                 </div>
+              ) : loadingRegister ? (
+                <div className="text-center py-32">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+                  <p className="text-gray-500 font-medium">Loading class register...</p>
+                </div>
+              ) : classStudents.length === 0 ? (
+                <div className="text-center py-32 text-gray-500 bg-white rounded-2xl border border-dashed border-gray-200">
+                  <p>No students found in this class</p>
+                </div>
+              ) : (
+                <>
+                  {/* Register Stats Bar */}
+                  <div className="mb-6 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                    <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+                      <span className="font-bold text-gray-800 flex items-center gap-2 text-sm">
+                        <div className="w-1.5 h-5 bg-orange-500 rounded-full"></div>
+                        Class Summary
+                      </span>
+                      <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
+                        {currentRegisterStats.total} Students Total
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 divide-x divide-y sm:divide-y-0 divide-gray-100">
+                      <div className="flex flex-col items-center justify-center gap-1 py-4 px-3 bg-green-50/50">
+                        <span className="text-2xl font-extrabold text-green-700">{currentRegisterStats.present}</span>
+                        <span className="text-xs font-semibold text-green-600 uppercase tracking-wide">Present</span>
+                      </div>
+                      <div className="flex flex-col items-center justify-center gap-1 py-4 px-3 bg-red-50/50">
+                        <span className="text-2xl font-extrabold text-red-700">{currentRegisterStats.absent}</span>
+                        <span className="text-xs font-semibold text-red-600 uppercase tracking-wide">Absent</span>
+                      </div>
+                    </div>
+                  </div>
 
-                {/* Action Buttons */}
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {viewMode === "mark" && (
-                    <>
-                      <button
-                        onClick={() => markAll("present")}
-                        className="px-4 py-2 text-sm font-semibold text-green-700 bg-green-50 rounded-xl hover:bg-green-100 border border-green-200 whitespace-nowrap transition-colors"
-                      >
-                        Mark All Present
-                      </button>
-                      <button
-                        onClick={saveAttendance}
-                        className="flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold rounded-xl hover:shadow-lg hover:from-orange-600 hover:to-red-600 transition-all active:scale-95 whitespace-nowrap"
-                      >
-                        <Save className="w-4 h-4" />
-                        Save Changes
-                      </button>
-                    </>
-                  )}
-                  {viewMode === "history" && (
-                    <button onClick={() => exportToCSV(attendances, "attendance.csv")} className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 transition-colors text-sm font-medium">
-                      <Download className="w-4 h-4" />
-                      Export
-                    </button>
-                  )}
+                  {/* Register Search Filter */}
+                  <div className="mb-6">
+                    <div className="relative w-full md:w-96">
+                      <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        placeholder="Filter students by name..."
+                        value={registerSearch}
+                        onChange={(e) => setRegisterSearch(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400 font-medium text-gray-700 text-sm transition-all shadow-sm"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Student Register List */}
+                  <div className="flex flex-col gap-3">
+                    {filteredClassStudents.map((student, index) => {
+                      const status = studentStatus[student._id] || "present";
+                      const statusConfig: Record<string, { bg: string; lightBg: string; border: string; text: string; label: string }> = {
+                        present: { bg: "bg-green-500", lightBg: "bg-green-50", border: "border-green-300", text: "text-green-700", label: "Present" },
+                        absent: { bg: "bg-red-500", lightBg: "bg-red-50", border: "border-red-300", text: "text-red-700", label: "Absent" },
+                      };
+                      const current = statusConfig[status] || statusConfig.present;
+                      const avatarColors = [
+                        "from-orange-400 to-red-400",
+                        "from-purple-400 to-indigo-400",
+                        "from-teal-400 to-green-400",
+                        "from-pink-400 to-rose-400",
+                        "from-blue-400 to-cyan-400",
+                        "from-amber-400 to-orange-400",
+                      ];
+                      const avatarColor = avatarColors[index % avatarColors.length];
+                      const buttons: { key: "present" | "absent"; icon: React.ReactNode; label: string; color: string; activeColor: string }[] = [
+                        { key: "present", icon: <CheckCircle2 className="w-4 h-4" />, label: "Present", color: "text-green-600 hover:bg-green-50 border-transparent hover:border-green-200", activeColor: "bg-green-500 text-white border-green-500 shadow-md" },
+                        { key: "absent", icon: <XCircle className="w-4 h-4" />, label: "Absent", color: "text-red-500 hover:bg-red-50 border-transparent hover:border-red-200", activeColor: "bg-red-500 text-white border-red-500 shadow-md" },
+                      ];
+                      return (
+                        <div key={student._id} className={`bg-white rounded-xl border transition-all duration-200 overflow-hidden shadow-sm hover:shadow-md flex items-center p-3 sm:p-4 gap-4 ${current.border}`}>
+                          <div className={`flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br ${avatarColor} flex items-center justify-center text-white text-xl font-extrabold shadow-sm`}>
+                            {student.firstName.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div>
+                              <h3 className="font-bold text-gray-900 text-[15px] leading-tight truncate flex items-center gap-2">
+                                {student.firstName} {student.lastName || ""}
+                                <span className={`hidden sm:inline-flex text-[10px] font-bold px-2 py-0.5 rounded-full ${current.lightBg} ${current.text} border ${current.border}`}>
+                                  {current.label}
+                                </span>
+                              </h3>
+                              <p className="text-xs text-gray-500 mt-0.5">
+                                Reg No: <span className="text-gray-700 font-semibold">{student.admissionNo || "N/A"}</span>
+                              </p>
+                            </div>
+                            {/* Toggle Buttons */}
+                            <div className="flex items-center gap-2 mt-1 sm:mt-0">
+                              {buttons.map(btn => (
+                                <button type="button"
+                                  key={btn.key}
+                                  onClick={() => toggleStatus(student._id, btn.key)}
+                                  className={`flex items-center justify-center gap-1.5 py-2 px-4 rounded-lg border-2 text-sm font-bold transition-all duration-200 active:scale-95 min-w-[100px] ${status === btn.key ? btn.activeColor : `bg-gray-50 ${btn.color}`}`}
+                                >
+                                  {btn.icon}
+                                  <span className="leading-none">{btn.label}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </>
+          ) : (
+            // History View
+            <div className="space-y-4">
+              <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-4">
+                <div className="relative flex-1 w-full">
+                  <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Search by student name or admission number..."
+                    value={historySearch}
+                    onChange={(e) => setHistorySearch(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400 font-medium text-gray-700"
+                  />
+                </div>
+                <div className="text-sm text-gray-500 font-medium px-4 py-2 bg-white border border-gray-200 rounded-xl">
+                  {filteredHistory.length} records found
                 </div>
               </div>
 
-              {/* Row 2: Class Selector + Date Selector */}
-              <div className="flex items-center gap-3 flex-wrap">
-                {/* Class Selector */}
-                <div className="relative flex-1 min-w-[160px] max-w-[260px]">
-                  <select
-                    value={selectedClass}
-                    onChange={(e) => setSelectedClass(e.target.value)}
-                    className="w-full appearance-none pl-4 pr-8 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400 font-medium text-gray-700 text-sm"
-                  >
-                    <option value="" disabled>Select Class</option>
-                    {classes.map((c) => (
-                      <option key={c._id} value={c._id}>{c.name} - {c.section}</option>
-                    ))}
-                  </select>
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                    <ChevronDown className="w-4 h-4" />
-                  </div>
-                </div>
-
-                {/* Date Selector */}
-                <div className="relative group">
-                  <Calendar className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <input
-                    type="date"
-                    value={attendanceDate}
-                    onChange={(e) => setAttendanceDate(e.target.value)}
-                    className="pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400 font-medium text-gray-700 text-sm transition-all"
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden p-1">
+                <div className="overflow-x-auto">
+                  <Table
+                    columns={columns}
+                    data={filteredHistory}
+                    loading={loadingHistory}
                   />
                 </div>
               </div>
             </div>
-
-            {/* Content Area - fills remaining space and scrolls */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-5 md:p-6 bg-gray-50/30" style={{ minHeight: '200px' }}>
-              {viewMode === "mark" ? (
-                <>
-                  {!selectedClass ? (
-                    <div className="text-center py-32 text-gray-400 bg-white rounded-2xl border border-dashed border-gray-200">
-                      <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Users className="w-10 h-10 text-gray-300" />
-                      </div>
-                      <p className="text-lg font-medium text-gray-600">Select a class to mark attendance</p>
-                      <p className="text-sm text-gray-400 mt-1">Choose from the dropdown above</p>
-                    </div>
-                  ) : loadingRegister ? (
-                    <div className="text-center py-32">
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-                      <p className="text-gray-500 font-medium">Loading class register...</p>
-                    </div>
-                  ) : classStudents.length === 0 ? (
-                    <div className="text-center py-32 text-gray-500 bg-white rounded-2xl border border-dashed border-gray-200">
-                      <p>No students found in this class</p>
-                    </div>
-                  ) : (
-                    <>
-                      {/* Register Stats Bar */}
-                      <div className="mb-6 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                        <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-                          <span className="font-bold text-gray-800 flex items-center gap-2 text-sm">
-                            <div className="w-1.5 h-5 bg-orange-500 rounded-full"></div>
-                            Class Summary
-                          </span>
-                          <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
-                            {currentRegisterStats.total} Students Total
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-2 divide-x divide-y sm:divide-y-0 divide-gray-100">
-                          <div className="flex flex-col items-center justify-center gap-1 py-4 px-3 bg-green-50/50">
-                            <span className="text-2xl font-extrabold text-green-700">{currentRegisterStats.present}</span>
-                            <span className="text-xs font-semibold text-green-600 uppercase tracking-wide">Present</span>
-                          </div>
-                          <div className="flex flex-col items-center justify-center gap-1 py-4 px-3 bg-red-50/50">
-                            <span className="text-2xl font-extrabold text-red-700">{currentRegisterStats.absent}</span>
-                            <span className="text-xs font-semibold text-red-600 uppercase tracking-wide">Absent</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Register Search Filter */}
-                      <div className="mb-6">
-                        <div className="relative w-full md:w-96">
-                          <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                          <input
-                            type="text"
-                            placeholder="Filter students by name..."
-                            value={registerSearch}
-                            onChange={(e) => setRegisterSearch(e.target.value)}
-                            className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400 font-medium text-gray-700 text-sm transition-all shadow-sm"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Student Register List */}
-                      <div className="flex flex-col gap-3">
-                        {filteredClassStudents.map((student, index) => {
-                          const status = studentStatus[student._id] || "present";
-                          const statusConfig: Record<string, { bg: string; lightBg: string; border: string; text: string; label: string }> = {
-                            present: { bg: "bg-green-500", lightBg: "bg-green-50", border: "border-green-300", text: "text-green-700", label: "Present" },
-                            absent: { bg: "bg-red-500", lightBg: "bg-red-50", border: "border-red-300", text: "text-red-700", label: "Absent" },
-                          };
-                          const current = statusConfig[status] || statusConfig.present;
-                          const avatarColors = [
-                            "from-orange-400 to-red-400",
-                            "from-purple-400 to-indigo-400",
-                            "from-teal-400 to-green-400",
-                            "from-pink-400 to-rose-400",
-                            "from-blue-400 to-cyan-400",
-                            "from-amber-400 to-orange-400",
-                          ];
-                          const avatarColor = avatarColors[index % avatarColors.length];
-                          const buttons: { key: "present" | "absent"; icon: React.ReactNode; label: string; color: string; activeColor: string }[] = [
-                            { key: "present", icon: <CheckCircle2 className="w-4 h-4" />, label: "Present", color: "text-green-600 hover:bg-green-50 border-transparent hover:border-green-200", activeColor: "bg-green-500 text-white border-green-500 shadow-md" },
-                            { key: "absent", icon: <XCircle className="w-4 h-4" />, label: "Absent", color: "text-red-500 hover:bg-red-50 border-transparent hover:border-red-200", activeColor: "bg-red-500 text-white border-red-500 shadow-md" },
-                          ];
-                          return (
-                            <div key={student._id} className={`bg-white rounded-xl border transition-all duration-200 overflow-hidden shadow-sm hover:shadow-md flex items-center p-3 sm:p-4 gap-4 ${current.border}`}>
-                                <div className={`flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br ${avatarColor} flex items-center justify-center text-white text-xl font-extrabold shadow-sm`}>
-                                  {student.firstName.charAt(0).toUpperCase()}
-                                </div>
-                                <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                                  <div>
-                                    <h3 className="font-bold text-gray-900 text-[15px] leading-tight truncate flex items-center gap-2">
-                                      {student.firstName} {student.lastName || ""}
-                                      <span className={`hidden sm:inline-flex text-[10px] font-bold px-2 py-0.5 rounded-full ${current.lightBg} ${current.text} border ${current.border}`}>
-                                        {current.label}
-                                      </span>
-                                    </h3>
-                                    <p className="text-xs text-gray-500 mt-0.5">
-                                      Reg No: <span className="text-gray-700 font-semibold">{student.admissionNo || "N/A"}</span>
-                                    </p>
-                                  </div>
-                                  {/* Toggle Buttons */}
-                                  <div className="flex items-center gap-2 mt-1 sm:mt-0">
-                                    {buttons.map(btn => (
-                                      <button
-                                        key={btn.key}
-                                        onClick={() => toggleStatus(student._id, btn.key)}
-                                        className={`flex items-center justify-center gap-1.5 py-2 px-4 rounded-lg border-2 text-sm font-bold transition-all duration-200 active:scale-95 min-w-[100px] ${status === btn.key ? btn.activeColor : `bg-gray-50 ${btn.color}`}`}
-                                      >
-                                        {btn.icon}
-                                        <span className="leading-none">{btn.label}</span>
-                                      </button>
-                                    ))}
-                                  </div>
-                                </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </>
-                  )}
-                </>
-              ) : (
-                // History View
-                <div className="space-y-4">
-                  <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-4">
-                    <div className="relative flex-1 w-full">
-                      <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="text"
-                        placeholder="Search by student name or admission number..."
-                        value={historySearch}
-                        onChange={(e) => setHistorySearch(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400 font-medium text-gray-700"
-                      />
-                    </div>
-                    <div className="text-sm text-gray-500 font-medium px-4 py-2 bg-white border border-gray-200 rounded-xl">
-                      {filteredHistory.length} records found
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden p-1">
-                    <div className="overflow-x-auto">
-                      <Table
-                        columns={columns}
-                        data={filteredHistory}
-                        loading={loadingHistory}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+          )}
         </div>
+      </div>
+    </div>
   );
 }

@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
-import { connectDB } from "@/lib/db";
-import Timetable from "@/models/Timetable";
 import { verifyToken } from "@/lib/auth";
 import { logAdminActivity } from "@/lib/logAdminActivity";
+import { TimetableRepository } from "@/repositories/timetable.repository";
+import { TeacherRepository } from "@/repositories/teacher.repository";
 
 export async function POST(req: Request) {
-  await connectDB();
-
   const token = req.headers.get("cookie")?.match(/token=([^;]+)/)?.[1];
   const user = verifyToken(token);
 
@@ -23,40 +21,75 @@ export async function POST(req: Request) {
 
     const savedEntries = [];
     const conflicts = [];
+    
+    const repo = new TimetableRepository();
+    const teacherRepo = new TeacherRepository();
 
     for (const entry of entries) {
-        const teacher = await import("@/models/Teacher").then((mod) => mod.default.findById(entry.teacherId));
+        const teacher = await teacherRepo.findById(entry.teacherId);
         if (!teacher) {
             conflicts.push(`Teacher not found for ${entry.subject} on ${entry.day}`);
             continue;
         }
 
         // Check for overlap
-        const overlap = await Timetable.findOne({
-            teacherId: entry.teacherId,
-            day: entry.day,
-            startTime: { $lt: entry.endTime },
-            endTime: { $gt: entry.startTime }
-        });
+        const { data: overlaps } = await repo.getClient().from('timetable')
+            .select('*')
+            .eq('teacher_id', entry.teacherId)
+            .eq('day', entry.day)
+            .lt('start_time', entry.endTime)
+            .gt('end_time', entry.startTime);
+            
+        const overlap = overlaps && overlaps.length > 0 ? overlaps[0] : null;
 
         if (overlap) {
-            conflicts.push(`Double-book prevented: ${teacher.name} is already booked for ${overlap.subject} on ${entry.day} at ${overlap.startTime}-${overlap.endTime}.`);
+            conflicts.push(`Double-book prevented: ${teacher.name} is already booked for ${overlap.subject} on ${entry.day} at ${overlap.start_time}-${overlap.end_time}.`);
             continue;
         }
 
-        const created = await Timetable.create(entry);
-        savedEntries.push(created);
+        const createdRaw = await repo.create({
+            class_id: entry.classId,
+            teacher_id: entry.teacherId,
+            subject: entry.subject,
+            day: entry.day,
+            start_time: entry.startTime,
+            end_time: entry.endTime,
+            room_number: entry.roomNumber
+        });
+        
+        // Auto-update teacher profile with the new subject if not present
+        const currentSubjects = (teacher.subjects || []) as string[];
+        const currentClasses = (teacher.classes || []) as string[];
+        const updates: any = {};
+        if (!currentSubjects.includes(entry.subject)) updates.subjects = [...currentSubjects, entry.subject];
+        if (!currentClasses.includes(entry.classId)) updates.classes = [...currentClasses, entry.classId];
+        
+        if (Object.keys(updates).length > 0) {
+            await teacherRepo.update(teacher.id as string, updates);
+        }
+        
+        savedEntries.push({
+            _id: createdRaw.id,
+            id: createdRaw.id,
+            classId: createdRaw.class_id,
+            teacherId: createdRaw.teacher_id,
+            subject: createdRaw.subject,
+            day: createdRaw.day,
+            startTime: createdRaw.start_time,
+            endTime: createdRaw.end_time,
+            roomNumber: createdRaw.room_number
+        });
     }
 
     if (conflicts.length > 0 && user.role === "admin") {
-        await import("@/models/Notification").then((mod) => mod.default.create({
-            recipientId: user.id, 
+        await repo.getClient().from('notifications').insert({
+            recipient_id: user.id, 
             type: "system",
             title: "Bulk Schedule Conflicts",
             message: conflicts.join(" \n"),
             priority: "high",
             icon: "Calendar"
-        }));
+        });
     }
 
     if (savedEntries.length > 0 && user.role === "admin") {
@@ -82,6 +115,7 @@ export async function POST(req: Request) {
     }, { status: 201 });
 
   } catch (err: any) {
+    console.error("[Timetable Bulk Error]:", err);
     return NextResponse.json({ success: false, error: err.message }, { status: 400 });
   }
 }

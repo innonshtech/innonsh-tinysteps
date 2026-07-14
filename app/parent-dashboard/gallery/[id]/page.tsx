@@ -83,7 +83,7 @@ export default function ParentGalleryDetailPage() {
     return (
         <div className="p-4 pt-2 bg-gray-50 min-h-screen">
             {/* Back Button */}
-            <button
+            <button type="button"
                 onClick={() => router.push(`/${user?.role}-dashboard/gallery`)}
                 className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors mb-6 group"
             >

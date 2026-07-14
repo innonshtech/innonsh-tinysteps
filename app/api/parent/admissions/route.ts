@@ -1,21 +1,32 @@
 // app/api/parent/admissions/route.ts
 import { NextResponse } from "next/server";
-import { connectDB } from "@/lib/db";
-import Admission from "@/models/Admission";
 import { verifyToken } from "@/lib/auth";
+import { supabaseAdmin } from "@/lib/supabase";
 
 export async function GET(req: Request) {
-  await connectDB();
   const token = req.headers.get("cookie")?.match(/token=([^;]+)/)?.[1];
   const user = verifyToken(token);
   if (!user || user.role !== "parent") return NextResponse.json({ success:false, error:"Unauthorized" }, { status:403 });
 
-  const admissions = await Admission.find({
-    $or: [
-      { appliedByParentId: user.id },
-      { "parents.parentId": user.id }
-    ]
-  }).sort({ createdAt: -1 }).lean();
+  const { data: mappings } = await supabaseAdmin.from('admission_parents').select('admission_id').eq('parent_user_id', user.id);
+  const mappedIds = mappings?.map(m => m.admission_id) || [];
 
-  return NextResponse.json({ success: true, admissions });
+  let query = supabaseAdmin.from('admissions').select('*').order('created_at', { ascending: false });
+  
+  if (mappedIds.length > 0) {
+    query = query.or(`applied_by_parent_id.eq.${user.id},id.in.(${mappedIds.join(',')})`);
+  } else {
+    query = query.eq('applied_by_parent_id', user.id);
+  }
+
+  const { data: admissions } = await query;
+
+  const mappedAdmissions = (admissions || []).map(a => ({
+    ...a,
+    _id: a.id,
+    appliedByParentId: a.applied_by_parent_id,
+    createdAt: a.created_at
+  }));
+
+  return NextResponse.json({ success: true, admissions: mappedAdmissions });
 }

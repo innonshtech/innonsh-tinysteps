@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { Bell, Globe, BookOpen, User, Clock, CheckCircle2, AlertCircle, Info, Megaphone } from "lucide-react";
 import Breadcrumbs from "@/components/common/Breadcrumbs";
+import { supabaseClient } from "@/lib/supabase";
 
 interface Notification {
   _id: string;
@@ -49,6 +50,29 @@ export default function AnnouncementsPage() {
       })
       .catch(() => setError("Network error. Please try again."))
       .finally(() => setLoading(false));
+
+    // Supabase Realtime Subscription
+    const channel = supabaseClient
+      .channel('realtime-notifications')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notifications' },
+        (payload) => {
+          const newNotif = {
+            _id: payload.new.id,
+            title: payload.new.title,
+            message: payload.new.message,
+            type: payload.new.type || "global",
+            createdAt: payload.new.created_at,
+          } as Notification;
+          setNotifications((prev) => [newNotif, ...prev]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabaseClient.removeChannel(channel);
+    };
   }, []);
 
   const filtered = filter === "all"
@@ -86,7 +110,7 @@ export default function AnnouncementsPage() {
       {/* Filter Tabs */}
       <div className="flex gap-2 mb-6 flex-wrap">
         {filterTypes.map((f) => (
-          <button
+          <button type="button"
             key={f.key}
             onClick={() => setFilter(f.key)}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${

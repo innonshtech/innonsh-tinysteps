@@ -1,5 +1,5 @@
-import LogActivity from "@/models/LogActivity";
-import { connectDB } from "@/lib/db";
+import { LogActivityRepository } from "@/repositories/logactivity.repository";
+import { supabaseAdmin } from "@/lib/supabase";
 
 interface LogParams {
   actorId?: string;
@@ -17,14 +17,14 @@ export async function logAdminActivity(params: LogParams) {
   try {
     let email = params.actorEmail;
 
-    // If email not provided, try to fetch it from User model
+    // If email not provided, try to fetch it from users table
     if (!email && params.actorId) {
       try {
-        await connectDB();
-        const { default: User } = await import("@/models/User").catch(() => ({ default: null }));
-        if (User) {
-          const user = await User.findById(params.actorId).select("email").lean() as { email?: string } | null;
-          email = user?.email || "unknown";
+        const { data: user } = await supabaseAdmin.from('users').select('email').eq('id', params.actorId).single();
+        if (user) {
+          email = user.email;
+        } else {
+          email = "unknown";
         }
       } catch {
         // Silently fail - use "unknown" for email
@@ -32,16 +32,16 @@ export async function logAdminActivity(params: LogParams) {
       }
     }
 
-    const entry = new LogActivity({
-      actorId: params.actorId,
-      actorEmail: email || "unknown",
-      actorRole: params.actorRole,
+    const logRepo = new LogActivityRepository();
+    const entry = await logRepo.create({
+      actor_id: params.actorId,
+      actor_email: email || "unknown",
+      actor_role: params.actorRole,
       action: params.action,
       result: "success",
       message: params.message,
       metadata: params.metadata || {},
     });
-    await entry.save();
     return entry;
   } catch (error) {
     console.error("[logAdminActivity] Error:", error);

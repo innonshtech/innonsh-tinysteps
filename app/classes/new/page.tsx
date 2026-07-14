@@ -29,7 +29,7 @@ export default function NewClassPage() {
       <input placeholder="Section" name="section" onChange={onChange} className="border p-2 rounded" />
       <input placeholder="Room Number" name="roomNumber" onChange={onChange} className="border p-2 rounded" />
       
-      <button onClick={submit}>Save</button>
+      <button type="button" onClick={submit}>Save</button>
     </div>
   );
 }

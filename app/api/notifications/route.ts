@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
-import { connectDB } from "@/lib/db";
-import Notification from "@/models/Notification";
 import { verifyToken } from "@/lib/auth";
+import { NotificationRepository } from "@/repositories/notification.repository";
+import { UserRepository } from "@/repositories/user.repository";
 
 export async function GET(req: Request) {
   try {
-    await connectDB();
-
     const token = req.headers.get("cookie")?.match(/token=([^;]+)/)?.[1];
     const user = verifyToken(token);
 
@@ -19,28 +17,55 @@ export async function GET(req: Request) {
 
     const filter: Record<string, unknown> = {};
     if (user.role !== "admin") {
-      filter.recipientId = user.id;
+      filter.recipient_id = user.id;
     }
     
-    if (unreadOnly) filter.isRead = false;
+    if (unreadOnly) filter.is_read = false;
 
     const skip = (page - 1) * limit;
 
-    const unreadFilter: Record<string, unknown> = { isRead: false };
+    const unreadFilter: Record<string, unknown> = { is_read: false };
     if (user.role !== "admin") {
-      unreadFilter.recipientId = user.id;
+      unreadFilter.recipient_id = user.id;
     }
 
-    const [notifications, total, unreadCount] = await Promise.all([
-      Notification.find(filter)
-        .populate("recipientId", "name email")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      Notification.countDocuments(filter),
-      Notification.countDocuments(unreadFilter),
-    ]);
+    const notificationRepo = new NotificationRepository();
+    
+    const notificationsData = await notificationRepo.find(filter, {
+        skip,
+        limit,
+        sort: { field: "created_at", ascending: false }
+    });
+    const total = await notificationRepo.count(filter);
+    
+    const unreadCount = await notificationRepo.count(unreadFilter);
+
+    // Ideally we would join with users to get recipient name and email, 
+    // but for now we'll format it back to the expected structure.
+    const userRepo = new UserRepository();
+    const notifications = await Promise.all(notificationsData.map(async (n: any) => {
+        let recipient = null;
+        if (n.recipient_id) {
+            const u = await userRepo.findById(n.recipient_id);
+            if (u) recipient = { _id: u.id, name: u.first_name + ' ' + u.last_name, email: u.email };
+        }
+        
+        return {
+            _id: n.id,
+            id: n.id,
+            recipientId: recipient,
+            type: n.type,
+            title: n.title,
+            message: n.message,
+            priority: n.priority,
+            actionUrl: n.action_url,
+            icon: n.icon,
+            isRead: n.is_read,
+            readAt: n.read_at,
+            createdAt: n.created_at,
+            updatedAt: n.updated_at
+        };
+    }));
 
     return NextResponse.json({
       success: true,
@@ -59,8 +84,6 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    await connectDB();
-
     const token = req.headers.get("cookie")?.match(/token=([^;]+)/)?.[1];
     const user = verifyToken(token);
 
@@ -81,18 +104,37 @@ export async function POST(req: Request) {
       );
     }
 
-    const notification = new Notification({
-      recipientId,
+    const notificationRepo = new NotificationRepository();
+    const created = await notificationRepo.create({
+      recipient_id: recipientId,
       type,
       title,
       message,
-      priority,
-      actionUrl,
+      priority: priority || 'normal',
+      action_url: actionUrl,
       icon,
     });
 
-    await notification.save();
-    await notification.populate("recipientId", "name email");
+    const userRepo = new UserRepository();
+    let recipient = null;
+    const u = await userRepo.findById(recipientId);
+    if (u) recipient = { _id: u.id, name: u.first_name + ' ' + u.last_name, email: u.email };
+
+    const notification = {
+        _id: created.id,
+        id: created.id,
+        recipientId: recipient,
+        type: created.type,
+        title: created.title,
+        message: created.message,
+        priority: created.priority,
+        actionUrl: created.action_url,
+        icon: created.icon,
+        isRead: created.is_read,
+        readAt: created.read_at,
+        createdAt: created.created_at,
+        updatedAt: created.updated_at
+    };
 
     return NextResponse.json({ success: true, notification }, { status: 201 });
   } catch (error) {
@@ -106,8 +148,6 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
   try {
-    await connectDB();
-
     const token = req.headers.get("cookie")?.match(/token=([^;]+)/)?.[1];
     const user = verifyToken(token);
 
@@ -130,20 +170,42 @@ export async function PUT(req: Request) {
 
     const updateData: Record<string, unknown> = {};
     if (isRead !== undefined) {
-      updateData.isRead = isRead;
-      if (isRead) updateData.readAt = new Date();
+      updateData.is_read = isRead;
+      if (isRead) updateData.read_at = new Date().toISOString();
     }
 
-    const notification = await Notification.findByIdAndUpdate(id, updateData, {
-      new: true,
-    }).populate("recipientId", "name email");
+    const notificationRepo = new NotificationRepository();
+    const updated = await notificationRepo.update(id, updateData);
 
-    if (!notification) {
+    if (!updated) {
       return NextResponse.json(
         { success: false, error: "Notification not found" },
         { status: 404 }
       );
     }
+    
+    const userRepo = new UserRepository();
+    let recipient = null;
+    if (updated.recipient_id) {
+        const u = await userRepo.findById(updated.recipient_id);
+        if (u) recipient = { _id: u.id, name: u.first_name + ' ' + u.last_name, email: u.email };
+    }
+
+    const notification = {
+        _id: updated.id,
+        id: updated.id,
+        recipientId: recipient,
+        type: updated.type,
+        title: updated.title,
+        message: updated.message,
+        priority: updated.priority,
+        actionUrl: updated.action_url,
+        icon: updated.icon,
+        isRead: updated.is_read,
+        readAt: updated.read_at,
+        createdAt: updated.created_at,
+        updatedAt: updated.updated_at
+    };
 
     return NextResponse.json({ success: true, notification });
   } catch (error) {
@@ -157,8 +219,6 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    await connectDB();
-
     const token = req.headers.get("cookie")?.match(/token=([^;]+)/)?.[1];
     const user = verifyToken(token);
 
@@ -179,13 +239,15 @@ export async function DELETE(req: Request) {
       );
     }
 
-    const notification = await Notification.findByIdAndDelete(id);
-
-    if (!notification) {
-      return NextResponse.json(
-        { success: false, error: "Notification not found" },
-        { status: 404 }
-      );
+    const notificationRepo = new NotificationRepository();
+    
+    try {
+        await notificationRepo.delete(id);
+    } catch(err) {
+        return NextResponse.json(
+            { success: false, error: "Notification not found" },
+            { status: 404 }
+        );
     }
 
     return NextResponse.json({ success: true, message: "Notification deleted successfully" });

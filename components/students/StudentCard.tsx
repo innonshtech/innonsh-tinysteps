@@ -10,7 +10,7 @@ export default function StudentCard({ student }: { student: any }) {
       <div>DOB: {student.dob ? new Date(student.dob).toLocaleDateString() : "-"}</div>
       <div>Class: {student.classId ? String(student.classId) : "-"}</div>
       <div className="mt-2">
-        <Link href={`/students/${student._id}`}><button>View</button></Link>
+        <Link href={`/students/${student._id}`}><button type="button">View</button></Link>
       </div>
     </div>
   );

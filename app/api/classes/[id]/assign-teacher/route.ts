@@ -1,12 +1,8 @@
 import { NextResponse } from "next/server";
-import { connectDB } from "@/lib/db";
-import ClassModel from "@/models/Class";
-import Teacher from "@/models/Teacher";
 import { verifyToken } from "@/lib/auth";
+import { supabaseAdmin } from "@/lib/supabase";
 
-export async function POST(req: Request, { params }: any) {
-  await connectDB();
-
+export async function POST(req: Request, context: { params: Promise<{ id: string }> }) {
   const token = req.headers.get("cookie")?.match(/token=([^;]+)/)?.[1];
   const user = verifyToken(token);
 
@@ -14,15 +10,15 @@ export async function POST(req: Request, { params }: any) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
 
   const { teacherId } = await req.json();
+  const { id } = await context.params;
 
-  const teacher = await Teacher.findById(teacherId);
+  const { data: teacher } = await supabaseAdmin.from('teachers').select('id').eq('id', teacherId).single();
   if (!teacher) return NextResponse.json({ success: false, error: "Teacher not found" });
-    console.log(params.id, teacherId);
-  const updated = await ClassModel.findByIdAndUpdate(
-    params.id,
-    { $addToSet: { teachers: teacherId } },
-    { new: true }
-  );
 
-  return NextResponse.json({ success: true, class: updated });
+  await supabaseAdmin.from('teacher_class_assignments').upsert({ teacher_id: teacherId, class_id: id }, { onConflict: 'teacher_id, class_id' });
+
+  // Return class
+  const { data: classData } = await supabaseAdmin.from('classes').select('*').eq('id', id).single();
+
+  return NextResponse.json({ success: true, class: classData });
 }

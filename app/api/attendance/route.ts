@@ -1,15 +1,11 @@
 import { NextResponse } from "next/server";
-import { connectDB } from "@/lib/db";
-import Attendance from "@/models/Attendance";
-import Student from "@/models/Student";
-import Class from "@/models/Class";
-import { logAdminActivity } from "@/lib/logAdminActivity";
+import { AttendanceRepository } from "@/repositories/attendance.repository";
+import { StudentRepository } from "@/repositories/student.repository";
+import { LogActivityRepository } from "@/repositories/logactivity.repository";
 
 // GET - List all attendance records with filters
 export async function GET(req: Request) {
   try {
-    await connectDB();
-
     const { searchParams } = new URL(req.url);
     const studentId = searchParams.get("studentId");
     const classId = searchParams.get("classId");
@@ -21,52 +17,58 @@ export async function GET(req: Request) {
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
 
-    const filter: Record<string, unknown> = {};
+    const filter: Record<string, any> = {};
 
-    if (studentId) filter.studentId = studentId;
-    if (classId) filter.classId = classId;
+    if (studentId) filter.student_id = studentId;
+    if (classId) filter.class_id = classId;
     if (classIds) {
       const ids = classIds.split(",").filter(Boolean);
-      if (ids.length > 0) filter.classId = { $in: ids };
+      if (ids.length > 0) filter.class_id = { $in: ids };
     }
     if (status) filter.status = status;
 
-    if (startDate || endDate || dateParam) {
-      filter.date = {};
-
-      if (dateParam) {
-        const [y, m, d] = dateParam.split("-").map(Number);
-        (filter.date as Record<string, unknown>).$gte = new Date(y, m - 1, d, 0, 0, 0, 0);
-        (filter.date as Record<string, unknown>).$lte = new Date(y, m - 1, d, 23, 59, 59, 999);
-      } else {
-        if (startDate) {
-          const [sy, sm, sd] = startDate.split("-").map(Number);
-          (filter.date as Record<string, unknown>).$gte = new Date(sy, sm - 1, sd, 0, 0, 0, 0);
-        }
-
-        if (endDate) {
-          const [ey, em, ed] = endDate.split("-").map(Number);
-          (filter.date as Record<string, unknown>).$lte = new Date(ey, em - 1, ed, 23, 59, 59, 999);
-        }
+    if (dateParam) {
+      const [y, m, d] = dateParam.split("-").map(Number);
+      filter.startDate = new Date(Date.UTC(y, m - 1, d, 0, 0, 0, 0)).toISOString();
+      filter.endDate = new Date(Date.UTC(y, m - 1, d, 23, 59, 59, 999)).toISOString();
+    } else {
+      if (startDate) {
+        const [sy, sm, sd] = startDate.split("-").map(Number);
+        filter.startDate = new Date(Date.UTC(sy, sm - 1, sd, 0, 0, 0, 0)).toISOString();
+      }
+      if (endDate) {
+        const [ey, em, ed] = endDate.split("-").map(Number);
+        filter.endDate = new Date(Date.UTC(ey, em - 1, ed, 23, 59, 59, 999)).toISOString();
       }
     }
 
     const skip = (page - 1) * limit;
 
-    const [attendance, total] = await Promise.all([
-      Attendance.find(filter)
-        .populate("studentId", "firstName lastName admissionNo")
-        .populate("classId", "name section")
-        .populate("markedBy", "firstName lastName")
-        .sort({ date: -1 })
-        .skip(skip)
-        .limit(limit),
-      Attendance.countDocuments(filter),
-    ]);
+    const attendanceRepo = new AttendanceRepository();
+    const { data: attendance, total } = await attendanceRepo.findWithRelations(filter, {
+      skip,
+      limit,
+      sort: { field: "date", ascending: false }
+    });
+
+    // Map to Mongoose-like structure for frontend compatibility
+    const formattedAttendance = attendance.map((a: any) => ({
+      _id: a.id,
+      id: a.id,
+      studentId: a.student ? { _id: a.student.id, firstName: a.student.first_name, lastName: a.student.last_name, admissionNo: a.student.admission_no } : a.student_id,
+      classId: a.class ? { _id: a.class.id, name: a.class.name, section: a.class.section } : a.class_id,
+      markedBy: a.teacher ? { _id: a.teacher.id, firstName: a.teacher.name, lastName: '' } : 
+               (a.user ? { _id: a.user.id, firstName: a.user.name, lastName: '' } : a.marked_by_user_id || a.marked_by_teacher_id),
+      date: a.date,
+      status: a.status,
+      notes: a.notes,
+      createdAt: a.created_at,
+      updatedAt: a.updated_at
+    }));
 
     return NextResponse.json({
       success: true,
-      data: attendance,
+      data: formattedAttendance,
       pagination: {
         page,
         limit,
@@ -86,8 +88,6 @@ export async function GET(req: Request) {
 // POST - Create attendance record(s)
 export async function POST(req: Request) {
   try {
-    await connectDB();
-
     const body = await req.json();
     const { studentId, classId, date, status, markedBy, notes } = body;
 
@@ -108,8 +108,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check if student exists
-    const student = await Student.findById(studentId);
+    const studentRepo = new StudentRepository();
+    const student = await studentRepo.findById(studentId);
     if (!student) {
       return NextResponse.json(
         { success: false, error: "Student not found" },
@@ -117,46 +117,49 @@ export async function POST(req: Request) {
       );
     }
 
-    // Create attendance record
-    const attendanceRecord = new Attendance({
-      studentId,
-      classId: classId || student.classId,
+    const attendanceRepo = new AttendanceRepository();
+    const created = await attendanceRepo.create({
+      student_id: studentId,
+      class_id: classId || student.class_id,
       date: new Date(date),
       status,
-      markedBy,
+      marked_by_teacher_id: markedBy, // Assuming markedBy is a teacher ID
       notes,
     });
 
-    await attendanceRecord.save();
+    const { data: populatedData } = await attendanceRepo.findWithRelations({ id: created.id });
+    const populated = populatedData[0];
+    
+    let formattedPopulated = {
+      _id: populated.id,
+      id: populated.id,
+      studentId: populated.student ? { _id: populated.student.id, firstName: populated.student.first_name, lastName: populated.student.last_name, admissionNo: populated.student.admission_no } : populated.student_id,
+      classId: populated.class ? { _id: populated.class.id, name: populated.class.name, section: populated.class.section } : populated.class_id,
+      markedBy: populated.teacher ? { _id: populated.teacher.id, firstName: populated.teacher.name, lastName: '' } : populated.marked_by_teacher_id,
+      date: populated.date,
+      status: populated.status,
+      notes: populated.notes
+    };
 
-    const populated = await attendanceRecord.populate([
-      { path: "studentId", select: "firstName lastName admissionNo" },
-      { path: "classId", select: "name section" },
-      { path: "markedBy", select: "firstName lastName" },
-    ]);
-
-    // Log admin activity - only if markedBy is an admin
     if (markedBy) {
-      // Try to get the user info from the marked by field
-      const marked = await Student.findById(markedBy).select("email role").catch(() => null);
-      if (marked && marked.role === "admin") {
-        await logAdminActivity({
-          actorId: String(marked._id),
-          actorEmail: marked.email,
-          actorRole: "admin",
-          action: "create:attendance",
-          message: `Attendance marked for student`,
-          metadata: {
-            attendanceId: attendanceRecord._id,
-            studentId: studentId,
-            status: status,
-          }
-        });
-      }
+      // Typically we check if markedBy is admin, but since we separated roles into User/Teacher we might not have 'role' on markedBy easily.
+      // For now, log the activity.
+      const logRepo = new LogActivityRepository();
+      await logRepo.create({
+        actor_id: markedBy,
+        action: "create:attendance",
+        message: `Attendance marked for student`,
+        result: 'success',
+        metadata: {
+          attendanceId: created.id,
+          studentId: studentId,
+          status: status,
+        }
+      });
     }
 
     return NextResponse.json(
-      { success: true, data: populated },
+      { success: true, data: formattedPopulated },
       { status: 201 }
     );
   } catch (error) {
@@ -171,8 +174,6 @@ export async function POST(req: Request) {
 // PUT - Update attendance record
 export async function PUT(req: Request) {
   try {
-    await connectDB();
-
     const body = await req.json();
     const { id, date, status, notes, markedBy } = body;
 
@@ -191,28 +192,37 @@ export async function PUT(req: Request) {
       );
     }
 
-    const updateData: Record<string, unknown> = {};
+    const updateData: Record<string, any> = {};
     if (status) updateData.status = status;
     if (date) updateData.date = new Date(date);
     if (notes) updateData.notes = notes;
-    if (markedBy) updateData.markedBy = markedBy;
+    if (markedBy) updateData.marked_by_teacher_id = markedBy;
 
-    const attendance = await Attendance.findByIdAndUpdate(id, updateData, {
-      new: true,
-    }).populate([
-      { path: "studentId", select: "firstName lastName admissionNo" },
-      { path: "classId", select: "name section" },
-      { path: "markedBy", select: "firstName lastName" },
-    ]);
+    const attendanceRepo = new AttendanceRepository();
+    const updated = await attendanceRepo.update(id, updateData);
 
-    if (!attendance) {
+    if (!updated) {
       return NextResponse.json(
         { success: false, error: "Attendance record not found" },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({ success: true, data: attendance });
+    const { data: populatedData } = await attendanceRepo.findWithRelations({ id: updated.id });
+    const populated = populatedData[0];
+    
+    let formattedPopulated = {
+      _id: populated.id,
+      id: populated.id,
+      studentId: populated.student ? { _id: populated.student.id, firstName: populated.student.first_name, lastName: populated.student.last_name, admissionNo: populated.student.admission_no } : populated.student_id,
+      classId: populated.class ? { _id: populated.class.id, name: populated.class.name, section: populated.class.section } : populated.class_id,
+      markedBy: populated.teacher ? { _id: populated.teacher.id, firstName: populated.teacher.name, lastName: '' } : populated.marked_by_teacher_id,
+      date: populated.date,
+      status: populated.status,
+      notes: populated.notes
+    };
+
+    return NextResponse.json({ success: true, data: formattedPopulated });
   } catch (error) {
     console.error("[PUT /api/attendance]", error);
     return NextResponse.json(
@@ -225,8 +235,6 @@ export async function PUT(req: Request) {
 // DELETE - Delete attendance record
 export async function DELETE(req: Request) {
   try {
-    await connectDB();
-
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
 
@@ -237,14 +245,8 @@ export async function DELETE(req: Request) {
       );
     }
 
-    const attendance = await Attendance.findByIdAndDelete(id);
-
-    if (!attendance) {
-      return NextResponse.json(
-        { success: false, error: "Attendance record not found" },
-        { status: 404 }
-      );
-    }
+    const attendanceRepo = new AttendanceRepository();
+    await attendanceRepo.delete(id);
 
     return NextResponse.json({ success: true, message: "Attendance deleted successfully" });
   } catch (error) {

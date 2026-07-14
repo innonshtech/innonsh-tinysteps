@@ -1,13 +1,27 @@
-import { NextResponse } from "next/server";
-import Timetable from "@/models/Timetable";
-import { connectDB } from "@/lib/db";
+import { NextResponse, NextRequest } from "next/server";
+import { TimetableRepository } from "@/repositories/timetable.repository";
 
-export async function GET(req: Request, { params }: any) {
-  await connectDB();
+export async function GET(req: NextRequest, context: { params: Promise<{ teacherId: string }> }) {
+  const { teacherId } = await context.params;
 
-  const result = await Timetable.find({ teacherId: params.teacherId })
-    .populate("classId")
-    .lean();
+  const repo = new TimetableRepository();
+  const { data: rawTimetable } = await repo.getClient().from('timetable')
+    .select('*, classId:classes(id, name, section)')
+    .eq('teacher_id', teacherId);
 
-  return NextResponse.json({ success: true, timetable: result });
+  const timetable = (rawTimetable || []).map((t: any) => ({
+      _id: t.id,
+      id: t.id,
+      classId: t.classId ? { _id: t.classId.id, name: t.classId.name, section: t.classId.section } : null,
+      teacherId: t.teacher_id,
+      subject: t.subject,
+      day: t.day,
+      startTime: t.start_time,
+      endTime: t.end_time,
+      roomNumber: t.room_number,
+      createdAt: t.created_at,
+      updatedAt: t.updated_at
+  }));
+
+  return NextResponse.json({ success: true, timetable });
 }

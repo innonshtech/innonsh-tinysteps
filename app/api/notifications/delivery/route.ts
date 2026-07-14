@@ -11,15 +11,11 @@
  */
 
 import { NextResponse } from "next/server";
-import { connectDB } from "@/lib/db";
-import NotificationDeliveryLog from "@/models/NotificationDeliveryLog";
-import Notification from "@/models/Notification";
 import { verifyToken } from "@/lib/auth";
+import { NotificationRepository, NotificationDeliveryLogRepository } from "@/repositories/notification.repository";
 
 export async function POST(req: Request) {
   try {
-    await connectDB();
-
     const cookie = req.headers.get("cookie") || "";
     const token = cookie.match(/token=([^;]+)/)?.[1];
     const user = verifyToken(token);
@@ -45,26 +41,33 @@ export async function POST(req: Request) {
       );
     }
 
-    const now = new Date();
+    const now = new Date().toISOString();
     const updateData: Record<string, unknown> = { status };
-    if (status === "delivered") updateData.deliveredAt = now;
+    if (status === "delivered") updateData.delivered_at = now;
     if (status === "clicked") {
-      updateData.clickedAt = now;
-      // Also mark notification as read when clicked
-      await Notification.findByIdAndUpdate(notificationId, {
-        isRead: true,
-        readAt: now,
+      updateData.clicked_at = now;
+      
+      const notificationRepo = new NotificationRepository();
+      await notificationRepo.update(notificationId, {
+        is_read: true,
+        read_at: now,
       });
     }
 
-    // Update delivery log(s) for this notification + user
+    const deliveryLogRepo = new NotificationDeliveryLogRepository();
     const query: Record<string, unknown> = {
-      notificationId,
-      userId: user.id,
+      notification_id: notificationId,
+      user_id: user.id,
     };
-    if (fcmToken) query.fcmToken = fcmToken;
+    if (fcmToken) query.fcm_token = fcmToken;
 
-    await NotificationDeliveryLog.updateMany(query, updateData);
+    // Use supabase client directly for updateMany equivalent
+    const { error } = await deliveryLogRepo.getClient()
+        .from('notification_delivery_logs')
+        .update(updateData)
+        .match(query);
+        
+    if (error) throw error;
 
     return NextResponse.json({ success: true, status });
   } catch (error) {
@@ -76,14 +79,8 @@ export async function POST(req: Request) {
   }
 }
 
-/**
- * GET /api/notifications/delivery?notificationId=xxx
- * Admin only — view delivery stats for a notification.
- */
 export async function GET(req: Request) {
   try {
-    await connectDB();
-
     const cookie = req.headers.get("cookie") || "";
     const token = cookie.match(/token=([^;]+)/)?.[1];
     const user = verifyToken(token);
@@ -99,18 +96,28 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, error: "notificationId is required" }, { status: 400 });
     }
 
-    const logs = await NotificationDeliveryLog.find({ notificationId })
-      .populate("userId", "name email")
-      .lean();
+    const deliveryLogRepo = new NotificationDeliveryLogRepository();
+    const logsData = await deliveryLogRepo.find({ notification_id: notificationId });
 
     const stats = {
-      total: logs.length,
-      sent: logs.filter((l) => l.status === "sent").length,
-      delivered: logs.filter((l) => l.status === "delivered").length,
-      clicked: logs.filter((l) => l.status === "clicked").length,
-      failed: logs.filter((l) => l.status === "failed").length,
-      pending: logs.filter((l) => l.status === "pending").length,
+      total: logsData.length,
+      sent: logsData.filter((l: any) => l.status === "sent").length,
+      delivered: logsData.filter((l: any) => l.status === "delivered").length,
+      clicked: logsData.filter((l: any) => l.status === "clicked").length,
+      failed: logsData.filter((l: any) => l.status === "failed").length,
+      pending: logsData.filter((l: any) => l.status === "pending").length,
     };
+    
+    const logs = logsData.map((l: any) => ({
+        _id: l.id,
+        id: l.id,
+        userId: l.user_id, // we should ideally join users here
+        status: l.status,
+        sentAt: l.sent_at,
+        deliveredAt: l.delivered_at,
+        clickedAt: l.clicked_at,
+        error: l.error_message
+    }));
 
     return NextResponse.json({ success: true, stats, logs });
   } catch (error) {

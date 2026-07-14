@@ -233,7 +233,7 @@ export default function NotificationCenter() {
           </div>
           <div className="flex gap-3">
             {unreadCount > 0 && (
-              <button
+              <button type="button"
                 onClick={handleMarkAllAsRead}
                 className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
               >
@@ -241,7 +241,7 @@ export default function NotificationCenter() {
                 <span className="text-sm font-medium">Mark All Read</span>
               </button>
             )}
-            <button
+            <button type="button"
               onClick={() => setShowModal(true)}
               className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white rounded-lg font-medium transition-all"
             >
@@ -362,7 +362,7 @@ export default function NotificationCenter() {
 
                   <div className="flex items-center gap-2">
                     {!notif.isRead && (
-                      <button
+                      <button type="button"
                         onClick={() => handleMarkAsRead(notif._id)}
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-200 text-green-700 rounded-lg hover:bg-green-100 transition-all text-sm font-medium whitespace-nowrap"
                       >
@@ -370,7 +370,7 @@ export default function NotificationCenter() {
                         Mark Read
                       </button>
                     )}
-                    <button
+                    <button type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDelete(notif._id);
@@ -406,10 +406,10 @@ export default function NotificationCenter() {
         size="md"
         footer={
           <>
-            <Button onClick={() => setShowModal(false)} variant="secondary">
+            <Button type="button" onClick={() => setShowModal(false)} variant="secondary">
               Cancel
             </Button>
-            <Button onClick={handleSend} variant="primary">
+            <Button type="button" onClick={handleSend} variant="primary">
               Send Notification
             </Button>
           </>

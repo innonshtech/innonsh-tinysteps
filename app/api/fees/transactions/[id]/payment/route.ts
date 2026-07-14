@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDB } from "@/lib/db";
-import FeeTransaction from "@/models/FeeTransaction";
-import User from "@/models/User";
 import { verifyToken } from "@/lib/auth";
+import { FeeTransactionRepository } from "@/repositories/fee.repository";
+import { TeacherRepository } from "@/repositories/teacher.repository";
+import { UserRepository } from "@/repositories/user.repository";
 
 export async function POST(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> } // Fix for Next.js 15: params is a Promise
 ) {
     try {
         // Verify authentication
@@ -20,15 +20,14 @@ export async function POST(
             );
         }
 
-        // Fetch user to check role
-        await connectDB();
         let user: any = null;
         if (decoded.role === "teacher") {
-            const Teacher = (await import("@/models/Teacher")).default;
-            user = await Teacher.findById(decoded.id);
+            const repo = new TeacherRepository();
+            user = await repo.findById(decoded.id);
             if (user) user.role = "teacher";
         } else {
-            user = await User.findById(decoded.id);
+            const repo = new UserRepository();
+            user = await repo.findById(decoded.id);
         }
 
         if (!user || !["admin", "teacher"].includes(user.role)) {
@@ -38,7 +37,6 @@ export async function POST(
             );
         }
 
-        // Fix for Next.js 15: params is a Promise
         const { id: transactionId } = await params;
         const body = await req.json();
         const { amountPaid, paymentMethod, paymentDate, note, fineAdjustment } = body;
@@ -50,7 +48,8 @@ export async function POST(
             );
         }
 
-        const transaction = await FeeTransaction.findById(transactionId);
+        const repo = new FeeTransactionRepository();
+        const transaction = await repo.findById(transactionId);
 
         if (!transaction) {
             return NextResponse.json(
@@ -59,37 +58,32 @@ export async function POST(
             );
         }
 
-        const currentPaid = transaction.amountPaid || 0;
-        const remainingBalance = (transaction.amountDue + (transaction.fineAmount || 0)) - currentPaid;
+        const currentPaid = transaction.amount_paid || 0;
+        const remainingBalance = (transaction.amount_due + (transaction.fine_amount || 0)) - currentPaid;
 
         // Cap payment to the remaining balance — no overpayment allowed
         const effectivePayment = Math.min(amountPaid, Math.max(remainingBalance, 0));
         const newTotalPaid = currentPaid + effectivePayment;
-        const totalDue = transaction.amountDue + (transaction.fineAmount || 0);
-
-        // Update transaction
-        transaction.amountPaid = newTotalPaid;
+        const totalDue = transaction.amount_due + (transaction.fine_amount || 0);
 
         // Determine status
+        let newStatus = transaction.status;
         if (newTotalPaid >= totalDue) {
-            transaction.status = "paid";
+            newStatus = "paid";
         } else if (newTotalPaid > 0) {
-            transaction.status = "partial";
+            newStatus = "partial";
         } else {
-            transaction.status = "due";
+            newStatus = "due";
         }
 
-        // Add payment record (if schema supports it, otherwise just update totals)
-        // Assuming we might want to store payment history in the future, 
-        // but for now the model only has amountPaid. 
-        // Ideally we should have a separate Payment model or an array in FeeTransaction.
-        // For this iteration, we update the totals as per current schema.
-
-        await transaction.save();
+        const updated = await repo.update(transactionId, {
+            amount_paid: newTotalPaid,
+            status: newStatus
+        });
 
         return NextResponse.json({
             success: true,
-            transaction,
+            transaction: updated,
         });
 
     } catch (error: any) {

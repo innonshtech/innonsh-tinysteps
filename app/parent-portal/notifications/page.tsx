@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { supabaseClient } from "@/lib/supabase";
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState([]);
@@ -11,12 +12,34 @@ export default function NotificationsPage() {
       .then((d) => {
         if (d.success) setNotifications(d.notifications);
       });
+
+    const channel = supabaseClient
+      .channel('realtime-notifications')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notifications' },
+        (payload) => {
+          const newNotif = {
+            _id: payload.new.id,
+            title: payload.new.title,
+            message: payload.new.message,
+            type: payload.new.type,
+            createdAt: payload.new.created_at,
+          } as any;
+          setNotifications((prev) => [newNotif, ...prev] as any);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabaseClient.removeChannel(channel);
+    };
   }, []);
 
   return (
     <div className="p-4 space-y-4">
       <Link href="/parent-portal">
-        <button className="border px-4 py-1 rounded">← Back</button>
+        <button type="button" className="border px-4 py-1 rounded">← Back</button>
       </Link>
 
       <h1 className="text-xl font-bold">Notifications</h1>

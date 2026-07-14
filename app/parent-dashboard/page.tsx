@@ -89,19 +89,19 @@ export default function ParentDashboard() {
         <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
    <div className="flex flex-wrap gap-3">
   <Link href="/parent-dashboard/children">
-    <Button variant="primary">View Children Progress</Button>
+    <Button type="button" variant="primary">View Children Progress</Button>
   </Link>
 
   <Link href="/parent-dashboard/fees">
-    <Button variant="secondary">Manage Fees</Button>
+    <Button type="button" variant="secondary">Manage Fees</Button>
   </Link>
 
   <Link href="/parent-dashboard/attendance">
-    <Button variant="secondary">Check Attendance</Button>
+    <Button type="button" variant="secondary">Check Attendance</Button>
   </Link>
 
   <Link href="/parent-dashboard/announcements">
-    <Button variant="secondary">School Updates</Button>
+    <Button type="button" variant="secondary">School Updates</Button>
   </Link>
 </div>
 

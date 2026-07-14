@@ -11,6 +11,7 @@ import {
   ChevronDown,
   Menu
 } from "lucide-react";
+import { supabaseClient } from "@/lib/supabase";
 
 export default function Navbar({
   onMenuClick,
@@ -34,8 +35,21 @@ export default function Navbar({
   useEffect(() => {
     if (user) {
       fetchNotifications();
-      const interval = setInterval(fetchNotifications, 15000); // Check every 15s
-      return () => clearInterval(interval);
+      
+      // Realtime subscription for new notifications
+      const channel = supabaseClient.channel('realtime_notifications')
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${user.id}` },
+          (payload) => {
+            fetchNotifications();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabaseClient.removeChannel(channel);
+      };
     }
   }, [user]);
 
@@ -171,7 +185,7 @@ export default function Navbar({
       <div className="h-full px-4 flex justify-between items-center">
         {/* Left Section - Search */}
         <div className="flex items-center gap-4 flex-1 max-w-xl">
-          <button
+          <button type="button"
             onClick={onMenuClick}
             className="lg:hidden p-2 hover:bg-gray-100 rounded-lg"
           >
@@ -202,7 +216,7 @@ export default function Navbar({
                       {searchResults
                         .filter((r) => r.type === "student")
                         .map((result) => (
-                          <button
+                          <button type="button"
                             key={result._id}
                             onClick={() => handleSearchResultClick(result)}
                             className="w-full text-left px-4 py-2.5 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors"
@@ -225,7 +239,7 @@ export default function Navbar({
                       {searchResults
                         .filter((r) => r.type === "teacher")
                         .map((result) => (
-                          <button
+                          <button type="button"
                             key={result._id}
                             onClick={() => handleSearchResultClick(result)}
                             className="w-full text-left px-4 py-2.5 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors"
@@ -246,7 +260,7 @@ export default function Navbar({
                       {searchResults
                         .filter((r) => r.type === "class")
                         .map((result) => (
-                          <button
+                          <button type="button"
                             key={result._id}
                             onClick={() => handleSearchResultClick(result)}
                             className="w-full text-left px-4 py-2.5 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors"
@@ -325,7 +339,7 @@ export default function Navbar({
                   )}
                 </div>
                 <div className="px-4 py-2.5 border-t border-gray-200 bg-gray-50 flex justify-center">
-                  <button
+                  <button type="button"
                     onClick={() => {
                       setNotificationOpen(false);
                       // In future: navigate to full notification page
@@ -400,7 +414,7 @@ export default function Navbar({
 
                 {/* Logout */}
                 <div className="border-t border-gray-200">
-                  <button
+                  <button type="button"
                     onClick={handleLogout}
                     className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
                   >

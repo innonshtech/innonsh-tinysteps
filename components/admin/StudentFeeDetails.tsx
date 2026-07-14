@@ -333,7 +333,7 @@ export default function StudentFeeDetails({ studentId }: { studentId: string }) 
         doc.rect(0, 0, pageWidth, 297, "F");
 
         // ── Header Band ──
-        doc.setFillColor(37, 99, 235); // blue-600
+        doc.setFillColor(15, 23, 42); // slate-900 (dark)
         doc.rect(0, 0, pageWidth, 38, "F");
 
         // School name
@@ -427,7 +427,7 @@ export default function StudentFeeDetails({ studentId }: { studentId: string }) 
                 lineWidth: 0.2,
             },
             headStyles: {
-                fillColor: [37, 99, 235],
+                fillColor: [15, 23, 42], // slate-900 (dark)
                 textColor: [255, 255, 255],
                 fontStyle: "bold",
                 fontSize: 9,
@@ -501,7 +501,7 @@ export default function StudentFeeDetails({ studentId }: { studentId: string }) 
 
         // ── Footer strip ──
         const footerY = 280;
-        doc.setFillColor(37, 99, 235);
+        doc.setFillColor(15, 23, 42);
         doc.setFillColor(241, 245, 249);
         doc.rect(0, footerY, pageWidth, 17, "F");
         doc.setFontSize(7.5);
@@ -526,7 +526,7 @@ export default function StudentFeeDetails({ studentId }: { studentId: string }) 
         return (
             <div className="p-6 text-center">
                 <h3 className="text-xl font-semibold text-gray-700">Student not found</h3>
-                <Button onClick={() => router.back()} className="mt-4">Go Back</Button>
+                <Button type="button" onClick={() => router.back()} className="mt-4">Go Back</Button>
             </div>
         );
     }
@@ -537,63 +537,58 @@ export default function StudentFeeDetails({ studentId }: { studentId: string }) 
         <div className="p-4 pt-2 bg-gray-50 min-h-screen">
             {/* Header / Nav */}
             <div className="flex items-center gap-4 mb-6">
-                <button
+                <button type="button"
                     onClick={() => router.back()}
-                    className="p-2 hover:bg-white rounded-full transition-colors border border-transparent hover:border-gray-200 shadow-sm"
+                    className="p-2 hover:bg-gray-200 rounded-full transition-colors bg-white border border-gray-200 flex items-center justify-center"
                 >
                     <ArrowLeft className="w-5 h-5 text-gray-600" />
                 </button>
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800">Student Fee Details</h1>
-                    <p className="text-gray-500 text-sm">View fees, payments, and history</p>
+                    <h1 className="text-2xl font-bold text-gray-900 page-title">Student Fee Details</h1>
+                    <p className="text-gray-600 mt-2 text-sm">View fees, payments, and history</p>
                 </div>
             </div>
 
             {/* ── Profile Banner ── */}
-            <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-2xl shadow-sm mb-6 overflow-hidden">
-                {/* Name + badges row inside the gradient */}
-                <div className="px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="bg-white border border-gray-200 rounded-xl mb-6 overflow-hidden">
+                <div className="px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
-                        <h2 className="text-2xl font-bold text-white leading-tight">
+                        <h2 className="text-xl font-bold text-gray-800 leading-tight flex flex-wrap items-center gap-2">
                             {student.firstName} {student.lastName || ""}
-                        </h2>
-                        <div className="flex flex-wrap items-center gap-2 mt-2">
                             {student.classId && (
-                                <span className="px-2.5 py-0.5 bg-white/20 text-white text-xs font-semibold rounded-full border border-white/30">
+                                <span className="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-semibold rounded-md border border-blue-200">
                                     {student.classId.name} — Sec {student.classId.section}
                                 </span>
                             )}
                             {student.admissionNo && (
-                                <span className="px-2.5 py-0.5 bg-white/20 text-white text-xs font-medium rounded-full border border-white/30">
+                                <span className="px-2.5 py-1 bg-gray-50 text-gray-700 text-xs font-medium rounded-md border border-gray-200">
                                     Adm #{student.admissionNo}
                                 </span>
                             )}
-                        </div>
+                        </h2>
                     </div>
-                    {/* Info pills — readable on right with contrast background */}
                     <div className="flex flex-wrap gap-2">
                         {student.dob && (
-                            <div className="flex items-center gap-1.5 bg-black/25 text-white text-xs font-medium px-3 py-1.5 rounded-full">
-                                <Calendar className="w-3.5 h-3.5 text-white" />
+                            <div className="flex items-center gap-1.5 bg-gray-50 text-gray-600 text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200">
+                                <Calendar className="w-3.5 h-3.5 text-gray-400" />
                                 <span>{new Date(student.dob).toLocaleDateString()}</span>
                             </div>
                         )}
                         {student.gender && (
-                            <div className="flex items-center gap-1.5 bg-black/25 text-white text-xs font-medium px-3 py-1.5 rounded-full">
-                                <User className="w-3.5 h-3.5 text-white" />
+                            <div className="flex items-center gap-1.5 bg-gray-50 text-gray-600 text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200">
+                                <User className="w-3.5 h-3.5 text-gray-400" />
                                 <span className="capitalize">{student.gender}</span>
                             </div>
                         )}
                         {student.email && (
-                            <div className="flex items-center gap-1.5 bg-black/25 text-white text-xs font-medium px-3 py-1.5 rounded-full">
-                                <Mail className="w-3.5 h-3.5 text-white" />
+                            <div className="flex items-center gap-1.5 bg-gray-50 text-gray-600 text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200">
+                                <Mail className="w-3.5 h-3.5 text-gray-400" />
                                 <span className="truncate max-w-[200px]" title={student.email}>{student.email}</span>
                             </div>
                         )}
-                        {/* Class Teacher Display */}
                         {student.classId?.teachers && student.classId.teachers.length > 0 && (
-                            <div className="flex items-center gap-1.5 bg-white/20 text-white text-xs font-medium px-3 py-1.5 rounded-full border border-white/30 backdrop-blur-sm">
-                                <UserCheck className="w-3.5 h-3.5 text-white" />
+                            <div className="flex items-center gap-1.5 bg-purple-50 text-purple-700 text-xs font-medium px-3 py-1.5 rounded-lg border border-purple-200">
+                                <UserCheck className="w-3.5 h-3.5 text-purple-500" />
                                 <span>Class Teacher: {student.classId.teachers.map(t => t.name).join(", ")}</span>
                             </div>
                         )}
@@ -602,34 +597,57 @@ export default function StudentFeeDetails({ studentId }: { studentId: string }) 
             </div>
 
             {/* ── Fee Stats Row ── */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-5 text-white shadow-md">
-                    <p className="text-blue-100 text-xs font-medium uppercase tracking-wide mb-1">Total Fee</p>
-                    <h3 className="text-2xl font-bold">{formatCurrency(studentData.totalDue)}</h3>
-                    <p className="text-blue-200 text-xs mt-2">Across all transactions</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-blue-700 text-sm font-medium mb-2">Total Fee</p>
+                            <h3 className="text-2xl font-bold text-blue-600">{formatCurrency(studentData.totalDue)}</h3>
+                            <p className="text-blue-600/80 text-xs mt-1">Across all transactions</p>
+                        </div>
+                        <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-blue-600">
+                            <IndianRupee className="w-5 h-5 text-current" />
+                        </div>
+                    </div>
                 </div>
-                <div className="bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl p-5 text-white shadow-md">
-                    <p className="text-emerald-100 text-xs font-medium uppercase tracking-wide mb-1">Total Paid</p>
-                    <h3 className="text-2xl font-bold">{formatCurrency(studentData.totalPaid)}</h3>
-                    <p className="text-emerald-200 text-xs mt-2">
-                        {studentData.totalDue > 0 ? Math.round((studentData.totalPaid / studentData.totalDue) * 100) : 0}% of total
-                    </p>
+
+                <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 rounded-xl p-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-emerald-700 text-sm font-medium mb-2">Total Paid</p>
+                            <h3 className="text-2xl font-bold text-emerald-600">{formatCurrency(studentData.totalPaid)}</h3>
+                            <p className="text-emerald-600/80 text-xs mt-1">
+                                {studentData.totalDue > 0 ? Math.round((studentData.totalPaid / studentData.totalDue) * 100) : 0}% of total
+                            </p>
+                        </div>
+                        <div className="w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm text-emerald-600">
+                            <IndianRupee className="w-5 h-5 text-current" />
+                        </div>
+                    </div>
                 </div>
-                <div className={`rounded-2xl p-5 text-white shadow-md ${studentData.totalPending <= 0 ? 'bg-gradient-to-br from-emerald-400 to-green-500' : 'bg-gradient-to-br from-rose-500 to-red-600'}`}>
-                    <p className="text-rose-100 text-xs font-medium uppercase tracking-wide mb-1">Total Pending</p>
-                    <h3 className="text-2xl font-bold">
-                        {studentData.totalPending <= 0 ? '₹0' : formatCurrency(studentData.totalPending)}
-                    </h3>
-                    <p className="text-rose-200 text-xs mt-2">
-                        {studentData.totalPending < 0 ? 'All fees cleared' : 'Remaining balance'}
-                    </p>
+
+                <div className={`border rounded-xl p-6 ${studentData.totalPending <= 0 ? 'bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200' : 'bg-gradient-to-br from-rose-50 to-rose-100 border-rose-200'}`}>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className={`text-sm font-medium mb-2 ${studentData.totalPending <= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>Total Pending</p>
+                            <h3 className={`text-2xl font-bold ${studentData.totalPending <= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                {studentData.totalPending <= 0 ? '₹0' : formatCurrency(studentData.totalPending)}
+                            </h3>
+                            <p className={`text-xs mt-1 ${studentData.totalPending <= 0 ? 'text-emerald-600/80' : 'text-rose-600/80'}`}>
+                                {studentData.totalPending < 0 ? 'All fees cleared' : 'Remaining balance'}
+                            </p>
+                        </div>
+                        <div className={`w-10 h-10 bg-white/60 rounded-full flex items-center justify-center backdrop-blur-sm ${studentData.totalPending <= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            <AlertCircle className="w-5 h-5 text-current" />
+                        </div>
+                    </div>
                 </div>
             </div>
 
             {/* ── Parents & Medical Row ── */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 {/* Parents */}
-                <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+                <div className="bg-white border border-gray-200 rounded-2xl p-5">
                     <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
                         <span className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center">
                             <User className="w-4 h-4 text-blue-500" />
@@ -657,7 +675,7 @@ export default function StudentFeeDetails({ studentId }: { studentId: string }) 
                 </div>
 
                 {/* Medical */}
-                <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+                <div className="bg-white border border-gray-200 rounded-2xl p-5">
                     <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
                         <span className="w-7 h-7 bg-red-50 rounded-lg flex items-center justify-center">
                             <AlertCircle className="w-4 h-4 text-red-500" />
@@ -694,13 +712,13 @@ export default function StudentFeeDetails({ studentId }: { studentId: string }) 
             </div>
 
             {/* Transactions Section */}
-            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+            <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
                 <div className="p-6 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
                         <h2 className="text-lg font-bold text-gray-800">Transaction History</h2>
                         <p className="text-gray-500 text-sm">Manage fee transactions and payments</p>
                     </div>
-                    <Button onClick={() => setShowTransactionModal(true)}>
+                    <Button type="button" onClick={() => setShowTransactionModal(true)}>
                         <Plus className="w-4 h-4 mr-2" />
                         Create Transaction
                     </Button>
@@ -759,7 +777,7 @@ export default function StudentFeeDetails({ studentId }: { studentId: string }) 
                                         <td className="px-6 py-4">
                                             <div className="flex items-center justify-center gap-2">
                                                 {t.status !== 'paid' && (
-                                                    <button
+                                                    <button type="button"
                                                         onClick={() => handleOpenPaymentModal(t)}
                                                         className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                                         title="Record Payment"
@@ -767,7 +785,7 @@ export default function StudentFeeDetails({ studentId }: { studentId: string }) 
                                                         <CreditCard className="w-4 h-4" />
                                                     </button>
                                                 )}
-                                                <button
+                                                <button type="button"
                                                     onClick={() => handleDownloadReceipt(t)}
                                                     className="p-1.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                                                     title="Download Receipt"
@@ -775,7 +793,7 @@ export default function StudentFeeDetails({ studentId }: { studentId: string }) 
                                                     <Download className="w-4 h-4" />
                                                 </button>
 
-                                                <button
+                                                <button type="button"
                                                     onClick={() => handleOpenEditModal(t)}
                                                     className="p-1.5 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
                                                     title="Edit Transaction"
@@ -784,7 +802,7 @@ export default function StudentFeeDetails({ studentId }: { studentId: string }) 
                                                 </button>
 
                                                 {t.amountPaid === 0 && (
-                                                    <button
+                                                    <button type="button"
                                                         onClick={() => handleDeleteTransaction(t._id, t.amountPaid)}
                                                         className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                                         title="Delete Transaction"
@@ -821,7 +839,7 @@ export default function StudentFeeDetails({ studentId }: { studentId: string }) 
                             Your payment of <span className="text-gray-900 font-semibold">{formatCurrency(paymentSuccessDetails.amount)}</span> was approved.
                         </p>
                         <p className="text-xs text-gray-400 pb-4">Transaction ID: {paymentSuccessDetails.transactionId}</p>
-                        <button
+                        <button type="button"
                             onClick={() => { setShowPaymentModal(false); setPaymentSuccessDetails(null); }}
                             className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-full font-medium transition-colors"
                         >
@@ -928,8 +946,8 @@ export default function StudentFeeDetails({ studentId }: { studentId: string }) 
                     </div>
 
                     <div className="flex justify-end gap-3 pt-1">
-                        <Button variant="secondary" onClick={() => setShowPaymentModal(false)}>Cancel</Button>
-                        <Button onClick={handleRecordPayment}>✓ Confirm Payment</Button>
+                        <Button type="button" variant="secondary" onClick={() => setShowPaymentModal(false)}>Cancel</Button>
+                        <Button type="button" onClick={handleRecordPayment}>✓ Confirm Payment</Button>
                     </div>
                 </div>
                 )}
@@ -998,13 +1016,13 @@ export default function StudentFeeDetails({ studentId }: { studentId: string }) 
                     </div>
 
                     <div className="flex justify-end gap-3 mt-6">
-                        <Button
+                        <Button type="button"
                             variant="secondary"
                             onClick={() => setShowTransactionModal(false)}
                         >
                             Cancel
                         </Button>
-                        <Button onClick={handleCreateTransaction}>
+                        <Button type="button" onClick={handleCreateTransaction}>
                             Create Transaction
                         </Button>
                     </div>
@@ -1075,13 +1093,13 @@ export default function StudentFeeDetails({ studentId }: { studentId: string }) 
                     </div>
 
                     <div className="flex justify-end gap-3 mt-6">
-                        <Button
+                        <Button type="button"
                             variant="secondary"
                             onClick={() => setShowEditModal(false)}
                         >
                             Cancel
                         </Button>
-                        <Button onClick={handleUpdateTransaction}>
+                        <Button type="button" onClick={handleUpdateTransaction}>
                             Update Transaction
                         </Button>
                     </div>

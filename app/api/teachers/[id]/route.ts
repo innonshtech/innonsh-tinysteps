@@ -1,20 +1,17 @@
 import { NextResponse, NextRequest } from "next/server";
-import { connectDB } from "@/lib/db";
-import Teacher from "@/models/Teacher";
 import { TeacherCreateZ } from "@/lib/validations/teacherSchema";
 import { verifyToken } from "@/lib/auth";
 import bcryptjs from "bcryptjs";
 import { logAdminActivity } from "@/lib/logAdminActivity";
-
+import { TeacherRepository } from "@/repositories/teacher.repository";
+import { supabaseAdmin } from "@/lib/supabase";
 
 // ---------------------- GET ----------------------
 export async function GET(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  await connectDB();
-
-  const { id } = await context.params; // ✅ FIX
+  const { id } = await context.params;
 
   const token = req.cookies.get("token")?.value;
   const user = verifyToken(token);
@@ -23,10 +20,31 @@ export async function GET(
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
   }
 
-  const teacher = await Teacher.findById(id).lean();
-  if (!teacher) {
+  const teacherRepo = new TeacherRepository();
+  const rawTeacher = await teacherRepo.findById(id);
+  
+  if (!rawTeacher) {
     return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
   }
+  
+  // also get assigned classes
+  const { data: assignments } = await teacherRepo.getClient()
+    .from('teacher_class_assignments')
+    .select('class_id')
+    .eq('teacher_id', id);
+
+  const teacher = {
+      _id: rawTeacher.id,
+      id: rawTeacher.id,
+      name: rawTeacher.name,
+      email: rawTeacher.email,
+      phone: rawTeacher.phone,
+      subjects: rawTeacher.subjects || [],
+      qualifications: rawTeacher.qualifications || [],
+      createdAt: rawTeacher.created_at,
+      updatedAt: rawTeacher.updated_at,
+      classes: assignments?.map(a => ({ classId: a.class_id })) || []
+  };
 
   return NextResponse.json({ success: true, teacher });
 }
@@ -38,9 +56,7 @@ export async function PUT(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  await connectDB();
-
-  const { id } = await context.params; // ✅ FIX
+  const { id } = await context.params;
   console.log("Updating teacher with ID:", id);
   const token = req.cookies.get("token")?.value;
   const user = verifyToken(token);
@@ -57,19 +73,27 @@ export async function PUT(
       return NextResponse.json({ success: false, error: "Forbidden: You can only edit your own profile" }, { status: 403 });
     }
 
-    // Get old teacher data to compare classes for sync
-    const oldTeacher = await Teacher.findById(id);
+    const teacherRepo = new TeacherRepository();
+    // Get old teacher data
+    const oldTeacher = await teacherRepo.findById(id);
     if (!oldTeacher) return NextResponse.json({ success: false, error: "Teacher not found" }, { status: 404 });
 
     // Hash password if provided
-    const updateData = { ...body };
+    const updateData: any = { ...body };
     if (updateData.password && updateData.password.trim() !== "") {
       updateData.password = await bcryptjs.hash(updateData.password, 10);
     } else {
       delete updateData.password;
     }
+    
+    // Classes are handled separately
+    const newClasses = updateData.classes;
+    delete updateData.classes;
+    delete updateData._id;
+    delete updateData.createdAt;
+    delete updateData.updatedAt;
 
-    const updated = await Teacher.findByIdAndUpdate(id, updateData, { new: true });
+    const updated = await teacherRepo.update(id, updateData);
 
     if (!updated) {
       console.error("[api/teachers/[id]] Teacher not found:", id);
@@ -77,21 +101,29 @@ export async function PUT(
     }
 
     // --- SYNC LOGIC: Teacher -> Class ---
-    // Update Class model so its 'teachers' array reflects this teacher mapping
-    if (updateData.classes && Array.isArray(updateData.classes)) {
+    // Update teacher_class_assignments
+    if (newClasses && Array.isArray(newClasses)) {
       try {
-        const { default: ClassModel } = await import("@/models/Class");
-        const oldClassIds = oldTeacher.classes.map((c: any) => c.classId.toString());
-        const newClassIds = updateData.classes.map((c: any) => c.classId.toString());
+        const { data: oldAssignments } = await teacherRepo.getClient()
+            .from('teacher_class_assignments')
+            .select('class_id')
+            .eq('teacher_id', id);
+            
+        const oldClassIds = (oldAssignments || []).map((a: any) => String(a.class_id));
+        const newClassIds = newClasses.map((c: any) => String(c.classId || c));
 
         const added = newClassIds.filter((cid: string) => !oldClassIds.includes(cid));
         const removed = oldClassIds.filter((cid: string) => !newClassIds.includes(cid));
 
         if (added.length > 0) {
-          await ClassModel.updateMany({ _id: { $in: added } }, { $addToSet: { teachers: updated._id } });
+            const inserts = added.map(cid => ({ teacher_id: id, class_id: cid }));
+            await teacherRepo.getClient().from('teacher_class_assignments').insert(inserts);
         }
         if (removed.length > 0) {
-          await ClassModel.updateMany({ _id: { $in: removed } }, { $pull: { teachers: updated._id } });
+            await teacherRepo.getClient().from('teacher_class_assignments')
+                .delete()
+                .eq('teacher_id', id)
+                .in('class_id', removed);
         }
       } catch (syncError) {
         console.error("[api/teachers/[id]] Sync with classes failed:", syncError);
@@ -107,11 +139,21 @@ export async function PUT(
         actorRole: user.role,
         action: "update:teacher",
         message: `Teacher updated: ${updated.name}`,
-        metadata: { teacherId: updated._id, name: updated.name, email: updated.email },
+        metadata: { teacherId: updated.id, name: updated.name, email: updated.email },
       });
     }
 
-    return NextResponse.json({ success: true, teacher: updated });
+    const teacher = {
+        _id: updated.id,
+        id: updated.id,
+        name: updated.name,
+        email: updated.email,
+        phone: updated.phone,
+        subjects: updated.subjects || [],
+        qualifications: updated.qualifications || [],
+    };
+
+    return NextResponse.json({ success: true, teacher });
   } catch (err: any) {
     console.error("[api/teachers/[id]] Update failed:", err);
     return NextResponse.json({ success: false, error: err.message || "Invalid update data" }, { status: 400 });
@@ -125,7 +167,6 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    await connectDB();
     const { id } = await context.params;
 
     const token = req.cookies.get("token")?.value;
@@ -136,49 +177,38 @@ export async function DELETE(
         success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    // Fetch user from DB for fresh role check
-    const User = (await import("@/models/User")).default;
-    const authUser = await User.findById(decoded.id);
-
-      if (!authUser || authUser.role !== "admin") {
+    // Since users login differently, let's just use the decoded token role
+    // The previous implementation used User.findById which assumed admin is in users.
+    if (decoded.role !== "admin") {
       return NextResponse.json({
         success: false, error: "Only admin can delete teachers" }, { status: 403 });
     }
 
-    // 1. Fetch the teacher to get their name and classes for logging/cleanup
-    const teacher = await Teacher.findById(id);
+    const teacherRepo = new TeacherRepository();
+
+    // 1. Fetch the teacher to get their name
+    const teacher = await teacherRepo.findById(id);
       if (!teacher) {
         return NextResponse.json({
           success: false, error: "Teacher not found" }, { status: 404 });
     }
 
-    // 2. Clean up teacher from all classes they are assigned to
-    try {
-          const { default: ClassModel } = await import("@/models/Class");
-      await ClassModel.updateMany(
-            { teachers: id },
-            { $pull: { teachers: id } }
-          );
-        } catch (cleanupErr) {
-          console.error("[api/teachers/delete] Class cleanup failed:\", cleanupErr");
-    }
+    // 2. Delete the teacher record (teacher_class_assignments deletes automatically via cascade)
+    await teacherRepo.delete(id);
 
-        // 3. Delete the teacher record
-        await Teacher.findByIdAndDelete(id);
-
-        // 4. Log admin activity
-        await logAdminActivity({
-          actorId: String(authUser._id),
-          actorRole: authUser.role,
-          action: "delete:teacher",
+    // 3. Log admin activity
+    await logAdminActivity({
+      actorId: String(decoded.id),
+      actorRole: decoded.role,
+      action: "delete:teacher",
       message: `Teacher deleted: ${teacher.name}`,
-          metadata: { teacherId: id, name: teacher.name, email: teacher.email },
+      metadata: { teacherId: id, name: teacher.name, email: teacher.email },
     });
 
-      return NextResponse.json({
+    return NextResponse.json({
         success: true, message: "Teacher deleted successfully" });
   } catch (error: any) {
-        console.error("[api/teachers/delete] Error:\", error");
+    console.error("[api/teachers/delete] Error:", error);
     return NextResponse.json({
           success: false, error: error.message || "Failed to delete teacher" }, { status: 500 });
   }

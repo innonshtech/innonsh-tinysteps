@@ -9,14 +9,11 @@
  */
 
 import { NextResponse } from "next/server";
-import { connectDB } from "@/lib/db";
-import UserFcmToken from "@/models/UserFcmToken";
 import { verifyToken } from "@/lib/auth";
+import { supabaseAdmin } from "@/lib/supabase";
 
 export async function DELETE(req: Request) {
   try {
-    await connectDB();
-
     const cookie = req.headers.get("cookie") || "";
     const jwtToken = cookie.match(/token=([^;]+)/)?.[1];
     const user = verifyToken(jwtToken);
@@ -40,16 +37,16 @@ export async function DELETE(req: Request) {
 
     if (fcmToken) {
       // Deactivate specific token
-      await UserFcmToken.findOneAndUpdate(
-        { token: fcmToken, userId: user.id },
-        { isActive: false }
-      );
+      await supabaseAdmin.from('user_fcm_tokens')
+        .update({ is_active: false })
+        .eq('token', fcmToken)
+        .eq('user_id', user.id);
     } else {
       // Logout: deactivate ALL active tokens for this user
-      await UserFcmToken.updateMany(
-        { userId: user.id, isActive: true },
-        { isActive: false }
-      );
+      await supabaseAdmin.from('user_fcm_tokens')
+        .update({ is_active: false })
+        .eq('user_id', user.id)
+        .eq('is_active', true);
     }
 
     return NextResponse.json({ success: true, message: "Token(s) deactivated" });

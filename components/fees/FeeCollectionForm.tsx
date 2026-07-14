@@ -63,8 +63,8 @@ export default function FeeCollectionForm({ preStudentId }: any) {
       </div>
 
       <div className="flex gap-2">
-        <button onClick={() => collect(false)}>Collect Full</button>
-        <button onClick={() => collect(true)}>Record Partial</button>
+        <button type="button" onClick={() => collect(false)}>Collect Full</button>
+        <button type="button" onClick={() => collect(true)}>Record Partial</button>
       </div>
     </div>
   );

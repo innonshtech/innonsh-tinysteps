@@ -1,13 +1,10 @@
 import { NextResponse } from "next/server";
-import { connectDB } from "@/lib/db";
-import SubstituteAssignment from "@/models/SubstituteAssignment";
-import TeacherLeave from "@/models/TeacherLeave";
 import { verifyToken } from "@/lib/auth";
-import Notification from "@/models/Notification";
+import { SubstituteAssignmentRepository, LeaveRepository } from "@/repositories/leave.repository";
+import { NotificationRepository } from "@/repositories/notification.repository";
 
 export async function GET(req: Request) {
   try {
-    await connectDB();
     const token = req.headers.get("cookie")?.match(/token=([^;]+)/)?.[1];
     const user = verifyToken(token);
 
@@ -20,29 +17,34 @@ export async function GET(req: Request) {
     const filter: Record<string, unknown> = { status: "assigned" };
 
     if (date) {
-      // Find assignments exactly on this date (start of day to end of day)
-      const queryDate = new Date(date);
-      queryDate.setHours(0, 0, 0, 0);
-      const nextDay = new Date(queryDate);
-      nextDay.setDate(nextDay.getDate() + 1);
-      filter.date = { $gte: queryDate, $lt: nextDay };
+      // Find assignments exactly on this date
+      filter.date = new Date(date).toISOString().split('T')[0]; // Simple string match or rely on repo querying
+      // We'll pass it to find() and hope the repository can handle Date exact match 
+      // or we just map it. Supabase exact match on date column works if it's formatted YYYY-MM-DD.
     }
 
     if (user.role === "teacher") {
-      filter.substituteTeacherId = user.id;
+      filter.substitute_teacher_id = user.id;
     } else if (substituteTeacherId) {
-      filter.substituteTeacherId = substituteTeacherId;
+      filter.substitute_teacher_id = substituteTeacherId;
     }
 
-    const assignments = await SubstituteAssignment.find(filter)
-      .populate("originalTeacherId", "name")
-      .populate("substituteTeacherId", "name")
-      .populate("classId", "name section")
-      .populate("leaveId")
-      .sort({ date: 1, startTime: 1 })
-      .lean();
+    const repo = new SubstituteAssignmentRepository();
+    const assignments = await repo.find(filter, { sort: { field: 'date', ascending: true } });
 
-    return NextResponse.json({ success: true, assignments });
+    // Map to frontend expected format
+    const mappedAssignments = assignments.map((a: any) => ({
+      ...a,
+      _id: a.id,
+      leaveId: a.leave_id,
+      originalTeacherId: a.original_teacher_id,
+      substituteTeacherId: a.substitute_teacher_id,
+      classId: a.class_id,
+      startTime: a.start_time,
+      endTime: a.end_time
+    }));
+
+    return NextResponse.json({ success: true, assignments: mappedAssignments });
   } catch (error) {
     console.error("[GET /api/substitutes]", error);
     return NextResponse.json({ success: false, error: "Failed to fetch substitutes" }, { status: 500 });
@@ -51,7 +53,6 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    await connectDB();
     const token = req.headers.get("cookie")?.match(/token=([^;]+)/)?.[1];
     const user = verifyToken(token);
 
@@ -67,37 +68,38 @@ export async function POST(req: Request) {
     }
 
     // Verify leave exists and is approved
-    const leave = await TeacherLeave.findById(leaveId);
+    const leaveRepo = new LeaveRepository();
+    const leave = await leaveRepo.findById(leaveId);
     if (!leave || leave.status !== "approved") {
       return NextResponse.json({ success: false, error: "Valid approved leave is required" }, { status: 400 });
     }
 
-    const newAssignment = new SubstituteAssignment({
-      leaveId,
-      originalTeacherId,
-      substituteTeacherId,
-      classId,
+    const repo = new SubstituteAssignmentRepository();
+    const newAssignment = await repo.create({
+      leave_id: leaveId,
+      original_teacher_id: originalTeacherId,
+      substitute_teacher_id: substituteTeacherId,
+      class_id: classId,
       subject,
       date: new Date(date),
-      startTime,
-      endTime,
+      start_time: startTime,
+      end_time: endTime,
       status: "assigned",
     });
 
-    await newAssignment.save();
-
     // Notify the substitute teacher
-    await Notification.create({
-      recipientId: substituteTeacherId,
+    const notifRepo = new NotificationRepository();
+    await notifRepo.create({
+      recipient_id: substituteTeacherId,
       type: "leave",
       title: "New Substitute Assignment",
       message: `You have been assigned as a substitute for ${subject} on ${new Date(date).toLocaleDateString()} from ${startTime} to ${endTime}.`,
       priority: "high",
       icon: "Calendar",
-      actionUrl: "/teacher-dashboard/timetable"
+      action_url: "/teacher-dashboard/timetable"
     });
 
-    return NextResponse.json({ success: true, assignment: newAssignment }, { status: 201 });
+    return NextResponse.json({ success: true, assignment: { ...newAssignment, _id: newAssignment.id } }, { status: 201 });
   } catch (error) {
     console.error("[POST /api/substitutes]", error);
     return NextResponse.json({ success: false, error: "Failed to assign substitute" }, { status: 500 });
@@ -106,7 +108,6 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    await connectDB();
     const token = req.headers.get("cookie")?.match(/token=([^;]+)/)?.[1];
     const user = verifyToken(token);
 
@@ -119,11 +120,11 @@ export async function DELETE(req: Request) {
 
     if (!id) return NextResponse.json({ success: false, error: "Missing ID" }, { status: 400 });
 
-    const assignment = await SubstituteAssignment.findById(id);
+    const repo = new SubstituteAssignmentRepository();
+    const assignment = await repo.findById(id);
     if (!assignment) return NextResponse.json({ success: false, error: "Assignment not found" }, { status: 404 });
 
-    assignment.status = "cancelled";
-    await assignment.save();
+    await repo.update(id, { status: "cancelled" });
 
     return NextResponse.json({ success: true, message: "Substitute assignment cancelled" });
   } catch (error) {

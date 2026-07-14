@@ -1,69 +1,68 @@
 // app/api/students/route.ts
 import { NextResponse } from "next/server";
-import { connectDB } from "@/lib/db";
-import Student from "@/models/Student";
+import { StudentRepository } from "@/repositories/student.repository";
+import { LogActivityRepository } from "@/repositories/logactivity.repository";
 import { StudentCreateZ } from "@/lib/validations/studentSchema";
 import { verifyToken } from "@/lib/auth";
-import { logAdminActivity } from "@/lib/logAdminActivity";
 import bcryptjs from "bcryptjs";
 
 export async function GET(req: Request) {
-  await connectDB();
-
-  // pagination
   const url = new URL(req.url);
   const page = Math.max(1, parseInt(url.searchParams.get("page") || "1"));
   const limit = Math.max(1, Math.min(500, parseInt(url.searchParams.get("limit") || "10")));
   const skip = (page - 1) * limit;
 
-  // optional filter by classId, name, etc.
   const filter: any = {};
-  if (url.searchParams.get("classId")) filter.classId = url.searchParams.get("classId");
+  if (url.searchParams.get("classId")) filter.class_id = url.searchParams.get("classId");
   if (url.searchParams.get("classIds")) {
     const ids = url.searchParams.get("classIds")!.split(",").filter(Boolean);
-    if (ids.length > 0) filter.classId = { $in: ids };
+    if (ids.length > 0) filter.class_id = { $in: ids };
   }
   if (url.searchParams.get("q")) {
-    const q = url.searchParams.get("q");
-    filter.$or = [
-      { firstName: { $regex: q!, $options: "i" } },
-      { lastName: { $regex: q!, $options: "i" } },
-      { admissionNo: { $regex: q!, $options: "i" } },
-    ];
+    filter.searchQuery = url.searchParams.get("q");
   }
 
-  // RBAC: allow parent to fetch only records they are related to.
-  // Identify user from cookie token (server-side)
   const cookie = req.headers.get("cookie") || "";
   const tokenMatch = cookie.match(/token=([^;]+)/);
   const token = tokenMatch ? tokenMatch[1] : null;
   const user = verifyToken(token);
 
   if (user?.role === "parent") {
-    // Example: parents have id equal to parent's user id; students.parents[].email or phone may link.
-    // This is an example fallback. You'll likely map parent->students in DB; adjust accordingly.
-    // For demo, if parent's id stored in admissionNo or similar, you'd filter.
-    // Here we simply return 403 for parent unless further mapping implemented.
     return NextResponse.json({ success: false, error: "Parents must use parent-portal endpoints" }, { status: 403 });
   }
 
-  const [students, total] = await Promise.all([
-    Student.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
-    Student.countDocuments(filter),
-  ]);
+  const studentRepo = new StudentRepository();
+  const { students, total } = await studentRepo.findWithParents(filter, { 
+    skip, 
+    limit, 
+    sort: { field: 'created_at', ascending: false } 
+  });
+
+  const mappedStudents = students.map((s: any) => ({
+    ...s,
+    _id: s.id,
+    firstName: s.first_name,
+    lastName: s.last_name,
+    classId: s.class_id,
+    admissionNo: s.admission_no,
+    admissionDate: s.admission_date,
+    medicalAllergies: s.medical_allergies,
+    medicalNotes: s.medical_notes,
+    pickupPerson: s.pickup_person,
+    pickupPhone: s.pickup_phone,
+    createdAt: s.created_at,
+    updatedAt: s.updated_at,
+  }));
 
   return NextResponse.json({
     success: true,
-    data: students,
-    students,
+    data: mappedStudents,
+    students: mappedStudents,
     pagination: { page, limit, total, pages: Math.ceil(total / limit) },
   });
 }
 
 export async function POST(req: Request) {
-  await connectDB();
-
-  // RBAC: only admin or teacher can create
   const cookie = req.headers.get("cookie") || "";
   const tokenMatch = cookie.match(/token=([^;]+)/);
   const token = tokenMatch ? tokenMatch[1] : null;
@@ -77,8 +76,6 @@ export async function POST(req: Request) {
     const body = await req.json();
     console.log("Creating student with data:", body);
 
-    // Sanitize: convert empty strings to undefined so optional Zod fields
-    // (like email, phone) don't fail validation when form inputs are empty.
     const sanitize = (obj: any): any => {
       if (!obj || typeof obj !== "object") return obj;
       const copy: any = Array.isArray(obj) ? [] : {};
@@ -113,61 +110,72 @@ export async function POST(req: Request) {
     const parsed = StudentCreateZ.parse(cleanBody);
     console.log("Parsed student data:", parsed);
 
-    // Hash password if provided
     let hashedPassword = undefined;
     if (parsed.password) {
       hashedPassword = await bcryptjs.hash(parsed.password, 10);
     }
 
-    // Generate a new admission number (backend‑only)
     const admissionNo = await import("@/lib/admissionNumber").then(m => m.generateAdmissionNo());
 
-    const created = await Student.create({
-      ...parsed,
-      admissionNo,
+    const studentRepo = new StudentRepository();
+    const created = await studentRepo.create({
+      first_name: parsed.firstName,
+      last_name: parsed.lastName,
+      email: parsed.email,
       password: hashedPassword,
       dob: parsed.dob ? new Date(parsed.dob) : undefined,
-      admissionDate: parsed.admissionDate ? new Date(parsed.admissionDate) : undefined,
+      gender: parsed.gender,
+      class_id: parsed.classId,
+      admission_no: admissionNo,
+      admission_date: parsed.admissionDate ? new Date(parsed.admissionDate) : undefined,
+      medical_allergies: parsed.medical?.allergies,
+      medical_notes: parsed.medical?.notes,
+      pickup_person: parsed.pickupInfo?.pickupPerson,
+      pickup_phone: parsed.pickupInfo?.pickupPhone,
     });
-    console.log("Student created with ID:", created._id);
 
-    // Log admin activity
-    await logAdminActivity({
-      actorId: user?.id,
-      actorRole: user?.role || "unknown",
+    console.log("Student created with ID:", created.id);
+
+    // Create parents in student_parents table and link them
+    if (parsed.parents && parsed.parents.length > 0) {
+      const parentInserts = parsed.parents.map((p: any) => ({
+        student_id: created.id,
+        name: p.name,
+        phone: p.phone,
+        email: p.email,
+        relation: p.relation
+      }));
+      await studentRepo.getClient().from('student_parents').insert(parentInserts);
+    }
+    const logRepo = new LogActivityRepository();
+    await logRepo.create({
+      actor_id: user?.id,
+      actor_role: user?.role || "unknown",
       action: "create:student",
-      message: `Created student: ${parsed.firstName} ${parsed.lastName || ""} (Admission No: ${parsed.admissionNo || "N/A"})`,
-      metadata: { studentId: created._id, firstName: parsed.firstName, lastName: parsed.lastName, admissionNo: parsed.admissionNo },
+      message: `Created student: ${parsed.firstName} ${parsed.lastName || ""} (Admission No: ${admissionNo})`,
+      result: 'success',
+      metadata: { studentId: created.id, firstName: parsed.firstName, lastName: parsed.lastName, admissionNo: admissionNo },
     });
 
-
-    // Fee assignment is now handled explicitly via the UI during enrollment.
-    // No automatic fee creation here to avoid duplicate transactions.
-
-    return NextResponse.json({ success: true, student: created }, { status: 201 });
+    return NextResponse.json({ success: true, student: { ...created, _id: created.id } }, { status: 201 });
   } catch (err: any) {
-    const error = err instanceof Error ? err : new Error(String(err));
     console.error("Error creating student:", err);
 
-    let errorMessage = error.message || "Invalid data";
+    let errorMessage = "Invalid data";
 
-    // Check if it's a Zod error
-    if (err.issues) {
+    if (err && typeof err === "object") {
+        if (err.message) errorMessage = err.message;
+        else if (err.code || err.details) errorMessage = JSON.stringify(err);
+    }
+
+    if (err?.issues) {
       errorMessage = err.issues.map((i: any) => `${i.path.join('.')}: ${i.message}`).join(', ');
     }
 
-    // Handle MongoDB duplicate key errors
-    if (error.message?.includes("duplicate key")) {
-      const match = error.message.match(/key:\s*\{([^}]+)\}/);
-      if (match) {
-        const field = match[1].split(":")[0].trim();
-        errorMessage = `${field} already exists`;
-      } else {
-        errorMessage = "Duplicate entry found";
-      }
+    if (errorMessage.includes("duplicate key")) {
+      errorMessage = "Duplicate entry found (e.g. Email or Admission No already exists)";
     }
 
-    // Handle validation errors
     if (err instanceof Error && 'errors' in err) {
       const validationErrors = (err as any).errors as Array<any>;
       errorMessage = validationErrors
@@ -184,3 +192,4 @@ export async function POST(req: Request) {
     }, { status: 400 });
   }
 }
+

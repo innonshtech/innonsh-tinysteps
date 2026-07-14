@@ -298,7 +298,7 @@ export default function Sidebar({
             <img src="/ICON.png" alt="Innonsh TinySteps" className="w-full h-full object-contain rounded-lg" />
           </div>
         )}
-        <button
+        <button type="button"
           onClick={onClose}
           className="lg:hidden p-2 hover:bg-gray-100 rounded-lg"
         >
@@ -370,7 +370,7 @@ export default function Sidebar({
       {/* Expand button when collapsed */}
       {isCollapsed && (
         <div className="py-2 border-t border-gray-200">
-          <button
+          <button type="button"
             onClick={() => setIsCollapsed(false)}
             className="w-full flex justify-center py-2 hover:bg-gray-50 transition-colors group"
             title="Expand sidebar"

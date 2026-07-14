@@ -196,7 +196,7 @@ export default function LandingPage() {
             <Link href="/login" className="btn btn-primary" style={{ padding: "8px 18px" }}>
               Sign Up <span className="btn-arrow">→</span>
             </Link>
-            <button className="menu-toggle" onClick={() => setMobileMenuOpen(true)} aria-label="Open menu">
+            <button type="button" className="menu-toggle" onClick={() => setMobileMenuOpen(true)} aria-label="Open menu">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
                 <line x1="4" y1="7" x2="20" y2="7" />
                 <line x1="4" y1="12" x2="20" y2="12" />
@@ -212,7 +212,7 @@ export default function LandingPage() {
         <div className="mobile-menu-drawer" onClick={(e) => e.stopPropagation()}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
             <span style={{ fontFamily: "var(--font-display)", fontSize: "1.2rem", fontWeight: 500 }}>Menu</span>
-            <button onClick={() => setMobileMenuOpen(false)} style={{ padding: "8px", color: "var(--ink-soft)" }}>
+            <button type="button" onClick={() => setMobileMenuOpen(false)} style={{ padding: "8px", color: "var(--ink-soft)" }}>
               <X className="w-6 h-6" />
             </button>
           </div>
@@ -1231,7 +1231,7 @@ export default function LandingPage() {
                   <a href="#">Pricing</a>
                 </li>
                 <li>
-                  <button onClick={(e) => { e.preventDefault(); setIsCareersModalOpen(true); }} className="hover:text-white transition-colors cursor-pointer text-left">
+                  <button type="button" onClick={(e) => { e.preventDefault(); setIsCareersModalOpen(true); }} className="hover:text-white transition-colors cursor-pointer text-left">
                     Careers
                   </button>
                 </li>
@@ -1304,7 +1304,7 @@ export default function LandingPage() {
                 <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 500, color: "var(--ink)" }}>Join Our Team</h3>
                 <p style={{ color: "var(--ink-soft)", fontSize: "0.85rem", marginTop: "4px" }}>We aren&apos;t actively hiring, but we&apos;d love to have your profile on file.</p>
               </div>
-              <button onClick={() => { setIsCareersModalOpen(false); setResumeName(""); }} style={{ padding: "8px", borderRadius: "50%", background: "var(--surface)", border: "1px solid var(--line)" }}>
+              <button type="button" onClick={() => { setIsCareersModalOpen(false); setResumeName(""); }} style={{ padding: "8px", borderRadius: "50%", background: "var(--surface)", border: "1px solid var(--line)" }}>
                 <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>

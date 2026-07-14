@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
-import { connectDB } from "@/lib/db";
-import FeeTransaction from "@/models/FeeTransaction";
 import { verifyToken } from "@/lib/auth";
+import { FeeTransactionRepository } from "@/repositories/fee.repository";
 
 export async function GET(req: Request) {
-    await connectDB();
     const token = req.headers.get("cookie")?.match(/token=([^;]+)/)?.[1];
     const user = verifyToken(token);
 
@@ -14,12 +12,17 @@ export async function GET(req: Request) {
     }
 
     try {
-        const result = await FeeTransaction.aggregate([
-            { $match: { status: "paid" } },
-            { $group: { _id: null, totalCollected: { $sum: "$amountPaid" } } }
-        ]);
-
-        const totalCollected = result.length > 0 ? result[0].totalCollected : 0;
+        const feeTxRepo = new FeeTransactionRepository();
+        
+        // Supabase equivalent for sum
+        const { data, error } = await feeTxRepo.getClient()
+          .from('fee_transactions')
+          .select('amount_paid')
+          .eq('status', 'paid');
+          
+        if (error) throw error;
+        
+        const totalCollected = data.reduce((acc, row) => acc + Number(row.amount_paid), 0);
 
         return NextResponse.json({ success: true, totalCollected });
     } catch (error) {

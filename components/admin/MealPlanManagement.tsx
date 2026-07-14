@@ -448,7 +448,7 @@ export default function MealPlanManagement() {
             <p className="text-sm text-gray-600 mt-1">Manage weekly meal schedules and nutrition plans</p>
           </div>
           <div className="flex gap-3">
-            <button onClick={() => exportToCSV(plans, "meal-plans.csv")} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
+            <button type="button" onClick={() => exportToCSV(plans, "meal-plans.csv")} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
               <Download className="w-4 h-4" />
               <span className="text-sm font-medium">Export</span>
             </button>
@@ -504,7 +504,7 @@ export default function MealPlanManagement() {
               {filteredPlans.length} {filteredPlans.length === 1 ? "plan" : "plans"} found
             </p>
           </div>
-          <button
+          <button type="button"
             onClick={() => {
               setEditingPlan(null);
               resetForm();
@@ -545,14 +545,14 @@ export default function MealPlanManagement() {
           loading={loading}
           actions={(row) => (
             <div className="flex gap-2">
-              <button
+              <button type="button"
                 onClick={() => handleEditPlan(row as MealPlan)}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-100 transition-all text-sm font-medium"
               >
                 <Edit2 className="w-3.5 h-3.5" />
                 Edit
               </button>
-              <button
+              <button type="button"
                 onClick={() => handleDeletePlan((row as MealPlan)._id)}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 border border-red-200 text-red-700 rounded-lg hover:bg-red-100 transition-all text-sm font-medium"
               >
@@ -575,7 +575,7 @@ export default function MealPlanManagement() {
         size="lg"
         footer={
           <>
-            <Button
+            <Button type="button"
               onClick={() => {
                 setModalOpen(false);
                 setEditingPlan(null);
@@ -584,7 +584,7 @@ export default function MealPlanManagement() {
             >
               Cancel
             </Button>
-            <Button onClick={handleSavePlan} variant="primary">
+            <Button type="button" onClick={handleSavePlan} variant="primary">
               {editingPlan ? "Update" : "Create"} Plan
             </Button>
           </>

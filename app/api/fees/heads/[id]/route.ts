@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDB } from "@/lib/db";
-import FeeHead from "@/models/FeeHead";
-import User from "@/models/User";
 import { verifyToken } from "@/lib/auth";
+import { FeeHeadRepository } from "@/repositories/fee.repository";
+import { TeacherRepository } from "@/repositories/teacher.repository";
+import { UserRepository } from "@/repositories/user.repository";
 
 // Helper to check authorized access (admin or teacher)
 async function checkAuth(req: NextRequest) {
@@ -10,14 +10,14 @@ async function checkAuth(req: NextRequest) {
     const decoded = verifyToken(token);
     if (!decoded) return null;
 
-    await connectDB();
     let user: any = null;
     if (decoded.role === "teacher") {
-        const Teacher = (await import("@/models/Teacher")).default;
-        user = await Teacher.findById(decoded.id);
+        const repo = new TeacherRepository();
+        user = await repo.findById(decoded.id);
         if (user) user.role = "teacher";
     } else {
-        user = await User.findById(decoded.id);
+        const repo = new UserRepository();
+        user = await repo.findById(decoded.id);
     }
 
     if (!user || !["admin", "teacher"].includes(user.role)) return null;
@@ -39,19 +39,22 @@ export async function PUT(
         const body = await req.json();
         const { name, type, defaultAmount, description } = body;
 
-        const head = await FeeHead.findById(id);
+        const repo = new FeeHeadRepository();
+        const head = await repo.findById(id);
+        
         if (!head) {
             return NextResponse.json({ success: false, error: "Fee Head not found" }, { status: 404 });
         }
 
-        if (name) head.name = name;
-        if (type) head.type = type;
-        if (defaultAmount !== undefined) head.defaultAmount = Number(defaultAmount);
-        if (description !== undefined) head.description = description;
+        const updateData: any = {};
+        if (name) updateData.name = name;
+        if (type) updateData.type = type;
+        if (defaultAmount !== undefined) updateData.default_amount = Number(defaultAmount);
+        if (description !== undefined) updateData.description = description;
 
-        await head.save();
+        const updated = await repo.update(id, updateData);
 
-        return NextResponse.json({ success: true, head });
+        return NextResponse.json({ success: true, head: updated });
     } catch (error: any) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
@@ -69,8 +72,10 @@ export async function DELETE(
 
         const { id } = await params;
 
+        const repo = new FeeHeadRepository();
+        
         // Soft delete
-        const head = await FeeHead.findByIdAndUpdate(id, { active: false }, { new: true });
+        const head = await repo.update(id, { active: false });
 
         if (!head) {
             return NextResponse.json({ success: false, error: "Fee Head not found" }, { status: 404 });

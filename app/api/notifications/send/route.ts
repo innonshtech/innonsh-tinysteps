@@ -19,15 +19,12 @@
  */
 
 import { NextResponse } from "next/server";
-import { connectDB } from "@/lib/db";
-import User from "@/models/User";
 import { verifyToken } from "@/lib/auth";
 import { sendManualNotification } from "@/lib/notification.service";
+import { UserRepository } from "@/repositories/user.repository";
 
 export async function POST(req: Request) {
   try {
-    await connectDB();
-
     const cookie = req.headers.get("cookie") || "";
     const token = cookie.match(/token=([^;]+)/)?.[1];
     const user = verifyToken(token);
@@ -60,9 +57,10 @@ export async function POST(req: Request) {
     // Resolve target user IDs
     let targetUserIds: string[] = userIds || [];
     if (!targetUserIds.length) {
+      const userRepo = new UserRepository();
       const roleFilter = targetRole === "all" ? {} : { role: targetRole };
-      const users = await User.find(roleFilter).select("_id").lean() as { _id: { toString(): string } }[];
-      targetUserIds = users.map((u) => u._id.toString());
+      const users = await userRepo.find(roleFilter);
+      targetUserIds = users.map((u: any) => u.id);
     }
 
     if (targetUserIds.length === 0) {

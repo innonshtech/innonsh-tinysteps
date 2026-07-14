@@ -1,12 +1,8 @@
 import { NextResponse } from "next/server";
-import { connectDB } from "@/lib/db";
-import Attendance from "@/models/Attendance";
-import Student from "@/models/Student"; // ensure model is registered
-import { logAdminActivity } from "@/lib/logAdminActivity"; // if available, or skip
+import { AttendanceRepository } from "@/repositories/attendance.repository";
 
 export async function POST(req: Request) {
     try {
-        await connectDB();
         const body = await req.json();
         const { date, classId, records, markedBy } = body;
 
@@ -17,37 +13,40 @@ export async function POST(req: Request) {
             );
         }
 
-        // Parse the input date string (YYYY-MM-DD) explicitly to avoid UTC shifts
         const [year, month, day] = date.split('-').map(Number);
 
-        // Create dates using local time components
-        const startOfDay = new Date(year, month - 1, day, 0, 0, 0, 0);
-        const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999);
+        // Supabase date strings
+        const startOfDay = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0)).toISOString();
+        const endOfDay = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999)).toISOString();
+
+        const attendanceRepo = new AttendanceRepository();
 
         const operations = records.map(async (record: any) => {
             const { studentId, status, notes } = record;
 
-            // Find if record exists for this student on this date
-            const existing = await Attendance.findOne({
-                studentId,
-                date: { $gte: startOfDay, $lte: endOfDay },
+            const { data: existingData } = await attendanceRepo.findWithRelations({
+                student_id: studentId,
+                startDate: startOfDay,
+                endDate: endOfDay
             });
+
+            const existing = existingData.length > 0 ? existingData[0] : null;
 
             if (existing) {
                 // Update
-                existing.status = status;
-                if (notes !== undefined) existing.notes = notes;
-                if (markedBy) existing.markedBy = markedBy;
-                return existing.save();
+                const updateData: any = { status };
+                if (notes !== undefined) updateData.notes = notes;
+                if (markedBy) updateData.marked_by_teacher_id = markedBy;
+                return attendanceRepo.update(existing.id, updateData);
             } else {
                 // Create
-                return Attendance.create({
-                    studentId,
-                    classId,
-                    date: startOfDay,
+                return attendanceRepo.create({
+                    student_id: studentId,
+                    class_id: classId,
+                    date: new Date(date),
                     status,
                     notes,
-                    markedBy,
+                    marked_by_teacher_id: markedBy,
                 });
             }
         });
@@ -64,3 +63,4 @@ export async function POST(req: Request) {
         );
     }
 }
+

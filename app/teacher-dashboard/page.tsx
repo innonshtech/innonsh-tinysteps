@@ -93,6 +93,7 @@ export default function TeacherDashboard() {
       let myStudents = [];
       let todayAttendanceRecords = [];
       let upcomingExams = [];
+      let allExams: any[] = [];
       let pendingTasksCount = 0;
 
       if (classIds.length > 0) {
@@ -113,7 +114,7 @@ export default function TeacherDashboard() {
         const examRes = await fetch(`/api/exams?classIds=${classIds.join(",")}&limit=1000`);
         if (!examRes.ok) throw new Error(`examRes failed: ${await examRes.text()}`);
         const examData = await examRes.json();
-        const allExams = examData.exams || [];
+        allExams = examData.exams || [];
         upcomingExams = allExams.filter((e: any) =>
           new Date(e.startDate) > new Date() && e.status === "scheduled"
         );
@@ -135,19 +136,30 @@ export default function TeacherDashboard() {
         pendingTasks: pendingTasksCount,
       });
 
-      // Mock recent activities (you can fetch actual activities from API)
-      setRecentActivities([
-        {
+      // Build dynamic recent activities
+      const dynamicActivities: RecentActivity[] = [];
+      
+      // Add recent attendance records (limit to recent 3 for performance)
+      todayAttendanceRecords.slice(0, 3).forEach((att: any) => {
+        dynamicActivities.push({
           type: "attendance",
-          message: "Marked attendance for Class 1A",
-          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-        },
-        {
-          type: "exam",
-          message: "Created new exam for Mathematics",
-          timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000),
-        },
-      ]);
+          message: `Marked attendance for Class ${att.classId?.name || "Unknown"}`,
+          timestamp: new Date(att.date || new Date())
+        });
+      });
+
+      // Add recent exams
+      allExams.slice(0, 3).forEach((exam: any) => {
+         dynamicActivities.push({
+           type: "exam",
+           message: `Scheduled exam for ${exam.subject}`,
+           timestamp: new Date(exam.createdAt || exam.startDate || new Date())
+         });
+      });
+
+      // Sort by timestamp descending and take top 5
+      dynamicActivities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+      setRecentActivities(dynamicActivities.slice(0, 5));
 
     } catch (error: any) {
       console.error("Failed to fetch teacher data:", error);

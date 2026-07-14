@@ -75,7 +75,7 @@ export default function GalleryDetailPage() {
     return (
         <div className="p-4 pt-2 bg-gray-50 min-h-screen">
             {/* Back Button */}
-            <button
+            <button type="button"
                 onClick={() => router.push("/dashboard/gallery")}
                 className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors mb-6"
             >
@@ -153,7 +153,7 @@ export default function GalleryDetailPage() {
                                                     </div>
                                                 </div>
                                                 {/* Play on click - full screen or simple overlay */}
-                                                <button 
+                                                <button type="button" 
                                                     onClick={() => window.open(img.url, '_blank')}
                                                     className="absolute inset-0 w-full h-full opacity-0"
                                                 />

@@ -532,7 +532,7 @@ export default function StudentFeeManagement() {
                                                 </Badge>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <button
+                                                <button type="button"
                                                     onClick={() => handleViewDetails(studentData)}
                                                     className="flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-100 transition-all text-sm font-medium"
                                                 >
@@ -614,13 +614,13 @@ export default function StudentFeeManagement() {
                     </div>
 
                     <div className="flex justify-end gap-3 mt-6">
-                        <Button
+                        <Button type="button"
                             variant="secondary"
                             onClick={() => setShowPaymentModal(false)}
                         >
                             Cancel
                         </Button>
-                        <Button onClick={handleRecordPayment}>
+                        <Button type="button" onClick={handleRecordPayment}>
                             Record Payment
                         </Button>
                     </div>
@@ -688,13 +688,13 @@ export default function StudentFeeManagement() {
                     </div>
 
                     <div className="flex justify-end gap-3 mt-6">
-                        <Button
+                        <Button type="button"
                             variant="secondary"
                             onClick={() => setShowTransactionModal(false)}
                         >
                             Cancel
                         </Button>
-                        <Button onClick={handleCreateTransaction}>
+                        <Button type="button" onClick={handleCreateTransaction}>
                             Create Transaction
                         </Button>
                     </div>

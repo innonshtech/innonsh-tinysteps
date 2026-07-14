@@ -1,18 +1,5 @@
-/**
- * lib/fcm.service.ts
- * ──────────────────
- * Core Firebase Cloud Messaging service.
- * Handles sending notifications to device tokens with:
- *  - Batch splitting (FCM max 500 tokens per request)
- *  - Automatic retry for transient failures
- *  - Token deactivation for invalid tokens
- *  - Delivery log creation
- */
-
 import { getMessaging } from "@/lib/firebase-admin";
-import { connectDB } from "@/lib/db";
-import UserFcmToken from "@/models/UserFcmToken";
-import NotificationDeliveryLog from "@/models/NotificationDeliveryLog";
+import { supabaseAdmin } from "@/lib/supabase";
 import type { MulticastMessage, BatchResponse } from "firebase-admin/messaging";
 
 export interface FCMPayload {
@@ -164,16 +151,16 @@ async function _updateDeliveryLog(
   errorMessage?: string
 ): Promise<void> {
   try {
-    await connectDB();
-    const updateData: Record<string, unknown> = { status, sentAt: new Date() };
-    if (fcmMessageId) updateData.fcmMessageId = fcmMessageId;
-    if (errorCode) updateData.errorCode = errorCode;
-    if (errorMessage) updateData.errorMessage = errorMessage;
+    const updateData: Record<string, unknown> = { status, sent_at: new Date() };
+    if (fcmMessageId) updateData.fcm_message_id = fcmMessageId;
+    if (errorCode) updateData.error_code = errorCode;
+    if (errorMessage) updateData.error_message = errorMessage;
 
-    await NotificationDeliveryLog.findOneAndUpdate(
-      { notificationId, fcmToken, status: "pending" },
-      updateData
-    );
+    await supabaseAdmin.from('notification_delivery_logs')
+      .update(updateData)
+      .eq('notification_id', notificationId)
+      .eq('fcm_token', fcmToken)
+      .eq('status', 'pending');
   } catch (err) {
     console.error("[FCMService] Failed to update delivery log:", err);
   }
@@ -189,16 +176,14 @@ export async function createDeliveryLogs(
   tokens: string[]
 ): Promise<void> {
   try {
-    await connectDB();
     const logs = tokens.map((fcmToken) => ({
-      notificationId,
-      userId,
-      fcmToken,
+      notification_id: notificationId,
+      user_id: userId,
+      fcm_token: fcmToken,
       status: "pending",
     }));
-    await NotificationDeliveryLog.insertMany(logs, { ordered: false });
+    await supabaseAdmin.from('notification_delivery_logs').insert(logs);
   } catch (err) {
-    // insertMany with ordered:false continues despite duplicate errors
     console.error("[FCMService] createDeliveryLogs error:", err);
   }
 }
@@ -208,11 +193,9 @@ export async function createDeliveryLogs(
  */
 async function _deactivateInvalidTokens(tokens: string[]): Promise<void> {
   try {
-    await connectDB();
-    await UserFcmToken.updateMany(
-      { token: { $in: tokens } },
-      { isActive: false }
-    );
+    await supabaseAdmin.from('user_fcm_tokens')
+      .update({ is_active: false })
+      .in('token', tokens);
     console.log(`[FCMService] Deactivated ${tokens.length} invalid token(s).`);
   } catch (err) {
     console.error("[FCMService] Failed to deactivate invalid tokens:", err);
@@ -225,62 +208,53 @@ async function _deactivateInvalidTokens(tokens: string[]): Promise<void> {
  * and attempts to re-send. Called by a scheduled job or on-demand.
  */
 export async function retryFailedNotifications(): Promise<{ retried: number; succeeded: number }> {
-  await connectDB();
-  const now = new Date();
+  const now = new Date().toISOString();
 
-  const failedLogs = await NotificationDeliveryLog.find({
-    status: "failed",
-    retryCount: { $lt: MAX_RETRY_ATTEMPTS },
-    $or: [{ nextRetryAt: { $lte: now } }, { nextRetryAt: null }],
-  })
-    .limit(100)
-    .lean();
+  const { data: failedLogs } = await supabaseAdmin.from('notification_delivery_logs')
+    .select('*')
+    .eq('status', 'failed')
+    .lt('retry_count', MAX_RETRY_ATTEMPTS)
+    .or(`next_retry_at.lte.${now},next_retry_at.is.null`)
+    .limit(100);
 
-  if (failedLogs.length === 0) return { retried: 0, succeeded: 0 };
-
-  // Get notification details for retries
-  const Notification = (await import("@/models/Notification")).default;
+  if (!failedLogs || failedLogs.length === 0) return { retried: 0, succeeded: 0 };
 
   let succeeded = 0;
 
   for (const log of failedLogs) {
     try {
-      const notification = await Notification.findById(log.notificationId).lean() as {
-        title: string;
-        message: string;
-        metadata?: Record<string, string>;
-        priority?: string;
-        fcmCategory?: string;
-      } | null;
+      const { data: notification } = await supabaseAdmin.from('notifications').select('*').eq('id', log.notification_id).single();
       if (!notification) continue;
 
       const result = await sendToTokens(
-        [log.fcmToken],
+        [log.fcm_token],
         {
           title: notification.title,
           body: notification.message,
           data: {
-            notificationId: String(log.notificationId),
+            notificationId: String(log.notification_id),
             ...(notification.metadata as Record<string, string> || {}),
           },
           priority: (notification.priority === "urgent" || notification.priority === "high") ? "high" : "normal",
-          channelId: `tinysteps_${notification.fcmCategory || "general"}`,
+          channelId: `tinysteps_${notification.fcm_category || "general"}`,
         }
       );
 
-      const nextRetryCount = (log.retryCount || 0) + 1;
+      const nextRetryCount = (log.retry_count || 0) + 1;
       // Exponential back-off: 5min, 15min, 45min
       const backoffMs = Math.pow(3, nextRetryCount) * 5 * 60 * 1000;
 
-      await NotificationDeliveryLog.findByIdAndUpdate(log._id, {
-        status: result.successCount > 0 ? "sent" : "failed",
-        retryCount: nextRetryCount,
-        nextRetryAt: result.successCount === 0 ? new Date(Date.now() + backoffMs) : undefined,
-      });
+      await supabaseAdmin.from('notification_delivery_logs')
+        .update({
+          status: result.successCount > 0 ? "sent" : "failed",
+          retry_count: nextRetryCount,
+          next_retry_at: result.successCount === 0 ? new Date(Date.now() + backoffMs).toISOString() : null,
+        })
+        .eq('id', log.id);
 
       if (result.successCount > 0) succeeded++;
     } catch (err) {
-      console.error("[FCMService] Retry error for log", log._id, err);
+      console.error("[FCMService] Retry error for log", log.id, err);
     }
   }
 
@@ -294,22 +268,20 @@ export async function retryFailedNotifications(): Promise<{ retried: number; suc
 export async function getActiveTokensForUsers(
   userIds: string[]
 ): Promise<{ tokens: string[]; userTokenMap: Map<string, string> }> {
-  await connectDB();
-
-  const tokenDocs = (await UserFcmToken.find({
-    userId: { $in: userIds },
-    isActive: true,
-  })
-    .select("userId token")
-    .lean()) as unknown as { userId: { toString(): string }; token: string }[];
+  const { data: tokenDocs } = await supabaseAdmin.from('user_fcm_tokens')
+    .select('user_id, token')
+    .in('user_id', userIds)
+    .eq('is_active', true);
 
   const tokens: string[] = [];
   const userTokenMap = new Map<string, string>(); // token → userId
 
-  tokenDocs.forEach((doc) => {
-    tokens.push(doc.token);
-    userTokenMap.set(doc.token, doc.userId.toString());
-  });
+  if (tokenDocs) {
+      tokenDocs.forEach((doc: any) => {
+        tokens.push(doc.token);
+        userTokenMap.set(doc.token, String(doc.user_id));
+      });
+  }
 
   return { tokens, userTokenMap };
 }

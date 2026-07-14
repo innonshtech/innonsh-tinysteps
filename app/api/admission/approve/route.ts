@@ -1,15 +1,11 @@
 // app/api/admission/approve/route.ts
 import { NextResponse } from "next/server";
-import { connectDB } from "@/lib/db";
-import Admission from "@/models/Admission";
-import Student from "@/models/Student";
-import ClassModel from "@/models/Class";   // <-- ADD THIS
 import { verifyToken } from "@/lib/auth";
 import { generateAdmissionNo } from "@/lib/admissionNumber";
+import { AdmissionRepository } from "@/repositories/admission.repository";
+import { StudentRepository } from "@/repositories/student.repository";
 
 export async function POST(req: Request) {
-  await connectDB();
-
   const token = req.headers.get("cookie")?.match(/token=([^;]+)/)?.[1];
   const user = verifyToken(token);
   if (!user || user.role !== "admin")
@@ -18,51 +14,67 @@ export async function POST(req: Request) {
   try {
     const { admissionId, classId, assignSection } = await req.json();
 
-    const admission = await Admission.findById(admissionId);
-    if (!admission)
+    const admissionRepo = new AdmissionRepository();
+    const { data: rawAdmissions, error } = await admissionRepo.getClient().from('admissions')
+        .select('*, parents:admission_parents(*), documents:admission_documents(*)')
+        .eq('id', admissionId);
+
+    if (error || !rawAdmissions || rawAdmissions.length === 0)
       return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
+      
+    const admission = rawAdmissions[0];
 
     // Generate admission number
-    if (!admission.admissionNo) {
-      admission.admissionNo = await generateAdmissionNo();
+    let admNo = admission.admission_no;
+    if (!admNo) {
+      admNo = await generateAdmissionNo();
     }
 
-    // Prepare parent structure
-    const parentsForStudent = (admission.parents || []).map((p: any) => ({
-      parentId: p.parentId || null,
-      name: p.name,
-      phone: p.phone,
-      email: p.email,
-      relation: p.relation,
-    }));
-
-    // Create Student record
-    const student = await Student.create({
-      firstName: admission.childFirstName,
-      lastName: admission.childLastName,
+    const studentRepo = new StudentRepository();
+    const studentRaw = await studentRepo.create({
+      first_name: admission.child_first_name,
+      last_name: admission.child_last_name,
       dob: admission.dob,
       gender: admission.gender,
-      classId: classId,
-      section: assignSection,
-      admissionNo: admission.admissionNo,
-      admissionDate: new Date(),
-      parents: parentsForStudent,
-      documents: admission.documents || [],
+      class_id: classId,
+      // section: assignSection, // In Postgres, section is probably on classes table, but if students has section we'd map it. Wait, students table does not have 'section', it relies on class_id.
+      admission_no: admNo,
+      admission_date: new Date().toISOString().split('T')[0]
     });
+    
+    // In Postgres schema, 'students' does not have 'section' column, it relies on classes table.
+    // So class_id is sufficient.
 
-    // 🔥 ***IMPORTANT: Add newly created student into Class.students[]***
-    if (classId) {
-      await ClassModel.findByIdAndUpdate(classId, {
-        $addToSet: { students: student._id } // ← prevents duplicates
-      });
+    if (admission.parents && admission.parents.length > 0) {
+        const parentInserts = admission.parents.map((p: any) => ({
+            student_id: studentRaw.id,
+            parent_id: p.parent_id,
+            name: p.name,
+            phone: p.phone,
+            email: p.email,
+            relation: p.relation
+        }));
+        await studentRepo.getClient().from('student_parents').insert(parentInserts);
+    }
+    
+    if (admission.documents && admission.documents.length > 0) {
+        const docInserts = admission.documents.map((d: any) => ({
+            student_id: studentRaw.id,
+            name: d.name,
+            url: d.url,
+            verified: d.verified
+        }));
+        await studentRepo.getClient().from('student_documents').insert(docInserts);
     }
 
     // Update admission record
-    admission.status = "approved";
-    admission.convertedStudentId = student._id;
-    await admission.save();
+    await admissionRepo.update(admissionId, {
+        status: "approved",
+        converted_student_id: studentRaw.id,
+        admission_no: admNo
+    });
 
-    return NextResponse.json({ success: true, admission, student });
+    return NextResponse.json({ success: true, admission: { ...admission, status: "approved", converted_student_id: studentRaw.id }, student: studentRaw });
 
   } catch (err: any) {
     console.error(err);

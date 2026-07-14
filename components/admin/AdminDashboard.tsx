@@ -184,7 +184,7 @@ export default function AdminDashboard() {
             <AlertCircle className="w-5 h-5" />
             <p className="font-medium text-sm">{error}</p>
           </div>
-          <button
+          <button type="button"
             onClick={() => window.location.reload()}
             className="text-xs font-bold underline hover:no-underline"
           >
@@ -248,7 +248,7 @@ export default function AdminDashboard() {
                 </div>
                 <p className="text-gray-600 text-sm">Awaiting your review and approval</p>
                 <Link href="/admission">
-                  <button className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-white rounded-md text-sm font-medium transition-all">
+                  <button type="button" className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-white rounded-md text-sm font-medium transition-all">
                     Review Applications
                     <ArrowRight className="w-4 h-4" />
                   </button>

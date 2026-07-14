@@ -153,7 +153,7 @@ export default function LeaveManagement() {
           <h1 className="text-2xl font-bold text-gray-800">Leave Management</h1>
           <p className="text-gray-600 text-sm mt-1">Manage your leave requests and view holidays.</p>
         </div>
-        <Button onClick={() => setModalOpen(true)} className="flex items-center gap-2">
+        <Button type="button" onClick={() => setModalOpen(true)} className="flex items-center gap-2">
           <Plus className="w-4 h-4" /> Apply Leave
         </Button>
       </div>
@@ -191,7 +191,7 @@ export default function LeaveManagement() {
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
         <div className="flex border-b border-gray-200 bg-gray-50/50">
-          <button
+          <button type="button"
             onClick={() => setActiveTab("history")}
             className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
               activeTab === "history" ? "border-indigo-600 text-indigo-600 bg-white" : "border-transparent text-gray-600 hover:text-gray-800"
@@ -199,7 +199,7 @@ export default function LeaveManagement() {
           >
             My Leave History
           </button>
-          <button
+          <button type="button"
             onClick={() => setActiveTab("holidays")}
             className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
               activeTab === "holidays" ? "border-indigo-600 text-indigo-600 bg-white" : "border-transparent text-gray-600 hover:text-gray-800"
@@ -216,8 +216,8 @@ export default function LeaveManagement() {
               data={leaves}
               loading={loading}
               actions={(row) => row.status === "pending" && (
-                <button
-                  onClick={() => handleCancelLeave(row._id)}
+                <button type="button"
+                  onClick={() => handleCancelLeave(row._id as string)}
                   className="text-xs font-medium text-red-600 hover:text-red-800 hover:underline"
                 >
                   Cancel
@@ -281,8 +281,8 @@ export default function LeaveManagement() {
             ></textarea>
           </div>
           <div className="pt-4 flex justify-end gap-3">
-            <Button variant="secondary" onClick={() => setModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleSubmitLeave}>Submit Request</Button>
+            <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>Cancel</Button>
+            <Button type="button" onClick={handleSubmitLeave}>Submit Request</Button>
           </div>
         </div>
       </Modal>

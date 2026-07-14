@@ -296,7 +296,7 @@ export default function FeeStructureManagement() {
             <p className="text-sm text-gray-600 mt-1">Define and manage fee structures for different classes</p>
           </div>
           <div className="flex gap-3">
-            <button onClick={() => exportToCSV(feeStructures, "fee-structures.csv")} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
+            <button type="button" onClick={() => exportToCSV(feeStructures, "fee-structures.csv")} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
               <Download className="w-4 h-4" />
               <span className="text-sm font-medium">Export</span>
             </button>
@@ -340,7 +340,7 @@ export default function FeeStructureManagement() {
               {filteredStructures.length} {filteredStructures.length === 1 ? "structure" : "structures"} found
             </p>
           </div>
-          <button
+          <button type="button"
             onClick={() => {
               setEditingStructure(null);
               setFormData({ name: "", classId: "", heads: [], finePerDay: 0, description: "", active: true });
@@ -372,7 +372,7 @@ export default function FeeStructureManagement() {
           loading={loading}
           actions={(row) => (
             <div className="flex gap-2">
-              <button
+              <button type="button"
                 onClick={() => {
                   setAssigningStructure(row as FeeStructure);
                   setAssignData({
@@ -388,14 +388,14 @@ export default function FeeStructureManagement() {
                 <Calendar className="w-3.5 h-3.5" />
                 Assign
               </button>
-              <button
+              <button type="button"
                 onClick={() => handleEditStructure(row as FeeStructure)}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-100 transition-all text-sm font-medium"
               >
                 <Edit2 className="w-3.5 h-3.5" />
                 Edit
               </button>
-              <button
+              <button type="button"
                 onClick={() => handleDeleteStructure((row as FeeStructure)._id)}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 border border-red-200 text-red-700 rounded-lg hover:bg-red-100 transition-all text-sm font-medium"
               >
@@ -418,7 +418,7 @@ export default function FeeStructureManagement() {
         size="lg"
         footer={
           <>
-            <Button
+            <Button type="button"
               onClick={() => {
                 setModalOpen(false);
                 setEditingStructure(null);
@@ -427,7 +427,7 @@ export default function FeeStructureManagement() {
             >
               Cancel
             </Button>
-            <Button onClick={handleSaveStructure} variant="primary">
+            <Button type="button" onClick={handleSaveStructure} variant="primary">
               {editingStructure ? "Update" : "Create"} Structure
             </Button>
           </>
@@ -577,8 +577,8 @@ export default function FeeStructureManagement() {
         title="Assign Fee Structure"
         footer={
           <>
-            <Button variant="secondary" onClick={() => setAssignModalOpen(false)}>Cancel</Button>
-            <Button onClick={async () => {
+            <Button type="button" variant="secondary" onClick={() => setAssignModalOpen(false)}>Cancel</Button>
+            <Button type="button" onClick={async () => {
               if (!assignData.classId) {
                 showToast.error("Please select a class");
                 return;

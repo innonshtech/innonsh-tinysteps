@@ -287,7 +287,7 @@ export default function LoginPage() {
             </div>
 
             {/* Login Button */}
-            <button
+            <button type="button"
               onClick={handleLogin}
               disabled={loading}
               className="w-full bg-gradient-to-r from-primary to-primary-light hover:from-primary-light hover:to-primary-dark text-white font-medium py-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -334,7 +334,7 @@ export default function LoginPage() {
           {/* Slide Indicators */}
           <div className="flex justify-center gap-3">
             {slides.map((_, index) => (
-              <button
+              <button type="button"
                 key={index}
                 onClick={() => setCurrentSlide(index)}
                 className={`w-3 h-3 rounded-full transition-all ${index === currentSlide

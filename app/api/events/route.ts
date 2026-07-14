@@ -1,14 +1,11 @@
 import { NextResponse } from "next/server";
-import { connectDB } from "@/lib/db";
-import Event from "@/models/Event";
 import { verifyToken } from "@/lib/auth";
 import { logAdminActivity } from "@/lib/logAdminActivity";
 import { dispatchEventNotification } from "@/lib/notification.service";
+import { EventRepository } from "@/repositories/event.repository";
 
 export async function GET(req: Request) {
   try {
-    await connectDB();
-
     const token = req.headers.get("cookie")?.match(/token=([^;]+)/)?.[1];
     const user = verifyToken(token);
 
@@ -19,24 +16,51 @@ export async function GET(req: Request) {
     const limit = Math.max(1, Math.min(500, parseInt(url.searchParams.get("limit") || "10")));
     const status = url.searchParams.get("status") || "published";
 
-    const filter: Record<string, unknown> = { status };
-
     const skip = (page - 1) * limit;
+    
+    const eventRepo = new EventRepository();
+    const query = eventRepo.getClient().from('events')
+        .select('*, classIds:event_class_targets(class:classes(id, name, section))', { count: 'exact' })
+        .eq('status', status)
+        .order('start_date', { ascending: false })
+        .range(skip, skip + limit - 1);
 
-    const [events, total] = await Promise.all([
-      Event.find(filter)
-        .populate("classIds", "name section")
-        .sort({ startDate: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      Event.countDocuments(filter),
-    ]);
+    const { data: rawEvents, count, error } = await query;
+    if (error) throw error;
+
+    const events = rawEvents.map((e: any) => ({
+      _id: e.id,
+      id: e.id,
+      title: e.title,
+      description: e.description,
+      eventType: e.event_type,
+      startDate: e.start_date,
+      endDate: e.end_date,
+      startTime: e.start_time,
+      endTime: e.end_time,
+      location: e.location,
+      image: e.image,
+      targetAudience: e.target_audience,
+      status: e.status,
+      notify: e.notify,
+      notificationType: e.notification_type,
+      fcmSent: e.fcm_sent,
+      fcmSentAt: e.fcm_sent_at,
+      fcmRecipientCount: e.fcm_recipient_count,
+      createdAt: e.created_at,
+      updatedAt: e.updated_at,
+      classIds: e.classIds.map((c: any) => ({
+          _id: c.class?.id,
+          id: c.class?.id,
+          name: c.class?.name,
+          section: c.class?.section
+      }))
+    }));
 
     return NextResponse.json({
       success: true,
       events,
-      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+      pagination: { page, limit, total: count || 0, pages: Math.ceil((count || 0) / limit) },
     });
   } catch (error) {
     console.error("[GET /api/events]", error);
@@ -49,8 +73,6 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    await connectDB();
-
     const token = req.headers.get("cookie")?.match(/token=([^;]+)/)?.[1];
     const user = verifyToken(token);
 
@@ -71,22 +93,40 @@ export async function POST(req: Request) {
       );
     }
 
-    const event = new Event({
+    const eventRepo = new EventRepository();
+    const createdEvent = await eventRepo.create({
       title,
       description,
-      eventType,
-      startDate: new Date(startDate),
-      endDate: endDate ? new Date(endDate) : undefined,
+      event_type: eventType || 'notification',
+      start_date: new Date(startDate).toISOString().split('T')[0],
+      end_date: endDate ? new Date(endDate).toISOString().split('T')[0] : null,
       location,
       image,
-      targetAudience,
-      classIds,
+      target_audience: targetAudience || 'all',
       status: status || "draft",
-      notify,
+      notify: notify !== undefined ? notify : true,
     });
 
-    await event.save();
-    await event.populate("classIds", "name section");
+    if (classIds && Array.isArray(classIds) && classIds.length > 0) {
+        const inserts = classIds.map(cid => ({ event_id: createdEvent.id, class_id: cid }));
+        await eventRepo.getClient().from('event_class_targets').insert(inserts);
+    }
+
+    const event = {
+        _id: createdEvent.id,
+        id: createdEvent.id,
+        title: createdEvent.title,
+        description: createdEvent.description,
+        eventType: createdEvent.event_type,
+        startDate: createdEvent.start_date,
+        endDate: createdEvent.end_date,
+        location: createdEvent.location,
+        image: createdEvent.image,
+        targetAudience: createdEvent.target_audience,
+        status: createdEvent.status,
+        notify: createdEvent.notify,
+        classIds: classIds || []
+    };
 
     // Log activity only for admin
     if (user.role === "admin") {
@@ -96,7 +136,7 @@ export async function POST(req: Request) {
         action: "create:event",
         message: `Event created: ${event.title}`,
         metadata: {
-          eventId: event._id,
+          eventId: event.id,
           title: event.title,
           eventType: event.eventType,
           status: event.status,
@@ -107,15 +147,15 @@ export async function POST(req: Request) {
     // ── FCM Publish Hook (for events created as published) ─────────────────
     if (event.status === "published" && event.notify) {
       const eventForDispatch = {
-        _id: String(event._id),
+        _id: String(event.id),
         title: event.title,
         description: event.description,
         eventType: event.eventType,
         startDate: event.startDate,
         targetAudience: event.targetAudience,
-        classIds: (event.classIds || []).map((c: any) => String(c._id || c)),
+        classIds: event.classIds.map((c: any) => String(c._id || c)),
         notify: event.notify,
-        notificationType: event.notificationType,
+        notificationType: 'all',
         location: event.location,
         image: event.image,
       };
@@ -138,8 +178,6 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
   try {
-    await connectDB();
-
     const token = req.headers.get("cookie")?.match(/token=([^;]+)/)?.[1];
     const user = verifyToken(token);
 
@@ -151,7 +189,7 @@ export async function PUT(req: Request) {
     }
 
     const body = await req.json();
-    const { id, ...updateData } = body;
+    const { id, classIds, ...updateDataRaw } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -159,54 +197,75 @@ export async function PUT(req: Request) {
         { status: 400 }
       );
     }
+    
+    const eventRepo = new EventRepository();
 
     // ── FCM Publish Hook ────────────────────────────────────────────────────
     // Fetch the event BEFORE update to detect status transition
-    const existingEvent = await Event.findById(id).lean() as {
-      status: string;
-      fcmSent?: boolean;
-      _id: unknown;
-      title: string;
-      description?: string;
-      eventType: string;
-      startDate?: Date;
-      targetAudience: string;
-      classIds?: string[];
-      notify: boolean;
-      notificationType: string;
-      location?: string;
-      image?: string;
-    } | null;
+    const existingEvent = await eventRepo.findById(id);
     const wasPublished = existingEvent?.status === "published";
-    const isBeingPublished = updateData.status === "published";
+    const isBeingPublished = updateDataRaw.status === "published";
     // ────────────────────────────────────────────────────────────────────────
+    
+    const updatePayload: any = { ...updateDataRaw };
+    delete updatePayload._id;
+    if (updatePayload.startDate) updatePayload.start_date = new Date(updatePayload.startDate).toISOString().split('T')[0];
+    if (updatePayload.endDate) updatePayload.end_date = new Date(updatePayload.endDate).toISOString().split('T')[0];
+    if (updatePayload.eventType) updatePayload.event_type = updatePayload.eventType;
+    if (updatePayload.targetAudience) updatePayload.target_audience = updatePayload.targetAudience;
+    if (updatePayload.notificationType) updatePayload.notification_type = updatePayload.notificationType;
+    delete updatePayload.startDate;
+    delete updatePayload.endDate;
+    delete updatePayload.eventType;
+    delete updatePayload.targetAudience;
+    delete updatePayload.notificationType;
+    delete updatePayload.createdAt;
+    delete updatePayload.updatedAt;
 
-    const event = await Event.findByIdAndUpdate(id, updateData, { new: true }).populate(
-      "classIds",
-      "name section"
-    );
+    const updatedRawEvent = await eventRepo.update(id, updatePayload);
 
-    if (!event) {
+    if (!updatedRawEvent) {
       return NextResponse.json(
         { success: false, error: "Event not found" },
         { status: 404 }
       );
     }
+    
+    if (classIds && Array.isArray(classIds)) {
+        await eventRepo.getClient().from('event_class_targets').delete().eq('event_id', id);
+        if (classIds.length > 0) {
+            const inserts = classIds.map((cid: any) => ({ event_id: id, class_id: cid._id || cid.id || cid }));
+            await eventRepo.getClient().from('event_class_targets').insert(inserts);
+        }
+    }
+    
+    const event = {
+        _id: updatedRawEvent.id,
+        id: updatedRawEvent.id,
+        title: updatedRawEvent.title,
+        description: updatedRawEvent.description,
+        eventType: updatedRawEvent.event_type,
+        startDate: updatedRawEvent.start_date,
+        endDate: updatedRawEvent.end_date,
+        location: updatedRawEvent.location,
+        image: updatedRawEvent.image,
+        targetAudience: updatedRawEvent.target_audience,
+        status: updatedRawEvent.status,
+        notify: updatedRawEvent.notify,
+        notificationType: updatedRawEvent.notification_type,
+        classIds: classIds || []
+    };
 
     // ── Trigger FCM push asynchronously (non-blocking) ──────────────────────
-    // Only dispatch if:
-    //  1. Status just changed FROM non-published TO published (first publish)
-    //  2. Event has never had FCM sent before (!fcmSent)
-    //  3. The event has notify=true
-    if (isBeingPublished && !wasPublished && !existingEvent?.fcmSent && event.notify) {
+    if (isBeingPublished && !wasPublished && !existingEvent?.fcm_sent && event.notify) {
       const eventForDispatch = {
-        _id: String(event._id),
+        _id: String(event.id),
         title: event.title,
         description: event.description,
         eventType: event.eventType,
         startDate: event.startDate,
         targetAudience: event.targetAudience,
-        classIds: (event.classIds || []).map((c: unknown) => String((c as { _id: unknown })._id || c)),
+        classIds: (event.classIds || []).map((c: any) => String(c._id || c.id || c)),
         notify: event.notify,
         notificationType: event.notificationType,
         location: event.location,
@@ -231,8 +290,6 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    await connectDB();
-
     const token = req.headers.get("cookie")?.match(/token=([^;]+)/)?.[1];
     const user = verifyToken(token);
 
@@ -253,14 +310,8 @@ export async function DELETE(req: Request) {
       );
     }
 
-    const event = await Event.findByIdAndDelete(id);
-
-    if (!event) {
-      return NextResponse.json(
-        { success: false, error: "Event not found" },
-        { status: 404 }
-      );
-    }
+    const eventRepo = new EventRepository();
+    const event = await eventRepo.delete(id);
 
     return NextResponse.json({ success: true, message: "Event deleted successfully" });
   } catch (error) {
