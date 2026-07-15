@@ -5,6 +5,7 @@ import { UserRepository } from "@/repositories/user.repository";
 import { TeacherRepository } from "@/repositories/teacher.repository";
 import { StudentRepository } from "@/repositories/student.repository";
 import { LogActivityRepository } from "@/repositories/logactivity.repository";
+import { supabaseAdmin } from "@/lib/supabase";
 
 export async function POST(req: Request) {
   try {
@@ -33,7 +34,7 @@ export async function POST(req: Request) {
       );
     }
 
-    let user = null;
+    let user: any = null;
     let detectedRole = role || "admin";
 
     console.log(`[api/auth/login] Searching for user: ${trimmedEmail} with role hint: ${role}`);
@@ -47,7 +48,12 @@ export async function POST(req: Request) {
       user = await teacherRepo.findByEmail(trimmedEmail);
       if (user) detectedRole = "teacher";
     } else if (role === "student" || role === "parent") {
-      user = await studentRepo.findOne({ email: trimmedEmail });
+      const students = await studentRepo.find({ email: trimmedEmail }, { limit: 1 });
+      user = students.length > 0 ? students[0] : null;
+      if (!user && role === "parent") {
+        const { data: pMap } = await supabaseAdmin.from('student_parents').select('student_id').eq('email', trimmedEmail).limit(1).maybeSingle();
+        if (pMap?.student_id) user = await studentRepo.findById(pMap.student_id);
+      }
       if (user) detectedRole = role;
     } else if (role === "admin" || !role) {
       // Try User model first (admin/parent)
@@ -66,8 +72,24 @@ export async function POST(req: Request) {
       if (user) detectedRole = "teacher";
     }
     if (!user) {
-      user = await studentRepo.findOne({ email: trimmedEmail });
+      const students = await studentRepo.find({ email: trimmedEmail }, { limit: 1 });
+      user = students.length > 0 ? students[0] : null;
       if (user) detectedRole = "student";
+    }
+
+    // Check if it's a parent email in student_parents
+    if (!user) {
+      const { data: parentMapping } = await supabaseAdmin
+        .from('student_parents')
+        .select('student_id')
+        .eq('email', trimmedEmail)
+        .limit(1)
+        .maybeSingle();
+
+      if (parentMapping?.student_id) {
+        user = await studentRepo.findById(parentMapping.student_id);
+        if (user) detectedRole = "parent";
+      }
     }
 
     const logRepo = new LogActivityRepository();
