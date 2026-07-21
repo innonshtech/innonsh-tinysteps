@@ -98,6 +98,14 @@ export async function POST(req: Request) {
       await supabaseAdmin.from('teacher_class_assignments').insert(assignments);
     }
 
+    // If students are provided in the payload, assign them to this class
+    if (parsed.students && parsed.students.length > 0) {
+      await supabaseAdmin
+        .from('students')
+        .update({ class_id: createdClass.id })
+        .in('id', parsed.students);
+    }
+
     const formattedClass = {
         _id: createdClass.id,
         id: createdClass.id,
@@ -105,7 +113,7 @@ export async function POST(req: Request) {
         section: createdClass.section,
         roomNumber: createdClass.room_number,
         teachers: parsed.teachers || [],
-        students: []
+        students: parsed.students || []
     };
 
     // Log admin activity

@@ -1,7 +1,7 @@
 import { supabaseAdmin, supabaseClient } from '@/lib/supabase';
 import { SupabaseClient } from '@supabase/supabase-js';
 
-export class BaseRepository<T extends { id?: string }> {
+export class BaseRepository<T extends { id?: string } = any> {
   protected tableName: string;
 
   constructor(tableName: string) {
@@ -13,7 +13,7 @@ export class BaseRepository<T extends { id?: string }> {
    * By default, it uses the admin client (service role) to bypass RLS,
    * since our APIs currently handle authorization via JWT roles.
    */
-  protected getClient(): SupabaseClient {
+  public getClient(): SupabaseClient {
     return supabaseAdmin;
   }
 
@@ -90,7 +90,7 @@ export class BaseRepository<T extends { id?: string }> {
   async create(data: Partial<T>): Promise<T> {
     const { data: created, error } = await this.getClient()
       .from(this.tableName)
-      .insert([data])
+      .insert([data] as any)
       .select()
       .single();
 
@@ -101,7 +101,7 @@ export class BaseRepository<T extends { id?: string }> {
   async update(id: string, data: Partial<T>): Promise<T | null> {
     const { data: updated, error } = await this.getClient()
       .from(this.tableName)
-      .update(data)
+      .update(data as any)
       .eq('id', id)
       .select()
       .single();

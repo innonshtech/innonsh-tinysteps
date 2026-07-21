@@ -13,7 +13,7 @@ export class NotificationRepository extends BaseRepository {
   }
   
   async markAllAsRead(recipientId: string) {
-      const { data, error } = await this.client
+      const { data, error } = await this.getClient()
           .from(this.tableName)
           .update({ is_read: true, read_at: new Date().toISOString() })
           .eq('recipient_id', recipientId)
