@@ -102,7 +102,23 @@ export async function PUT(
       const added = newStudentIds.filter((sid: string) => !oldStudentIds.includes(sid));
       const removed = oldStudentIds.filter((sid: string) => !newStudentIds.includes(sid));
 
+      // Validate that newly added students are not assigned to a DIFFERENT class.
+      // Students already in this class (class_id === id) are allowed.
       if (added.length > 0) {
+        const { data: conflicting } = await supabaseAdmin
+          .from('students')
+          .select('id, class_id')
+          .in('id', added)
+          .not('class_id', 'is', null)
+          .neq('class_id', id); // exclude students already in THIS class
+
+        if (conflicting && conflicting.length > 0) {
+          return NextResponse.json(
+            { success: false, error: "Student is already assigned to another class." },
+            { status: 400 }
+          );
+        }
+
         await supabaseAdmin.from('students')
           .update({ class_id: id })
           .in('id', added);

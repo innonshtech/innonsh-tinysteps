@@ -36,6 +36,7 @@ interface Student {
   _id: string;
   firstName: string;
   lastName?: string;
+  classId?: string | null;
 }
 
 interface Class {
@@ -105,13 +106,23 @@ export default function ClassManagement() {
 
   const fetchStudents = async () => {
     try {
-      const res = await fetch("/api/students");
+      const res = await fetch("/api/students?limit=500");
       const data = await res.json();
       setStudents(data.students || []);
     } catch (error) {
       console.error("Failed to fetch students:", error);
     }
   };
+
+  // Students eligible for selection:
+  // - When creating: only unassigned students (classId or class_id is null/undefined)
+  // - When editing: unassigned students + students already in THIS class being edited
+  const selectableStudents = students.filter((s) => {
+    const studentClassId = s.classId ?? (s as any).class_id;
+    if (!studentClassId) return true; // unassigned
+    if (editingClass && String(studentClassId) === String(editingClass._id)) return true; // already in this class
+    return false;
+  });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -169,6 +180,7 @@ export default function ClassManagement() {
         setEditingClass(null);
         setFormData({ name: "", section: "A", roomNumber: "", teachers: [], students: [] });
         fetchClasses();
+        fetchStudents();
       } else {
         const errorData = await res.json();
         console.error("[ClassManagement] Error response:", errorData);
@@ -208,6 +220,7 @@ export default function ClassManagement() {
         setShowDeleteModal(false);
         setDeletingClass(null);
         fetchClasses();
+        fetchStudents();
       }
     } catch (error) {
       showToast.error("Failed to delete class");
@@ -564,10 +577,10 @@ export default function ClassManagement() {
               Assign Students
             </label>
             <div className="border border-gray-300 rounded-lg max-h-40 overflow-y-auto">
-              {students.length === 0 ? (
+              {selectableStudents.length === 0 ? (
                 <div className="p-3 text-sm text-gray-500 text-center">No students available</div>
               ) : (
-                students.map((student) => (
+                selectableStudents.map((student) => (
                   <label
                     key={student._id}
                     className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
