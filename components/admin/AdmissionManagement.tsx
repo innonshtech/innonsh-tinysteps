@@ -12,17 +12,27 @@ import Breadcrumbs from "@/components/common/Breadcrumbs";
 import { showToast } from "@/lib/toast";
 import { FileText, Send, Clock, CheckCircle, XCircle, Search, Users, Eye, Check, X } from "lucide-react";
 
+interface Parent {
+  _id?: string;
+  name?: string;
+  phone?: string;
+  email?: string;
+  relation?: string;
+}
+
 interface Admission {
   _id: string;
   admissionNo?: string;
   childFirstName: string;
   childLastName?: string;
+  preferredClass?: string;
+  parents?: Parent[];
   dob?: Date;
   gender?: string;
   status: "submitted" | "pending" | "approved" | "rejected" | "enrolled";
   appliedByParentId?: string;
   admissionFeePaid: boolean;
-  createdAt?: Date;
+  createdAt?: string | Date;
   [key: string]: unknown;
 }
 
@@ -85,36 +95,82 @@ export default function AdmissionManagement() {
     return colors[status] || "gray";
   };
 
-  const filteredAdmissions = admissions.filter(
-    (admission) =>
-      (admission.childFirstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        admission.admissionNo?.toLowerCase().includes(searchTerm.toLowerCase())) &&
-      (!statusFilter || admission.status === statusFilter)
-  );
+  const filteredAdmissions = admissions.filter((admission) => {
+    const parentName = admission.parents && admission.parents.length > 0 ? admission.parents[0].name : "";
+    const search = searchTerm.toLowerCase();
+    const matchesSearch =
+      admission.childFirstName.toLowerCase().includes(search) ||
+      (admission.childLastName && admission.childLastName.toLowerCase().includes(search)) ||
+      (admission.admissionNo && String(admission.admissionNo).toLowerCase().includes(search)) ||
+      (admission.preferredClass && String(admission.preferredClass).toLowerCase().includes(search)) ||
+      (parentName && parentName.toLowerCase().includes(search)) ||
+      (admission.parents && admission.parents.some((p) => p.phone && p.phone.toLowerCase().includes(search)));
+
+    const matchesStatus = !statusFilter || admission.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   const columns = [
-    { key: "admissionNo", label: "Admission No." },
-    { key: "childFirstName", label: "Child Name" },
     {
-      key: "gender",
-      label: "Gender",
-      render: (value: unknown) => String(value || "-"),
+      key: "admissionNo",
+      label: "Admission No.",
+      render: (value: unknown, row: Record<string, unknown>) => {
+        const adm = row as unknown as Admission;
+        const isApproved = adm.status === "approved";
+        const no = adm.admissionNo || adm.admission_no;
+        return (
+          <span className="font-medium text-gray-800">
+            {isApproved && no ? String(no) : "-"}
+          </span>
+        );
+      },
     },
     {
-      key: "status",
-      label: "Status",
-      render: (value: unknown, row: Record<string, unknown>) => (
-        <Badge variant={getStatusColor(String(value))} size="sm">
-          {String(value).toUpperCase()}
+      key: "childFirstName",
+      label: "Child Name",
+      render: (value: unknown, row: Record<string, unknown>) => {
+        const adm = row as unknown as Admission;
+        const fullName = [adm.childFirstName, adm.childLastName].filter(Boolean).join(" ");
+        return <span className="font-semibold text-gray-900">{fullName || "-"}</span>;
+      },
+    },
+    {
+      key: "parents",
+      label: "Parent Name",
+      render: (value: unknown, row: Record<string, unknown>) => {
+        const adm = row as unknown as Admission;
+        const parentName = adm.parents && adm.parents.length > 0 ? adm.parents[0].name : null;
+        return <span className="text-gray-700">{parentName || "-"}</span>;
+      },
+    },
+    {
+      key: "preferredClass",
+      label: "Applied Class",
+      render: (value: unknown) => (
+        <Badge variant="info" size="sm">
+          {String(value || "-")}
         </Badge>
       ),
     },
     {
-      key: "admissionFeePaid",
-      label: "Fee Paid",
-      render: (value: unknown, row: Record<string, unknown>) => (
-        <Badge variant={value ? "success" : "danger"} size="sm">
-          {value ? "Yes" : "No"}
+      key: "createdAt",
+      label: "Application Date",
+      render: (value: unknown) => {
+        if (!value) return <span className="text-gray-400">-</span>;
+        const d = new Date(String(value));
+        return (
+          <span className="text-gray-600">
+            {isNaN(d.getTime()) ? "-" : d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+          </span>
+        );
+      },
+    },
+    {
+      key: "status",
+      label: "Status",
+      render: (value: unknown) => (
+        <Badge variant={getStatusColor(String(value))} size="sm">
+          {String(value || "").toUpperCase()}
         </Badge>
       ),
     },
@@ -198,7 +254,7 @@ export default function AdmissionManagement() {
               <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search by name or application no..."
+                placeholder="Search by name, parent, or application no..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400 font-medium text-gray-700 text-sm transition-all"
@@ -225,45 +281,58 @@ export default function AdmissionManagement() {
         <div className="flex-1 p-5 overflow-y-auto custom-scrollbar">
           <Table
             columns={columns}
-            data={filteredAdmissions}
+            data={filteredAdmissions as unknown as Record<string, unknown>[]}
             loading={loading}
             onRowClick={(row) => {
-              setEditingAdmission(row as Admission);
+              setEditingAdmission(row as unknown as Admission);
               setModalOpen(true);
             }}
-            actions={(row) => (
-              <div className="flex gap-1">
-                {(row as Admission).status === "submitted" && (
-                  <>
-                    <button type="button"
-                      onClick={(e) => { e.stopPropagation(); handleStatusChange((row as Admission)._id, "approved"); }}
-                      className="p-1.5 text-green-600 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
-                      title="Approve"
-                    >
-                      <Check className="w-4 h-4" />
-                    </button>
-                    <button type="button"
-                      onClick={(e) => { e.stopPropagation(); handleStatusChange((row as Admission)._id, "rejected"); }}
-                      className="p-1.5 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-                      title="Reject"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </>
-                )}
-                <button type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEditingAdmission(row as Admission);
-                    setModalOpen(true);
-                  }}
-                  className="p-1.5 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-                  title="View Details"
-                >
-                  <Eye className="w-4 h-4" />
-                </button>
-              </div>
-            )}
+            actions={(row) => {
+              const adm = row as unknown as Admission;
+              const isPendingOrSubmitted = adm.status === "pending" || adm.status === "submitted";
+              return (
+                <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                  {isPendingOrSubmitted && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStatusChange(adm._id, "approved");
+                        }}
+                        className="p-1.5 text-green-600 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
+                        title="Approve"
+                      >
+                        <Check className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStatusChange(adm._id, "rejected");
+                        }}
+                        className="p-1.5 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                        title="Reject"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingAdmission(adm);
+                      setModalOpen(true);
+                    }}
+                    className="p-1.5 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                    title="View Details"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
+                </div>
+              );
+            }}
           />
         </div>
       </div>
@@ -280,31 +349,63 @@ export default function AdmissionManagement() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-gray-600">First Name</p>
-                <p className="text-lg font-semibold">{editingAdmission.childFirstName}</p>
+                <p className="text-sm text-gray-600 font-medium">Admission Number</p>
+                <p className="text-base font-semibold text-gray-900">
+                  {editingAdmission.status === "approved" && (editingAdmission.admissionNo || editingAdmission.admission_no)
+                    ? String(editingAdmission.admissionNo || editingAdmission.admission_no)
+                    : "-"}
+                </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Last Name</p>
-                <p className="text-lg font-semibold">{editingAdmission.childLastName || "-"}</p>
+                <p className="text-sm text-gray-600 font-medium">Child Name</p>
+                <p className="text-base font-semibold text-gray-900">
+                  {[editingAdmission.childFirstName, editingAdmission.childLastName].filter(Boolean).join(" ") || "-"}
+                </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Gender</p>
-                <p className="text-lg font-semibold">{editingAdmission.gender || "-"}</p>
+                <p className="text-sm text-gray-600 font-medium">Parent Name</p>
+                <p className="text-base font-semibold text-gray-900">
+                  {editingAdmission.parents && editingAdmission.parents.length > 0 ? editingAdmission.parents[0].name : "-"}
+                </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Date of Birth</p>
-                <p className="text-lg font-semibold">
+                <p className="text-sm text-gray-600 font-medium">Parent Mobile Number</p>
+                <p className="text-base font-semibold text-gray-900">
+                  {editingAdmission.parents && editingAdmission.parents.length > 0 && editingAdmission.parents[0].phone
+                    ? editingAdmission.parents[0].phone
+                    : "-"}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 font-medium">Applied Class</p>
+                <p className="text-base font-semibold text-gray-900">{editingAdmission.preferredClass ? String(editingAdmission.preferredClass) : "-"}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 font-medium">Gender</p>
+                <p className="text-base font-semibold text-gray-900">{editingAdmission.gender ? String(editingAdmission.gender) : "-"}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 font-medium">Date of Birth</p>
+                <p className="text-base font-semibold text-gray-900">
                   {editingAdmission.dob
                     ? new Date(editingAdmission.dob).toLocaleDateString()
                     : "-"}
                 </p>
               </div>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Status</p>
-              <Badge variant={getStatusColor(editingAdmission.status)}>
-                {editingAdmission.status.toUpperCase()}
-              </Badge>
+              <div>
+                <p className="text-sm text-gray-600 font-medium">Application Date</p>
+                <p className="text-base font-semibold text-gray-900">
+                  {editingAdmission.createdAt
+                    ? new Date(String(editingAdmission.createdAt)).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
+                    : "-"}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 font-medium">Status</p>
+                <Badge variant={getStatusColor(editingAdmission.status)}>
+                  {editingAdmission.status.toUpperCase()}
+                </Badge>
+              </div>
             </div>
           </div>
         )}

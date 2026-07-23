@@ -28,6 +28,7 @@ import {
   Search,
   DoorOpen,
   Grid3x3,
+  Users,
 } from "lucide-react";
 
 interface Class {

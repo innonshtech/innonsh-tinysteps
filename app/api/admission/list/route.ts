@@ -19,6 +19,7 @@ export async function GET(req: Request) {
     let admissions = rawAdmissions.map((a: any) => ({
       _id: a.id,
       id: a.id,
+      admissionNo: a.admission_no,
       childFirstName: a.child_first_name,
       childLastName: a.child_last_name,
       dob: a.dob,
@@ -54,7 +55,7 @@ export async function GET(req: Request) {
         { child_first_name: "Kabir", child_last_name: "Singh", preferred_class: "Nursery", status: "pending" },
       ];
       await repo.getClient().from('admissions').insert(sampleAdmissions);
-      
+
       const { data: newRawAdmissions } = await repo.getClient().from('admissions')
         .select('*, parents:admission_parents(*)')
         .order('created_at', { ascending: false });
@@ -63,6 +64,7 @@ export async function GET(req: Request) {
           admissions = newRawAdmissions.map((a: any) => ({
               _id: a.id,
               id: a.id,
+              admissionNo: a.admission_no,
               childFirstName: a.child_first_name,
               childLastName: a.child_last_name,
               dob: a.dob,
@@ -76,7 +78,15 @@ export async function GET(req: Request) {
               convertedStudentId: a.converted_student_id,
               createdAt: a.created_at,
               updatedAt: a.updated_at,
-              parents: []
+              parents: a.parents ? a.parents.map((p: any) => ({
+                  _id: p.id,
+                  id: p.id,
+                  parentId: p.parent_id,
+                  name: p.name,
+                  phone: p.phone,
+                  email: p.email,
+                  relation: p.relation
+              })) : []
           }));
       }
     }

@@ -98,6 +98,33 @@ export async function POST(req: Request) {
       await supabaseAdmin.from('teacher_class_assignments').insert(assignments);
     }
 
+    // If students are provided, validate they are not already assigned to another class
+    if (parsed.students && parsed.students.length > 0) {
+      const { data: selectedStudents, error: fetchError } = await supabaseAdmin
+        .from('students')
+        .select('id, class_id')
+        .in('id', parsed.students);
+
+      if (fetchError) throw fetchError;
+
+      // Reject if any selected student already has a class_id (JS-side check is more reliable)
+      const conflicting = (selectedStudents || []).filter((s: any) => s.class_id !== null && s.class_id !== undefined);
+
+      if (conflicting.length > 0) {
+        // Roll back the created class since assignment failed
+        await supabaseAdmin.from('classes').delete().eq('id', createdClass.id);
+        return NextResponse.json(
+          { success: false, error: "Student is already assigned to another class." },
+          { status: 400 }
+        );
+      }
+
+      await supabaseAdmin
+        .from('students')
+        .update({ class_id: createdClass.id })
+        .in('id', parsed.students);
+    }
+
     const formattedClass = {
         _id: createdClass.id,
         id: createdClass.id,
@@ -105,7 +132,7 @@ export async function POST(req: Request) {
         section: createdClass.section,
         roomNumber: createdClass.room_number,
         teachers: parsed.teachers || [],
-        students: []
+        students: parsed.students || []
     };
 
     // Log admin activity

@@ -259,12 +259,12 @@ async function resolveTargetParents(event: EventDoc): Promise<string[]> {
   const { data: students } = await query;
   
   if (students && students.length > 0) {
-      return students.map(s => s.id);
+      return students.map((s: any) => s.id);
   }
 
   // Fallback: get all students if none matched (should rarely happen unless class is empty)
   const { data: allStudents } = await supabaseAdmin.from('students').select('id');
-  return allStudents ? allStudents.map(s => s.id) : [];
+  return allStudents ? allStudents.map((s: any) => s.id) : [];
 }
 
 async function _markEventFcmSent(

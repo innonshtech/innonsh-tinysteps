@@ -12,16 +12,16 @@ if (!supabaseUrl) {
 
 // Server client (service role — full access, bypasses RLS)
 // Use this ONLY in secure server environments (API routes, Server Components, etc.)
-export const supabaseAdmin = typeof window === 'undefined' && supabaseServiceRoleKey 
+export const supabaseAdmin = typeof window === 'undefined' && supabaseServiceRoleKey
   ? createClient(
-      supabaseUrl || '',
-      supabaseServiceRoleKey,
-      {
-        auth: {
-          persistSession: false,
-        }
+    supabaseUrl || '',
+    supabaseServiceRoleKey,
+    {
+      auth: {
+        persistSession: false,
       }
-    )
+    }
+  )
   : (null as any);
 
 // Client client (anon key — adheres to RLS)

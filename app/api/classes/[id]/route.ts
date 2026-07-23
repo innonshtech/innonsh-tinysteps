@@ -2,7 +2,7 @@ import { NextResponse, NextRequest } from "next/server";
 import { verifyToken } from "@/lib/auth";
 import { ClassCreateZ } from "@/lib/validations/classSchema";
 import { supabaseAdmin } from "@/lib/supabase";
-import { LogActivityRepository } from "@/repositories/logactivity.repository";
+import { logAdminActivity } from "@/lib/logAdminActivity";
 
 export async function GET(
   req: NextRequest,
@@ -23,7 +23,7 @@ export async function GET(
   
   // Get teachers
   const { data: teacherAssignments } = await supabaseAdmin.from('teacher_class_assignments').select('teacher_id').eq('class_id', id);
-  const teacherIds = teacherAssignments?.map(t => t.teacher_id) || [];
+  const teacherIds = teacherAssignments?.map((t: any) => t.teacher_id) || [];
   let teachers: any[] = [];
   if (teacherIds.length > 0) {
     const { data: teacherData } = await supabaseAdmin.from('teachers').select('*').in('id', teacherIds);
@@ -34,8 +34,8 @@ export async function GET(
     ...classData,
     _id: classData.id,
     roomNumber: classData.room_number,
-    teachers: teachers.map(t => ({ ...t, _id: t.id })),
-    students: (students || []).map(s => ({ ...s, _id: s.id }))
+    teachers: teachers.map((t: any) => ({ ...t, _id: t.id })),
+    students: (students || []).map((s: any) => ({ ...s, _id: s.id }))
   };
 
   return NextResponse.json({ success: true, class: mappedClass });
@@ -73,7 +73,7 @@ export async function PUT(
     // --- SYNC LOGIC: Class -> Teacher ---
     if (parsed.teachers) {
       const { data: existingAssignments } = await supabaseAdmin.from('teacher_class_assignments').select('teacher_id').eq('class_id', id);
-      const oldTeacherIds = existingAssignments?.map(a => a.teacher_id) || [];
+      const oldTeacherIds = existingAssignments?.map((a: any) => a.teacher_id) || [];
       const newTeacherIds = parsed.teachers;
 
       const added = newTeacherIds.filter((tid: string) => !oldTeacherIds.includes(tid));
@@ -93,17 +93,55 @@ export async function PUT(
     }
     // ------------------------------------
 
+    // --- SYNC LOGIC: Class -> Student ---
+    if (parsed.students) {
+      const { data: currentStudents } = await supabaseAdmin.from('students').select('id').eq('class_id', id);
+      const oldStudentIds = currentStudents?.map((s: any) => s.id) || [];
+      const newStudentIds = parsed.students;
+
+      const added = newStudentIds.filter((sid: string) => !oldStudentIds.includes(sid));
+      const removed = oldStudentIds.filter((sid: string) => !newStudentIds.includes(sid));
+
+      // Validate that newly added students are not assigned to a DIFFERENT class.
+      // Students already in this class (class_id === id) are allowed.
+      if (added.length > 0) {
+        const { data: conflicting } = await supabaseAdmin
+          .from('students')
+          .select('id, class_id')
+          .in('id', added)
+          .not('class_id', 'is', null)
+          .neq('class_id', id); // exclude students already in THIS class
+
+        if (conflicting && conflicting.length > 0) {
+          return NextResponse.json(
+            { success: false, error: "Student is already assigned to another class." },
+            { status: 400 }
+          );
+        }
+
+        await supabaseAdmin.from('students')
+          .update({ class_id: id })
+          .in('id', added);
+      }
+
+      if (removed.length > 0) {
+        await supabaseAdmin.from('students')
+          .update({ class_id: null })
+          .in('id', removed);
+      }
+    }
+    // ------------------------------------
+
     // Log admin activity
-    const logRepo = new LogActivityRepository();
-    await logRepo.create({
-      actor_id: String(user.id),
-      actor_role: user.role,
+    await logAdminActivity({
+      actorId: String(user.id),
+      actorRole: user.role,
       action: "update:class",
       message: `Class updated: ${updated.name} - ${updated.section}`,
       metadata: {
         classId: updated.id,
         name: updated.name,
-        section: updated.section,
+        section: updated.section, 
         roomNumber: updated.room_number,
       }
     });
@@ -138,10 +176,9 @@ export async function DELETE(
   if (!deleted || error) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
 
   // Log admin activity
-  const logRepo = new LogActivityRepository();
-  await logRepo.create({
-    actor_id: String(user.id),
-    actor_role: user.role,
+  await logAdminActivity({
+    actorId: String(user.id),
+    actorRole: user.role,
     action: "delete:class",
     message: `Class deleted: ${deleted.name} - ${deleted.section}`,
     metadata: {
