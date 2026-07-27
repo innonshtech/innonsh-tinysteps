@@ -16,6 +16,7 @@ interface TableProps {
   onRowClick?: (row: Record<string, unknown>) => void;
   onRowDoubleClick?: (row: Record<string, unknown>) => void;
   actions?: (row: Record<string, unknown>) => ReactNode;
+  actionsWidth?: string;
   striped?: boolean;
   hoverable?: boolean;
   compact?: boolean;
@@ -29,6 +30,7 @@ export default function Table({
   onRowClick,
   onRowDoubleClick,
   actions,
+  actionsWidth,
   striped = true,
   hoverable = true,
   compact = false,
@@ -51,6 +53,7 @@ export default function Table({
             ))}
             {actions && (
               <th
+                style={actionsWidth ? { width: actionsWidth } : undefined}
                 className={`text-left font-semibold text-gray-700 whitespace-nowrap ${compact ? "px-3 py-2 text-sm" : "px-6 py-3 text-sm"}`}
               >
                 Actions
@@ -98,6 +101,7 @@ export default function Table({
                 ))}
                 {actions && (
                   <td
+                    style={actionsWidth ? { width: actionsWidth } : undefined}
                     className={`${compact ? "px-3 py-2 text-sm" : "px-6 py-3 text-sm"}`}
                   >
                     {actions(row)}

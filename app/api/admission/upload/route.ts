@@ -1,40 +1,12 @@
 // app/api/admission/upload/route.ts
 import { NextResponse } from "next/server";
-import formidable from "formidable";
-import { promises as fs } from "fs";
 import { uploadFile } from "@/lib/upload";
-
-export const runtime = "nodejs";
-
-interface FormidableFile {
-  filepath: string;
-  originalFilename?: string | null;
-  mimetype?: string | null;
-  size: number;
-}
-
-interface FormidableParseResult {
-  fields: formidable.Fields;
-  files: { file?: FormidableFile[] };
-}
 
 export async function POST(req: Request) {
   try {
-    // Initialize Formidable
-    const form = formidable({
-      maxFileSize: 12 * 1024 * 1024, // 12MB
-      multiples: false,
-      keepExtensions: true,
-    });
+    const formData = await req.formData();
+    const file = formData.get("file") as File | null;
 
-    const parsed: FormidableParseResult = await new Promise((resolve, reject) => {
-      form.parse(req as any, (err, fields, files) => {
-        if (err) return reject(err);
-        resolve({ fields, files });
-      });
-    });
-
-    const file = parsed.files.file?.[0];
     if (!file) {
       return NextResponse.json(
         { success: false, error: "No file provided" },
@@ -42,11 +14,12 @@ export async function POST(req: Request) {
       );
     }
 
-    // Read file buffer
-    const buffer = await fs.readFile(file.filepath);
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const filename = file.name || "upload_file";
+    const contentType = file.type || "application/octet-stream";
 
-    // Upload to Cloudinary
-    const uploaded = await uploadFile(buffer, "erp/admissions");
+    const uploaded = await uploadFile(buffer, "admissions", filename, contentType);
 
     return NextResponse.json({
       success: true,

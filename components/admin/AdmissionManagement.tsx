@@ -10,7 +10,8 @@ import Badge from "@/components/common/Badge";
 import Alert from "@/components/common/Alert";
 import Breadcrumbs from "@/components/common/Breadcrumbs";
 import { showToast } from "@/lib/toast";
-import { FileText, Send, Clock, CheckCircle, XCircle, Search, Users, Eye, Check, X } from "lucide-react";
+import { FileText, Send, Clock, CheckCircle, XCircle, Search, Users, Eye, Check, X, Filter, ChevronDown, Plus } from "lucide-react";
+import AddAdmissionModal from "@/components/admin/AddAdmissionModal";
 
 interface Parent {
   _id?: string;
@@ -26,6 +27,7 @@ interface Admission {
   childFirstName: string;
   childLastName?: string;
   preferredClass?: string;
+  academicYear?: string;
   parents?: Parent[];
   dob?: Date;
   gender?: string;
@@ -41,12 +43,33 @@ export default function AdmissionManagement() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [classFilter, setClassFilter] = useState("");
+  const [academicYearFilter, setAcademicYearFilter] = useState("");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [activeCategoryTab, setActiveCategoryTab] = useState<"status" | "class" | "academicYear">("status");
   const [modalOpen, setModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingAdmission, setEditingAdmission] = useState<Admission | null>(null);
+
+  const popoverRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchAdmissions();
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
+        setIsFilterOpen(false);
+      }
+    };
+    if (isFilterOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isFilterOpen]);
 
   const fetchAdmissions = async () => {
     try {
@@ -95,10 +118,47 @@ export default function AdmissionManagement() {
     return colors[status] || "gray";
   };
 
+  // Helper to calculate academic year from date (e.g. 2026 -> "2026-2027")
+  const getAcademicYear = (dateValue?: string | Date | null): string => {
+    if (!dateValue) return "";
+    const d = new Date(dateValue);
+    if (isNaN(d.getTime())) return "";
+    const year = d.getFullYear();
+    return `${year}-${year + 1}`;
+  };
+
+  const getAdmissionAcademicYear = (a: Admission): string => {
+    if (a.academicYear && typeof a.academicYear === "string" && a.academicYear.trim().length > 0) {
+      return a.academicYear;
+    }
+    const dateVal = a.createdAt || a.created_at || a.admissionDate || a.admission_date;
+    return getAcademicYear(dateVal as string | Date);
+  };
+
+  // Derive available classes dynamically from admission data with standard defaults
+  const availableClasses = Array.from(
+    new Set([
+      "Play Group", "Nursery", "KG1", "KG2",
+      ...admissions.map((a) => a.preferredClass).filter((c): c is string => Boolean(c))
+    ])
+  );
+
+  // Derive available academic years dynamically from real admission application dates
+  const availableAcademicYears = Array.from(
+    new Set(
+      admissions
+        .map((a) => getAdmissionAcademicYear(a))
+        .filter((y): y is string => Boolean(y))
+    )
+  ).sort();
+
+  const activeFilterCount = (statusFilter ? 1 : 0) + (classFilter ? 1 : 0) + (academicYearFilter ? 1 : 0);
+
   const filteredAdmissions = admissions.filter((admission) => {
     const parentName = admission.parents && admission.parents.length > 0 ? admission.parents[0].name : "";
     const search = searchTerm.toLowerCase();
     const matchesSearch =
+      !search ||
       admission.childFirstName.toLowerCase().includes(search) ||
       (admission.childLastName && admission.childLastName.toLowerCase().includes(search)) ||
       (admission.admissionNo && String(admission.admissionNo).toLowerCase().includes(search)) ||
@@ -107,7 +167,12 @@ export default function AdmissionManagement() {
       (admission.parents && admission.parents.some((p) => p.phone && p.phone.toLowerCase().includes(search)));
 
     const matchesStatus = !statusFilter || admission.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesClass = !classFilter || admission.preferredClass === classFilter;
+    const matchesAcademicYear =
+      !academicYearFilter ||
+      getAdmissionAcademicYear(admission) === academicYearFilter;
+
+    return matchesSearch && matchesStatus && matchesClass && matchesAcademicYear;
   });
 
   const columns = [
@@ -249,32 +314,251 @@ export default function AdmissionManagement() {
       <div className="bg-white border border-gray-200 rounded-2xl flex flex-col" style={{ minHeight: '480px' }}>
         {/* Toolbar */}
         <div className="px-5 pt-4 pb-4 border-b border-gray-100 bg-white sticky top-[64px] z-20">
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+          {/* ROW 1: Search, + Add New Admission, Filter */}
+          <div className="flex flex-col sm:flex-row gap-3 items-center justify-between w-full">
             <div className="relative flex-1 max-w-md w-full">
               <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search by name, parent, or application no..."
+                placeholder="Search applications..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400 font-medium text-gray-700 text-sm transition-all"
+                className="w-full pl-10 pr-4 h-[38px] bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400 font-medium text-gray-700 text-sm transition-all box-border min-w-0"
               />
             </div>
-            <div className="w-full md:w-auto relative">
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full md:w-48 appearance-none pl-4 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400 font-medium text-gray-700 text-sm transition-all"
+
+            <div className="flex items-center gap-3 shrink-0 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => setIsAddModalOpen(true)}
+                className="flex items-center justify-center gap-2 px-4 h-[38px] bg-gradient-to-r from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white rounded-xl font-medium text-sm transition-all shadow-sm cursor-pointer whitespace-nowrap box-border flex-1 sm:flex-initial"
               >
-                <option value="">All Statuses</option>
-                <option value="submitted">Submitted</option>
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-                <option value="enrolled">Enrolled</option>
-              </select>
+                <Plus className="w-4 h-4" />
+                Add New Admission
+              </button>
+
+              {/* Consolidated Filter Button & Popover */}
+              <div className="relative flex-1 sm:flex-initial" ref={popoverRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsFilterOpen((prev) => !prev)}
+                  className={`flex items-center justify-between gap-2 px-4 h-[38px] border rounded-xl font-medium text-sm transition-all cursor-pointer box-border w-full ${
+                    activeFilterCount > 0
+                      ? "bg-orange-50 border-orange-300 text-orange-700 shadow-sm"
+                      : "bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Filter className="w-4 h-4 text-current" />
+                    <span>Filter{activeFilterCount > 0 ? ` ${activeFilterCount}` : ""}</span>
+                  </div>
+                  <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isFilterOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                {/* Filter Popover Panel */}
+                {isFilterOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white border border-gray-200 rounded-2xl shadow-xl z-50 p-4 transition-all">
+                    <div className="flex items-center justify-between pb-3 mb-3 border-b border-gray-100">
+                      <span className="font-semibold text-gray-800 text-sm flex items-center gap-1.5">
+                        <Filter className="w-4 h-4 text-orange-500" />
+                        Filter Applications
+                      </span>
+                      {activeFilterCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setStatusFilter("");
+                            setClassFilter("");
+                            setAcademicYearFilter("");
+                          }}
+                          className="text-xs text-orange-600 hover:text-orange-700 font-semibold transition-colors cursor-pointer"
+                        >
+                          Reset All
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Category Nav Tabs */}
+                    <div className="flex gap-1 bg-gray-100 p-1 rounded-xl mb-4 text-xs font-medium">
+                      <button
+                        type="button"
+                        onClick={() => setActiveCategoryTab("status")}
+                        className={`flex-1 py-1.5 px-2 rounded-lg transition-all text-center relative cursor-pointer ${
+                          activeCategoryTab === "status"
+                            ? "bg-white text-gray-900 shadow-sm font-semibold"
+                            : "text-gray-600 hover:text-gray-900"
+                        }`}
+                      >
+                        Status
+                        {statusFilter && <span className="absolute top-1 right-1.5 w-1.5 h-1.5 bg-orange-500 rounded-full"></span>}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveCategoryTab("class")}
+                        className={`flex-1 py-1.5 px-2 rounded-lg transition-all text-center relative cursor-pointer ${
+                          activeCategoryTab === "class"
+                            ? "bg-white text-gray-900 shadow-sm font-semibold"
+                            : "text-gray-600 hover:text-gray-900"
+                        }`}
+                      >
+                        Class
+                        {classFilter && <span className="absolute top-1 right-1.5 w-1.5 h-1.5 bg-orange-500 rounded-full"></span>}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveCategoryTab("academicYear")}
+                        className={`flex-1 py-1.5 px-2 rounded-lg transition-all text-center relative cursor-pointer ${
+                          activeCategoryTab === "academicYear"
+                            ? "bg-white text-gray-900 shadow-sm font-semibold"
+                            : "text-gray-600 hover:text-gray-900"
+                        }`}
+                      >
+                        Acad. Year
+                        {academicYearFilter && <span className="absolute top-1 right-1.5 w-1.5 h-1.5 bg-orange-500 rounded-full"></span>}
+                      </button>
+                    </div>
+
+                    {/* Tab Content Panel */}
+                    <div className="space-y-1 max-h-56 overflow-y-auto custom-scrollbar pr-1">
+                      {/* Category 1: Status */}
+                      {activeCategoryTab === "status" && (
+                        <div className="space-y-1">
+                          {[
+                            { label: "All Statuses", value: "" },
+                            { label: "Pending Review", value: "pending" },
+                            { label: "Approved", value: "approved" },
+                            { label: "Rejected", value: "rejected" },
+                          ].map((opt) => (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => setStatusFilter(opt.value)}
+                              className={`w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition-colors flex items-center justify-between cursor-pointer ${
+                                statusFilter === opt.value
+                                  ? "bg-orange-50 text-orange-700 font-semibold"
+                                  : "text-gray-700 hover:bg-gray-50"
+                              }`}
+                            >
+                              <span>{opt.label}</span>
+                              {statusFilter === opt.value && <Check className="w-3.5 h-3.5 text-orange-600" />}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Category 2: Class */}
+                      {activeCategoryTab === "class" && (
+                        <div className="space-y-1">
+                          <button
+                            type="button"
+                            onClick={() => setClassFilter("")}
+                            className={`w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition-colors flex items-center justify-between cursor-pointer ${
+                              classFilter === ""
+                                ? "bg-orange-50 text-orange-700 font-semibold"
+                                : "text-gray-700 hover:bg-gray-50"
+                            }`}
+                          >
+                            <span>All Classes</span>
+                            {classFilter === "" && <Check className="w-3.5 h-3.5 text-orange-600" />}
+                          </button>
+                          {availableClasses.map((cls) => (
+                            <button
+                              key={cls}
+                              type="button"
+                              onClick={() => setClassFilter(cls)}
+                              className={`w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition-colors flex items-center justify-between cursor-pointer ${
+                                classFilter === cls
+                                  ? "bg-orange-50 text-orange-700 font-semibold"
+                                  : "text-gray-700 hover:bg-gray-50"
+                              }`}
+                            >
+                              <span>{cls}</span>
+                              {classFilter === cls && <Check className="w-3.5 h-3.5 text-orange-600" />}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Category 3: Academic Year */}
+                      {activeCategoryTab === "academicYear" && (
+                        <div className="space-y-1">
+                          <button
+                            type="button"
+                            onClick={() => setAcademicYearFilter("")}
+                            className={`w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition-colors flex items-center justify-between cursor-pointer ${
+                              academicYearFilter === ""
+                                ? "bg-orange-50 text-orange-700 font-semibold"
+                                : "text-gray-700 hover:bg-gray-50"
+                            }`}
+                          >
+                            <span>All Academic Years</span>
+                            {academicYearFilter === "" && <Check className="w-3.5 h-3.5 text-orange-600" />}
+                          </button>
+                          {availableAcademicYears.map((year) => (
+                            <button
+                              key={year}
+                              type="button"
+                              onClick={() => setAcademicYearFilter(year)}
+                              className={`w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition-colors flex items-center justify-between cursor-pointer ${
+                                academicYearFilter === year
+                                  ? "bg-orange-50 text-orange-700 font-semibold"
+                                  : "text-gray-700 hover:bg-gray-50"
+                              }`}
+                            >
+                              <span>{year}</span>
+                              {academicYearFilter === year && <Check className="w-3.5 h-3.5 text-orange-600" />}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
+
+          {/* ROW 2: Active Filter Removable Chips Bar */}
+          {activeFilterCount > 0 && (
+            <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Active Filters:</span>
+              {statusFilter && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium rounded-lg shadow-sm">
+                  Status: <span className="capitalize font-semibold">{statusFilter}</span>
+                  <button type="button" onClick={() => setStatusFilter("")} className="hover:text-amber-950 transition-colors cursor-pointer">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </span>
+              )}
+              {classFilter && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 border border-blue-200 text-blue-800 text-xs font-medium rounded-lg shadow-sm">
+                  Class: <span className="font-semibold">{classFilter}</span>
+                  <button type="button" onClick={() => setClassFilter("")} className="hover:text-blue-950 transition-colors cursor-pointer">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </span>
+              )}
+              {academicYearFilter && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-50 border border-purple-200 text-purple-800 text-xs font-medium rounded-lg shadow-sm">
+                  Academic Year: <span className="font-semibold">{academicYearFilter}</span>
+                  <button type="button" onClick={() => setAcademicYearFilter("")} className="hover:text-purple-950 transition-colors cursor-pointer">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setStatusFilter("");
+                  setClassFilter("");
+                  setAcademicYearFilter("");
+                }}
+                className="text-xs text-red-600 hover:text-red-700 font-semibold underline ml-1 transition-colors cursor-pointer"
+              >
+                Clear All
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Table Area */}
@@ -381,6 +665,10 @@ export default function AdmissionManagement() {
                 <p className="text-base font-semibold text-gray-900">{editingAdmission.preferredClass ? String(editingAdmission.preferredClass) : "-"}</p>
               </div>
               <div>
+                <p className="text-sm text-gray-600 font-medium">Academic Year</p>
+                <p className="text-base font-semibold text-gray-900">{editingAdmission.academicYear ? String(editingAdmission.academicYear) : "-"}</p>
+              </div>
+              <div>
                 <p className="text-sm text-gray-600 font-medium">Gender</p>
                 <p className="text-base font-semibold text-gray-900">{editingAdmission.gender ? String(editingAdmission.gender) : "-"}</p>
               </div>
@@ -410,6 +698,14 @@ export default function AdmissionManagement() {
           </div>
         )}
       </Modal>
+
+      {/* Add New Admission Modal */}
+      <AddAdmissionModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSuccess={fetchAdmissions}
+        availableClasses={availableClasses}
+      />
     </div>
   );
 }

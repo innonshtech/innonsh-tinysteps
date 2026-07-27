@@ -24,6 +24,7 @@ export async function GET(req: Request) {
   const mappedAdmissions = (admissions || []).map(a => ({
     ...a,
     _id: a.id,
+    academicYear: a.academic_year,
     appliedByParentId: a.applied_by_parent_id,
     createdAt: a.created_at
   }));

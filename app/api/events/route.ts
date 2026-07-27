@@ -17,13 +17,13 @@ export async function GET(req: Request) {
     const status = url.searchParams.get("status") || "published";
 
     const skip = (page - 1) * limit;
-    
+
     const eventRepo = new EventRepository();
     const query = eventRepo.getClient().from('events')
-        .select('*, classIds:event_class_targets(class:classes(id, name, section))', { count: 'exact' })
-        .eq('status', status)
-        .order('start_date', { ascending: false })
-        .range(skip, skip + limit - 1);
+      .select('*, classIds:event_class_targets(class:classes(id, name, section))', { count: 'exact' })
+      .eq('status', status)
+      .order('start_date', { ascending: false })
+      .range(skip, skip + limit - 1);
 
     const { data: rawEvents, count, error } = await query;
     if (error) throw error;
@@ -47,13 +47,14 @@ export async function GET(req: Request) {
       fcmSent: e.fcm_sent,
       fcmSentAt: e.fcm_sent_at,
       fcmRecipientCount: e.fcm_recipient_count,
+      attachments: e.attachments ?? [],
       createdAt: e.created_at,
       updatedAt: e.updated_at,
-      classIds: e.classIds.map((c: any) => ({
-          _id: c.class?.id,
-          id: c.class?.id,
-          name: c.class?.name,
-          section: c.class?.section
+      classIds: (e.classIds || []).map((c: any) => ({
+        _id: c.class?.id,
+        id: c.class?.id,
+        name: c.class?.name,
+        section: c.class?.section
       }))
     }));
 
@@ -84,7 +85,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { title, description, eventType, startDate, endDate, location, image, targetAudience, classIds, status, notify } = body;
+    const { title, description, eventType, startDate, endDate, startTime, endTime, location, image, targetAudience, classIds, status, notify, attachments } = body;
 
     if (!title || !startDate) {
       return NextResponse.json(
@@ -100,6 +101,8 @@ export async function POST(req: Request) {
       event_type: eventType || 'notification',
       start_date: new Date(startDate).toISOString().split('T')[0],
       end_date: endDate ? new Date(endDate).toISOString().split('T')[0] : null,
+      start_time: startTime || null,
+      end_time: endTime || null,
       location,
       image,
       target_audience: targetAudience || 'all',
@@ -108,24 +111,27 @@ export async function POST(req: Request) {
     });
 
     if (classIds && Array.isArray(classIds) && classIds.length > 0) {
-        const inserts = classIds.map(cid => ({ event_id: createdEvent.id, class_id: cid }));
-        await eventRepo.getClient().from('event_class_targets').insert(inserts);
+      const inserts = classIds.map(cid => ({ event_id: createdEvent.id, class_id: cid }));
+      await eventRepo.getClient().from('event_class_targets').insert(inserts);
     }
 
     const event = {
-        _id: createdEvent.id,
-        id: createdEvent.id,
-        title: createdEvent.title,
-        description: createdEvent.description,
-        eventType: createdEvent.event_type,
-        startDate: createdEvent.start_date,
-        endDate: createdEvent.end_date,
-        location: createdEvent.location,
-        image: createdEvent.image,
-        targetAudience: createdEvent.target_audience,
-        status: createdEvent.status,
-        notify: createdEvent.notify,
-        classIds: classIds || []
+      _id: createdEvent.id,
+      id: createdEvent.id,
+      title: createdEvent.title,
+      description: createdEvent.description,
+      eventType: createdEvent.event_type,
+      startDate: createdEvent.start_date,
+      endDate: createdEvent.end_date,
+      startTime: createdEvent.start_time,
+      endTime: createdEvent.end_time,
+      location: createdEvent.location,
+      image: createdEvent.image,
+      targetAudience: createdEvent.target_audience,
+      status: createdEvent.status,
+      notify: createdEvent.notify,
+      attachments: attachments ?? [],
+      classIds: classIds || []
     };
 
     // Log activity only for admin
@@ -189,7 +195,7 @@ export async function PUT(req: Request) {
     }
 
     const body = await req.json();
-    const { id, classIds, ...updateDataRaw } = body;
+    const { id, classIds, attachments, ...updateDataRaw } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -197,30 +203,28 @@ export async function PUT(req: Request) {
         { status: 400 }
       );
     }
-    
+
     const eventRepo = new EventRepository();
 
-    // ── FCM Publish Hook ────────────────────────────────────────────────────
     // Fetch the event BEFORE update to detect status transition
     const existingEvent = await eventRepo.findById(id);
     const wasPublished = existingEvent?.status === "published";
     const isBeingPublished = updateDataRaw.status === "published";
-    // ────────────────────────────────────────────────────────────────────────
-    
-    const updatePayload: any = { ...updateDataRaw };
-    delete updatePayload._id;
-    if (updatePayload.startDate) updatePayload.start_date = new Date(updatePayload.startDate).toISOString().split('T')[0];
-    if (updatePayload.endDate) updatePayload.end_date = new Date(updatePayload.endDate).toISOString().split('T')[0];
-    if (updatePayload.eventType) updatePayload.event_type = updatePayload.eventType;
-    if (updatePayload.targetAudience) updatePayload.target_audience = updatePayload.targetAudience;
-    if (updatePayload.notificationType) updatePayload.notification_type = updatePayload.notificationType;
-    delete updatePayload.startDate;
-    delete updatePayload.endDate;
-    delete updatePayload.eventType;
-    delete updatePayload.targetAudience;
-    delete updatePayload.notificationType;
-    delete updatePayload.createdAt;
-    delete updatePayload.updatedAt;
+
+    const updatePayload: any = {};
+    if (updateDataRaw.title !== undefined) updatePayload.title = updateDataRaw.title;
+    if (updateDataRaw.description !== undefined) updatePayload.description = updateDataRaw.description;
+    if (updateDataRaw.location !== undefined) updatePayload.location = updateDataRaw.location;
+    if (updateDataRaw.image !== undefined) updatePayload.image = updateDataRaw.image;
+    if (updateDataRaw.status !== undefined) updatePayload.status = updateDataRaw.status;
+    if (updateDataRaw.notify !== undefined) updatePayload.notify = updateDataRaw.notify;
+    if (updateDataRaw.startDate) updatePayload.start_date = new Date(updateDataRaw.startDate).toISOString().split('T')[0];
+    if (updateDataRaw.endDate !== undefined) updatePayload.end_date = updateDataRaw.endDate ? new Date(updateDataRaw.endDate).toISOString().split('T')[0] : null;
+    if (updateDataRaw.startTime !== undefined) updatePayload.start_time = updateDataRaw.startTime;
+    if (updateDataRaw.endTime !== undefined) updatePayload.end_time = updateDataRaw.endTime;
+    if (updateDataRaw.eventType) updatePayload.event_type = updateDataRaw.eventType;
+    if (updateDataRaw.targetAudience) updatePayload.target_audience = updateDataRaw.targetAudience;
+    if (updateDataRaw.notificationType) updatePayload.notification_type = updateDataRaw.notificationType;
 
     const updatedRawEvent = await eventRepo.update(id, updatePayload);
 
@@ -230,30 +234,33 @@ export async function PUT(req: Request) {
         { status: 404 }
       );
     }
-    
+
     if (classIds && Array.isArray(classIds)) {
-        await eventRepo.getClient().from('event_class_targets').delete().eq('event_id', id);
-        if (classIds.length > 0) {
-            const inserts = classIds.map((cid: any) => ({ event_id: id, class_id: cid._id || cid.id || cid }));
-            await eventRepo.getClient().from('event_class_targets').insert(inserts);
-        }
+      await eventRepo.getClient().from('event_class_targets').delete().eq('event_id', id);
+      if (classIds.length > 0) {
+        const inserts = classIds.map((cid: any) => ({ event_id: id, class_id: cid._id || cid.id || cid }));
+        await eventRepo.getClient().from('event_class_targets').insert(inserts);
+      }
     }
-    
+
     const event = {
-        _id: updatedRawEvent.id,
-        id: updatedRawEvent.id,
-        title: updatedRawEvent.title,
-        description: updatedRawEvent.description,
-        eventType: updatedRawEvent.event_type,
-        startDate: updatedRawEvent.start_date,
-        endDate: updatedRawEvent.end_date,
-        location: updatedRawEvent.location,
-        image: updatedRawEvent.image,
-        targetAudience: updatedRawEvent.target_audience,
-        status: updatedRawEvent.status,
-        notify: updatedRawEvent.notify,
-        notificationType: updatedRawEvent.notification_type,
-        classIds: classIds || []
+      _id: updatedRawEvent.id,
+      id: updatedRawEvent.id,
+      title: updatedRawEvent.title,
+      description: updatedRawEvent.description,
+      eventType: updatedRawEvent.event_type,
+      startDate: updatedRawEvent.start_date,
+      endDate: updatedRawEvent.end_date,
+      startTime: updatedRawEvent.start_time,
+      endTime: updatedRawEvent.end_time,
+      location: updatedRawEvent.location,
+      image: updatedRawEvent.image,
+      targetAudience: updatedRawEvent.target_audience,
+      status: updatedRawEvent.status,
+      notify: updatedRawEvent.notify,
+      notificationType: updatedRawEvent.notification_type,
+      attachments: attachments ?? [],
+      classIds: classIds || []
     };
 
     // ── Trigger FCM push asynchronously (non-blocking) ──────────────────────
@@ -279,10 +286,10 @@ export async function PUT(req: Request) {
     // ────────────────────────────────────────────────────────────────────────
 
     return NextResponse.json({ success: true, event });
-  } catch (error) {
+  } catch (error: any) {
     console.error("[PUT /api/events]", error);
     return NextResponse.json(
-      { success: false, error: "Failed to update event" },
+      { success: false, error: error.message || "Failed to update event" },
       { status: 500 }
     );
   }

@@ -24,6 +24,9 @@ import {
   Download,
   Upload,
   Filter,
+  Info,
+  AlertCircle,
+  Lock,
 } from "lucide-react";
 
 interface Teacher {
@@ -67,9 +70,12 @@ export default function ClassManagement() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletingClass, setDeletingClass] = useState<Class | null>(null);
 
+  const [teacherSearch, setTeacherSearch] = useState("");
+  const [studentSearch, setStudentSearch] = useState("");
+
   const [formData, setFormData] = useState({
     name: "",
-    section: "A",
+    section: "",
     roomNumber: "",
     teachers: [] as string[],
     students: [] as string[],
@@ -84,7 +90,7 @@ export default function ClassManagement() {
   const fetchClasses = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/classes");
+      const res = await fetch("/api/classes?limit=1000");
       const data = await res.json();
       setClasses(data.classes || []);
     } catch (error) {
@@ -114,6 +120,19 @@ export default function ClassManagement() {
     }
   };
 
+  const normalizeClassName = (raw: string): string => {
+    if (!raw) return "";
+    return String(raw).trim().toLowerCase().replace(/\s+/g, " ");
+  };
+
+  const normalizeSection = (raw: string): string => {
+    if (!raw) return "";
+    let clean = String(raw).trim().toUpperCase();
+    clean = clean.replace(/^(SECTION|SEC)\s+/i, "");
+    const match = clean.match(/[A-Z]/);
+    return match ? match[0] : clean;
+  };
+
   // Students eligible for selection:
   // - When creating: only unassigned students (classId or class_id is null/undefined)
   // - When editing: unassigned students + students already in THIS class being edited
@@ -124,14 +143,143 @@ export default function ClassManagement() {
     return false;
   });
 
+  const currentEditingId = editingClass ? (editingClass._id || (editingClass as any).id) : null;
+
+  const SUPPORTED_CLASSES = ["Play Group", "Nursery", "KG1", "KG2"];
+
+  const classOptions = React.useMemo(() => {
+    const existingNames = new Set<string>();
+    classes.forEach((c) => {
+      if (c.name?.trim()) existingNames.add(c.name.trim());
+    });
+
+    const list = [...SUPPORTED_CLASSES];
+    existingNames.forEach((name) => {
+      if (!list.some((item) => item.toLowerCase() === name.toLowerCase())) {
+        list.push(name);
+      }
+    });
+
+    const orderMap: Record<string, number> = {
+      "play group": 1,
+      "nursery": 2,
+      "kg1": 3,
+      "kg2": 4,
+      "class 1": 5,
+      "class 2": 6,
+      "class 3": 7,
+      "class 4": 8,
+      "class 5": 9,
+      "class 10": 14,
+    };
+
+    return list.sort((a, b) => {
+      const orderA = orderMap[a.toLowerCase()] ?? 99;
+      const orderB = orderMap[b.toLowerCase()] ?? 99;
+      if (orderA !== orderB) return orderA - orderB;
+      return a.localeCompare(b);
+    });
+  }, [classes]);
+
+  const assignedSections = React.useMemo(() => {
+    const cleanName = normalizeClassName(formData.name);
+    if (!cleanName) return [];
+
+    const set = new Set<string>();
+    classes.forEach((c) => {
+      const classId = c._id || (c as any).id;
+      // CRITICAL: Exclude current record being edited by record ID
+      if (currentEditingId && String(classId) === String(currentEditingId)) {
+        return;
+      }
+      const cName = normalizeClassName(c.name);
+      if (cName === cleanName && c.section) {
+        const normSec = normalizeSection(c.section);
+        if (normSec) {
+          set.add(normSec);
+        }
+      }
+    });
+
+    return Array.from(set);
+  }, [classes, formData.name, currentEditingId]);
+
+  const availableSections = React.useMemo(() => {
+    return ["A", "B", "C", "D"].filter((s) => !assignedSections.includes(s));
+  }, [assignedSections]);
+
+  const roomConflictOwner = React.useMemo(() => {
+    const cleanRoom = formData.roomNumber.trim().toLowerCase();
+    if (!cleanRoom) return null;
+
+    const found = classes.find((c) => {
+      const classId = c._id || (c as any).id;
+      // Exclude current record in edit mode
+      if (currentEditingId && String(classId) === String(currentEditingId)) {
+        return false;
+      }
+      return c.roomNumber?.trim().toLowerCase() === cleanRoom;
+    });
+
+    if (!found) return null;
+    return `${found.name} - Section ${found.section}`;
+  }, [classes, formData.roomNumber, currentEditingId]);
+
+  const filteredTeachers = React.useMemo(() => {
+    const q = teacherSearch.trim().toLowerCase();
+    if (!q) return teachers;
+    return teachers.filter(
+      (t) => t.name.toLowerCase().includes(q) || t.email.toLowerCase().includes(q)
+    );
+  }, [teachers, teacherSearch]);
+
+  const filteredSelectableStudents = React.useMemo(() => {
+    const q = studentSearch.trim().toLowerCase();
+    if (!q) return selectableStudents;
+    return selectableStudents.filter((s) => {
+      const fullName = `${s.firstName} ${s.lastName || ""}`.toLowerCase();
+      const idStr = String(s._id || (s as any).id || "").toLowerCase();
+      return fullName.includes(q) || idStr.includes(q);
+    });
+  }, [selectableStudents, studentSearch]);
+
+  useEffect(() => {
+    if (!modalOpen) return;
+    if (!formData.name.trim()) {
+      if (formData.section !== "") {
+        setFormData((prev) => ({ ...prev, section: "" }));
+      }
+      return;
+    }
+    if (assignedSections.includes(formData.section)) {
+      if (availableSections.length > 0) {
+        setFormData((prev) => ({ ...prev, section: availableSections[0] }));
+      } else {
+        setFormData((prev) => ({ ...prev, section: "" }));
+      }
+    } else if (!formData.section && availableSections.length > 0) {
+      setFormData((prev) => ({ ...prev, section: availableSections[0] }));
+    }
+  }, [assignedSections, availableSections, formData.name, formData.section, modalOpen]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleAddClass = async () => {
-    if (!formData.name) {
+    if (!formData.name.trim()) {
       showToast.error("Class name is required");
+      return;
+    }
+
+    if (!formData.section || assignedSections.includes(formData.section)) {
+      showToast.error("Selected section is invalid or already assigned");
+      return;
+    }
+
+    if (roomConflictOwner) {
+      showToast.error(`Room ${formData.roomNumber.trim()} is already assigned to ${roomConflictOwner}`);
       return;
     }
 
@@ -175,12 +323,40 @@ export default function ClassManagement() {
       });
 
       if (res.ok) {
+        const result = await res.json();
         showToast.success(`Class ${editingClass ? "updated" : "added"} successfully`);
+
+        if (!editingClass && result.class) {
+          const selectedTeacherObjs = teachers.filter((t) =>
+            (formData.teachers || []).includes(t._id || (t as any).id)
+          );
+          const selectedStudentObjs = students.filter((s) =>
+            (formData.students || []).includes(s._id || (s as any).id)
+          );
+          const newClassObj: Class = {
+            _id: result.class._id || result.class.id,
+            id: result.class.id || result.class._id,
+            name: result.class.name,
+            section: result.class.section,
+            roomNumber: result.class.roomNumber || "",
+            teachers: selectedTeacherObjs,
+            students: selectedStudentObjs,
+            createdAt: new Date().toISOString(),
+          };
+          setClasses((prev) => [newClassObj, ...prev]);
+        }
+
         setModalOpen(false);
         setEditingClass(null);
-        setFormData({ name: "", section: "A", roomNumber: "", teachers: [], students: [] });
-        fetchClasses();
-        fetchStudents();
+        setFormData({ name: "", section: "", roomNumber: "", teachers: [], students: [] });
+        setTeacherSearch("");
+        setStudentSearch("");
+        setSaving(false);
+
+        // Run background data synchronization without blocking the modal response
+        Promise.all([fetchClasses(), fetchStudents()]).catch((err) =>
+          console.error("[ClassManagement] Background sync error:", err)
+        );
       } else {
         const errorData = await res.json();
         console.error("[ClassManagement] Error response:", errorData);
@@ -203,6 +379,8 @@ export default function ClassManagement() {
       teachers: cls.teachers?.map((t) => t._id) || [],
       students: cls.students?.map((s) => s._id) || [],
     });
+    setTeacherSearch("");
+    setStudentSearch("");
     setModalOpen(true);
   };
 
@@ -213,16 +391,53 @@ export default function ClassManagement() {
 
   const confirmDelete = async () => {
     if (!deletingClass) return;
+    const deletedTargetId = deletingClass._id || (deletingClass as any).id;
+
     try {
-      const res = await fetch(`/api/classes/${deletingClass._id}`, { method: "DELETE" });
+      const res = await fetch(`/api/classes/${deletedTargetId}`, { method: "DELETE" });
       if (res.ok) {
+        // 1. Immediately show toast & close modal upon server DELETE confirmation
         showToast.success("Class deleted successfully");
         setShowDeleteModal(false);
         setDeletingClass(null);
-        fetchClasses();
-        fetchStudents();
+
+        // 2. Immediately update local classes state to remove deleted class from table & statistics
+        setClasses((prev) =>
+          prev.filter(
+            (c) =>
+              String(c._id) !== String(deletedTargetId) &&
+              String(c.id) !== String(deletedTargetId)
+          )
+        );
+
+        // 3. Immediately update local students state to unassign students from deleted class
+        setStudents((prev) =>
+          prev.map((s) => {
+            const sClassId = s.classId ?? (s as any).class_id;
+            if (sClassId && String(sClassId) === String(deletedTargetId)) {
+              return {
+                ...s,
+                classId: undefined,
+                class_id: undefined,
+                className: undefined,
+                section: undefined,
+                class: undefined,
+              };
+            }
+            return s;
+          })
+        );
+
+        // 4. Run background non-blocking sync in parallel without delaying UI responsiveness
+        Promise.all([fetchClasses(), fetchStudents()]).catch((err) =>
+          console.error("[ClassManagement] Background sync error after delete:", err)
+        );
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        showToast.error(errorData.error || "Failed to delete class");
       }
     } catch (error) {
+      console.error("[ClassManagement] Delete error:", error);
       showToast.error("Failed to delete class");
     }
   };
@@ -235,7 +450,7 @@ export default function ClassManagement() {
   );
 
   const totalStudents = classes.reduce((sum, cls) => sum + (cls.students?.length || 0), 0);
-  const totalTeachers = classes.reduce((sum, cls) => sum + (cls.teachers?.length || 0), 0);
+  const totalTeachers = teachers.length;
   const totalRooms = classes.filter((cls) => cls.roomNumber).length;
 
   const columns: Column[] = [
@@ -390,7 +605,9 @@ export default function ClassManagement() {
           <button type="button"
             onClick={() => {
               setEditingClass(null);
-              setFormData({ name: "", section: "A", roomNumber: "", teachers: [], students: [] });
+              setFormData({ name: "", section: "", roomNumber: "", teachers: [], students: [] });
+              setTeacherSearch("");
+              setStudentSearch("");
               setModalOpen(true);
             }}
             className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white rounded-lg font-medium transition-all"
@@ -459,13 +676,25 @@ export default function ClassManagement() {
             >
               Cancel
             </Button>
-            <Button type="button" onClick={handleAddClass} variant="primary" loading={saving}>
+            <Button
+              type="button"
+              onClick={handleAddClass}
+              variant="primary"
+              loading={saving}
+              disabled={
+                !formData.name.trim() ||
+                !formData.section ||
+                assignedSections.includes(formData.section) ||
+                assignedSections.length === 4 ||
+                Boolean(roomConflictOwner)
+              }
+            >
               {editingClass ? "Update" : "Add"} Class
             </Button>
           </>
         }
       >
-        <div className="space-y-5 mt-4">
+        <div className="space-y-5">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-orange-500 rounded-lg flex items-center justify-center">
               {editingClass ? (
@@ -479,144 +708,284 @@ export default function ClassManagement() {
             </h2>
           </div>
 
-          <Input
+          <Select
             label="Class Name *"
             name="name"
             value={formData.name}
             onChange={handleInputChange}
-            placeholder="e.g., Nursery, KG1, KG2"
             fullWidth
+            placeholder="Select Class"
+            options={classOptions.map((className) => ({
+              value: className,
+              label: className,
+            }))}
           />
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Section *</label>
             <div className="grid grid-cols-4 gap-3">
-              {["A", "B", "C", "D"].map((section) => (
-                <button
-                  key={section}
-                  type="button"
-                  onClick={() => setFormData((prev) => ({ ...prev, section }))}
-                  className={`px-4 py-3 rounded-lg border-2 transition-all font-medium ${formData.section === section
-                    ? "border-orange-500 bg-orange-50 text-orange-700"
-                    : "border-gray-200 bg-white text-gray-700 hover:border-orange-300"
+              {["A", "B", "C", "D"].map((section) => {
+                const isClassSelected = Boolean(formData.name.trim());
+                const isAssigned = isClassSelected && assignedSections.includes(section);
+                const isSelected = isClassSelected && formData.section === section;
+                const isEditCurrent =
+                  editingClass &&
+                  normalizeClassName(editingClass.name) === normalizeClassName(formData.name) &&
+                  normalizeSection(editingClass.section) === section;
+
+                return (
+                  <button
+                    key={section}
+                    type="button"
+                    disabled={!isClassSelected || isAssigned}
+                    onClick={() => {
+                      if (isClassSelected && !isAssigned) {
+                        setFormData((prev) => ({ ...prev, section }));
+                      }
+                    }}
+                    className={`px-2 py-2.5 rounded-lg border-2 transition-all text-center flex flex-col items-center justify-center min-h-[62px] w-full ${
+                      !isClassSelected
+                        ? "border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed opacity-60"
+                        : isAssigned
+                        ? "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed opacity-75"
+                        : isSelected
+                        ? "border-orange-500 bg-orange-50 text-orange-700 font-medium shadow-sm cursor-pointer"
+                        : "border-gray-200 bg-white text-gray-700 hover:border-orange-300 hover:bg-orange-50/30 cursor-pointer"
                     }`}
-                >
-                  {section}
-                </button>
-              ))}
+                  >
+                    <div className="flex items-center justify-center gap-1.5">
+                      <span className={`text-base font-bold leading-none ${isAssigned ? "line-through text-gray-400" : ""}`}>
+                        {section}
+                      </span>
+                      {isAssigned && <Lock className="w-3.5 h-3.5 text-gray-400 shrink-0" />}
+                    </div>
+                    <span
+                      className={`text-[10px] font-medium block mt-0.5 ${
+                        !isClassSelected
+                          ? "text-gray-400"
+                          : isAssigned
+                          ? "text-gray-400"
+                          : isSelected
+                          ? "text-orange-600 font-semibold"
+                          : "text-gray-400"
+                      }`}
+                    >
+                      {!isClassSelected
+                        ? "Inactive"
+                        : isAssigned
+                        ? "Assigned"
+                        : isSelected
+                        ? isEditCurrent
+                          ? "Current"
+                          : "Selected"
+                        : "Available"}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
+
+            {!formData.name.trim() ? (
+              <p className="mt-2 text-xs text-gray-400 italic">Select a class name above to view section availability.</p>
+            ) : (
+              assignedSections.length > 0 && (
+                <div className="mt-2.5 text-xs font-medium">
+                  {assignedSections.length === 4 ? (
+                    <div className="p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-600 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+                      <span>
+                        All sections for <strong>{formData.name.trim()}</strong> are already assigned.
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="p-2.5 rounded-lg bg-amber-50/80 border border-amber-200/60 text-amber-800 flex items-center gap-2">
+                      <Info className="w-4 h-4 text-amber-600 shrink-0" />
+                      <span>
+                        {assignedSections.length === 1
+                          ? `Section ${assignedSections[0]} is already assigned to `
+                          : `Sections ${[...assignedSections].sort().slice(0, -1).join(", ")} and ${[...assignedSections].sort().slice(-1)} are already assigned to `}
+                        <strong>{formData.name.trim()}</strong>.
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )
+            )}
           </div>
 
+          {/* Room Number */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Room Number</label>
             <div className="relative">
-              <DoorOpen className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <DoorOpen className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 name="roomNumber"
                 value={formData.roomNumber}
                 onChange={handleInputChange}
                 placeholder="e.g., 101, 102, A-Wing"
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all"
+                className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 transition-all ${
+                  roomConflictOwner
+                    ? "border-red-400 focus:ring-red-400 bg-red-50/30"
+                    : "border-gray-300 focus:ring-orange-400 focus:border-transparent"
+                }`}
               />
             </div>
+            {roomConflictOwner && (
+              <p className="mt-1.5 text-xs text-red-600 font-medium flex items-center gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                <span>
+                  Room <strong>{formData.roomNumber.trim()}</strong> is already assigned to {roomConflictOwner}.
+                </span>
+              </p>
+            )}
           </div>
 
           {/* Assign Teachers */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-              <GraduationCap className="w-4 h-4" />
-              Assign Teachers
-            </label>
-            <div className="border border-gray-300 rounded-lg max-h-40 overflow-y-auto">
-              {teachers.length === 0 ? (
-                <div className="p-3 text-sm text-gray-500 text-center">No teachers available</div>
-              ) : (
-                teachers.map((teacher) => (
-                  <label
-                    key={teacher._id}
-                    className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={formData.teachers.includes(teacher._id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setFormData((prev) => ({
-                            ...prev,
-                            teachers: [...prev.teachers, teacher._id],
-                          }));
-                        } else {
-                          setFormData((prev) => ({
-                            ...prev,
-                            teachers: prev.teachers.filter((id) => id !== teacher._id),
-                          }));
-                        }
-                      }}
-                      className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-400"
-                    />
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-gray-800">{teacher.name}</div>
-                      <div className="text-xs text-gray-500">{teacher.email}</div>
-                    </div>
-                  </label>
-                ))
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                <GraduationCap className="w-4 h-4 text-purple-600" />
+                Assign Teachers
+              </label>
+              {formData.teachers.length > 0 && (
+                <span className="text-xs font-semibold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
+                  {formData.teachers.length} teacher{formData.teachers.length !== 1 ? "s" : ""} selected
+                </span>
               )}
             </div>
-            {formData.teachers.length > 0 && (
-              <div className="mt-2 text-sm text-gray-600">
-                {formData.teachers.length} teacher{formData.teachers.length !== 1 ? "s" : ""} selected
+
+            <div className="border border-gray-300 rounded-lg overflow-hidden bg-white">
+              <div className="p-2 border-b border-gray-200 bg-gray-50/50">
+                <div className="relative">
+                  <Search className="w-4 h-4 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Search teachers by name or email..."
+                    value={teacherSearch}
+                    onChange={(e) => setTeacherSearch(e.target.value)}
+                    className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-400 bg-white"
+                  />
+                </div>
               </div>
-            )}
+
+              <div className="max-h-40 overflow-y-auto divide-y divide-gray-100">
+                {filteredTeachers.length === 0 ? (
+                  <div className="p-4 text-xs text-gray-500 text-center">
+                    {teachers.length === 0 ? "No teachers available" : "No matching teachers found"}
+                  </div>
+                ) : (
+                  filteredTeachers.map((teacher) => {
+                    const isChecked = formData.teachers.includes(teacher._id);
+                    return (
+                      <label
+                        key={teacher._id}
+                        className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors ${
+                          isChecked ? "bg-purple-50/60" : "hover:bg-gray-50"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFormData((prev) => ({
+                                ...prev,
+                                teachers: [...prev.teachers, teacher._id],
+                              }));
+                            } else {
+                              setFormData((prev) => ({
+                                ...prev,
+                                teachers: prev.teachers.filter((id) => id !== teacher._id),
+                              }));
+                            }
+                          }}
+                          className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-400"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-gray-800 truncate">{teacher.name}</div>
+                          <div className="text-xs text-gray-500 truncate">{teacher.email}</div>
+                        </div>
+                      </label>
+                    );
+                  })
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Assign Students */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              Assign Students
-            </label>
-            <div className="border border-gray-300 rounded-lg max-h-40 overflow-y-auto">
-              {selectableStudents.length === 0 ? (
-                <div className="p-3 text-sm text-gray-500 text-center">No students available</div>
-              ) : (
-                selectableStudents.map((student) => (
-                  <label
-                    key={student._id}
-                    className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={formData.students.includes(student._id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setFormData((prev) => ({
-                            ...prev,
-                            students: [...prev.students, student._id],
-                          }));
-                        } else {
-                          setFormData((prev) => ({
-                            ...prev,
-                            students: prev.students.filter((id) => id !== student._id),
-                          }));
-                        }
-                      }}
-                      className="w-4 h-4 text-pink-600 rounded focus:ring-2 focus:ring-pink-400"
-                    />
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-gray-800">
-                        {student.firstName} {student.lastName || ""}
-                      </div>
-                    </div>
-                  </label>
-                ))
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                <Users className="w-4 h-4 text-pink-600" />
+                Assign Students
+              </label>
+              {formData.students.length > 0 && (
+                <span className="text-xs font-semibold text-pink-700 bg-pink-100 px-2 py-0.5 rounded-full">
+                  {formData.students.length} student{formData.students.length !== 1 ? "s" : ""} selected
+                </span>
               )}
             </div>
-            {formData.students.length > 0 && (
-              <div className="mt-2 text-sm text-gray-600">
-                {formData.students.length} student{formData.students.length !== 1 ? "s" : ""} selected
+
+            <div className="border border-gray-300 rounded-lg overflow-hidden bg-white">
+              <div className="p-2 border-b border-gray-200 bg-gray-50/50">
+                <div className="relative">
+                  <Search className="w-4 h-4 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Search eligible students..."
+                    value={studentSearch}
+                    onChange={(e) => setStudentSearch(e.target.value)}
+                    className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-pink-400 bg-white"
+                  />
+                </div>
               </div>
-            )}
+
+              <div className="max-h-40 overflow-y-auto divide-y divide-gray-100">
+                {filteredSelectableStudents.length === 0 ? (
+                  <div className="p-4 text-xs text-gray-500 text-center">
+                    {selectableStudents.length === 0 ? "No eligible students available" : "No matching students found"}
+                  </div>
+                ) : (
+                  filteredSelectableStudents.map((student) => {
+                    const isChecked = formData.students.includes(student._id);
+                    return (
+                      <label
+                        key={student._id}
+                        className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors ${
+                          isChecked ? "bg-pink-50/60" : "hover:bg-gray-50"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFormData((prev) => ({
+                                ...prev,
+                                students: [...prev.students, student._id],
+                              }));
+                            } else {
+                              setFormData((prev) => ({
+                                ...prev,
+                                students: prev.students.filter((id) => id !== student._id),
+                              }));
+                            }
+                          }}
+                          className="w-4 h-4 text-pink-600 rounded focus:ring-2 focus:ring-pink-400"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-gray-800 truncate">
+                            {student.firstName} {student.lastName || ""}
+                          </div>
+                        </div>
+                      </label>
+                    );
+                  })
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </Modal>

@@ -100,6 +100,11 @@ export default function EventManagement() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletingEvent, setDeletingEvent] = useState<Event | null>(null);
 
+  // --- Image Upload States ---
+  const [imageMode, setImageMode] = useState<"upload" | "url">("upload");
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+
   const [formData, setFormData] = useState<{
     title: string;
     description: string;
@@ -186,12 +191,12 @@ export default function EventManagement() {
   const handleAddAttachment = () => {
     setFormData((prev) => ({
       ...prev,
-      attachments: [...prev.attachments, { name: "", url: "" }],
+      attachments: [...(prev.attachments ?? []), { name: "", url: "" }],
     }));
   };
 
   const handleAttachmentChange = (index: number, field: keyof Attachment, value: string) => {
-    const updatedAttachments = [...formData.attachments];
+    const updatedAttachments = [...(formData.attachments ?? [])];
     updatedAttachments[index] = { ...updatedAttachments[index], [field]: value };
     setFormData((prev) => ({ ...prev, attachments: updatedAttachments }));
   };
@@ -199,8 +204,51 @@ export default function EventManagement() {
   const handleRemoveAttachment = (index: number) => {
     setFormData((prev) => ({
       ...prev,
-      attachments: prev.attachments.filter((_, i) => i !== index),
+      attachments: (prev.attachments ?? []).filter((_, i) => i !== index),
     }));
+  };
+
+  const handleImageFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
+    if (!validTypes.includes(file.type.toLowerCase())) {
+      showToast.error("Only JPG, PNG, or WEBP image files are allowed");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showToast.error("Image file size must be less than 5MB");
+      return;
+    }
+
+    setIsUploadingImage(true);
+    try {
+      const uploadFormData = new FormData();
+      uploadFormData.append("file", file);
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: uploadFormData,
+      });
+
+      const data = await res.json();
+      if (data.success && data.url) {
+        setFormData((prev) => ({ ...prev, image: data.url }));
+        showToast.success("Event image uploaded successfully");
+      } else {
+        showToast.error(data.error || "Failed to upload image");
+      }
+    } catch (error) {
+      console.error("Image upload error:", error);
+      showToast.error("Failed to upload event image");
+    } finally {
+      setIsUploadingImage(false);
+      if (e.target) e.target.value = "";
+    }
   };
 
   const handleSaveEvent = async () => {
@@ -255,6 +303,8 @@ export default function EventManagement() {
       notify: true,
       notificationType: "all",
     });
+    setImageMode("upload");
+    setIsUploadingImage(false);
   };
 
   const handleEditEvent = (event: Event) => {
@@ -270,12 +320,17 @@ export default function EventManagement() {
       location: event.location || "",
       image: event.image || "",
       targetAudience: event.targetAudience,
-      classIds: event.classIds.map((c) => c._id),
-      attachments: event.attachments,
+      classIds: (event.classIds || []).map((c: any) => c._id || c.id || c),
+      attachments: event.attachments ?? [],
       status: event.status,
       notify: event.notify,
       notificationType: event.notificationType,
     });
+    if (event.image && (event.image.startsWith("http://") || event.image.startsWith("https://")) && !event.image.includes("supabase")) {
+      setImageMode("url");
+    } else {
+      setImageMode("upload");
+    }
     setModalOpen(true);
   };
 
@@ -334,13 +389,26 @@ export default function EventManagement() {
       render: (value: unknown, row: Record<string, unknown>) => {
         const event = row as Event;
         return (
-          <div>
-            <div className="font-semibold text-gray-800">{String(value)}</div>
-            <div className="flex items-center gap-2 mt-1">
-              <Badge variant="primary" size="sm">
-                {EVENT_TYPES.find((t) => t.value === event.eventType)?.label}
-              </Badge>
-              {event.notify && <Bell className="w-3 h-3 text-amber-500" />}
+          <div className="flex items-center gap-3">
+            {event.image ? (
+              <img
+                src={event.image}
+                alt={event.title}
+                className="w-10 h-10 object-cover rounded-lg border border-gray-200 flex-shrink-0"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-lg bg-yellow-50 border border-yellow-200 flex items-center justify-center text-yellow-600 flex-shrink-0">
+                <PartyPopper className="w-5 h-5" />
+              </div>
+            )}
+            <div>
+              <div className="font-semibold text-gray-800">{String(value)}</div>
+              <div className="flex items-center gap-2 mt-1">
+                <Badge variant="primary" size="sm">
+                  {EVENT_TYPES.find((t) => t.value === event.eventType)?.label}
+                </Badge>
+                {event.notify && <Bell className="w-3 h-3 text-amber-500" />}
+              </div>
             </div>
           </div>
         );
@@ -684,14 +752,143 @@ export default function EventManagement() {
                 fullWidth
               />
 
-              <Input
-                label="Image URL"
-                name="image"
-                value={formData.image}
-                onChange={handleInputChange}
-                placeholder="https://example.com/image.jpg"
-                fullWidth
-              />
+              {/* Event Image Upload / URL Selector */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4 text-gray-500" />
+                  Event Banner Image (Optional)
+                </label>
+
+                {/* Mode Selector Tabs */}
+                <div className="flex gap-2 mb-3">
+                  <button
+                    type="button"
+                    onClick={() => setImageMode("upload")}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                      imageMode === "upload"
+                        ? "bg-yellow-500 text-white shadow-sm"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    Upload from Computer
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImageMode("url")}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                      imageMode === "url"
+                        ? "bg-yellow-500 text-white shadow-sm"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    <Paperclip className="w-3.5 h-3.5" />
+                    Image URL
+                  </button>
+                </div>
+
+                {imageMode === "upload" ? (
+                  <div className="space-y-3">
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleImageFileUpload}
+                      accept="image/jpeg,image/png,image/webp,image/jpg"
+                      className="hidden"
+                    />
+
+                    {isUploadingImage ? (
+                      <div className="p-6 border-2 border-dashed border-yellow-300 bg-yellow-50 rounded-xl flex flex-col items-center justify-center text-center gap-2">
+                        <div className="w-6 h-6 border-2 border-yellow-600 border-t-transparent rounded-full animate-spin"></div>
+                        <p className="text-sm font-medium text-yellow-800">Uploading image to storage...</p>
+                      </div>
+                    ) : formData.image ? (
+                      <div className="p-3 border border-gray-200 rounded-xl bg-gray-50 flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3 overflow-hidden">
+                          <img
+                            src={formData.image}
+                            alt="Event preview"
+                            className="w-16 h-16 object-cover rounded-lg border border-gray-200 flex-shrink-0"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-gray-800 truncate">{formData.image.split("/").pop() || "Uploaded Image"}</p>
+                            <p className="text-[11px] text-gray-500 truncate max-w-[240px]">{formData.image}</p>
+                            <span className="inline-block mt-1 px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-medium rounded-full">Stored</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="px-2.5 py-1.5 bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 text-xs font-medium rounded-lg transition-all"
+                          >
+                            Change
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormData((prev) => ({ ...prev, image: "" }))}
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                            title="Remove image"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        onClick={() => fileInputRef.current?.click()}
+                        className="p-6 border-2 border-dashed border-gray-300 hover:border-yellow-500 bg-gray-50 hover:bg-yellow-50/50 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all group"
+                      >
+                        <div className="p-3 bg-white border border-gray-200 rounded-full text-gray-500 group-hover:text-yellow-600 group-hover:border-yellow-300 transition-all mb-2">
+                          <Upload className="w-5 h-5" />
+                        </div>
+                        <p className="text-sm font-semibold text-gray-700 group-hover:text-yellow-700">Click to upload an image from your computer</p>
+                        <p className="text-xs text-gray-400 mt-1">Supports JPG, PNG, WEBP (Max 5MB)</p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <Input
+                      label="Image URL"
+                      name="image"
+                      value={formData.image}
+                      onChange={handleInputChange}
+                      placeholder="https://example.com/image.jpg"
+                      fullWidth
+                    />
+                    {formData.image && (
+                      <div className="p-3 border border-gray-200 rounded-xl bg-gray-50 flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3 overflow-hidden">
+                          <img
+                            src={formData.image}
+                            alt="Event preview"
+                            className="w-16 h-16 object-cover rounded-lg border border-gray-200 flex-shrink-0"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-gray-800 truncate">URL Image Preview</p>
+                            <p className="text-[11px] text-gray-500 truncate max-w-[240px]">{formData.image}</p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setFormData((prev) => ({ ...prev, image: "" }))}
+                          className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                          title="Clear URL"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -730,7 +927,7 @@ export default function EventManagement() {
               Attachments (Optional)
             </label>
             <div className="space-y-3">
-              {formData.attachments.map((attachment, idx) => (
+              {(formData.attachments ?? []).map((attachment, idx) => (
                 <div key={idx} className="flex gap-2">
                   <input
                     type="text"
