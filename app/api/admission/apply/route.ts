@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { AdmissionApplyZ } from "@/lib/validations/admissionSchema";
 import { verifyToken } from "@/lib/auth";
 import { AdmissionRepository } from "@/repositories/admission.repository";
+import { supabaseAdmin } from "@/lib/supabase";
 
 export async function POST(req: Request) {
   // parent must be logged in (or admin can create on behalf)
@@ -12,6 +13,17 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const parsed = AdmissionApplyZ.parse(body);
+
+    // Fetch active academic year from school_settings as source of truth
+    let activeAcademicYear = parsed.academicYear || null;
+    try {
+      const { data: settings } = await supabaseAdmin.from('school_settings').select('academic_year').limit(1).maybeSingle();
+      if (settings?.academic_year) {
+        activeAcademicYear = settings.academic_year;
+      }
+    } catch (e) {
+      console.warn("Could not fetch school_settings academic_year, falling back safely:", e);
+    }
 
     const repo = new AdmissionRepository();
     const createdRaw = await repo.create({
@@ -56,6 +68,7 @@ export async function POST(req: Request) {
       dob: createdRaw.dob,
       gender: createdRaw.gender,
       preferredClass: createdRaw.preferred_class,
+      academicYear: createdRaw.academic_year,
       previousSchool: createdRaw.previous_school,
       status: createdRaw.status,
       appliedByParentId: createdRaw.applied_by_parent_id,

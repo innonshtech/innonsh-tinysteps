@@ -18,7 +18,7 @@ export default function Input({
   ...props
 }: InputProps) {
   return (
-    <div className={`${fullWidth ? "w-full" : ""}`}>
+    <div className={`${fullWidth ? "w-full min-w-0" : ""}`}>
       {label && <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>}
       <div className="relative">
         {icon && <span className="absolute left-3 top-2.5 text-gray-500">{icon}</span>}

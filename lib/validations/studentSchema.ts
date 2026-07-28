@@ -14,8 +14,8 @@ export const StudentCreateZ = z.object({
   password: z.string().min(6, "Password must be at least 6 characters").optional(),
   dob: z.string().optional(), // ISO string
   gender: z.enum(["male", "female", "other"]).optional(),
-  classId: z.string().optional(),
-  section: z.string().optional(),
+  classId: z.string().nullable().optional(),
+  section: z.string().nullable().optional(),
   admissionNo: z.string().optional(),
   admissionDate: z.string().optional(),
   parents: z.array(ParentZ).optional(),

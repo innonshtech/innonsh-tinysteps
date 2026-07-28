@@ -252,6 +252,7 @@ CREATE TABLE IF NOT EXISTS admissions (
     dob DATE,
     gender VARCHAR(20),
     preferred_class VARCHAR(100),
+    academic_year VARCHAR(50),
     applied_by_parent_id UUID REFERENCES users(id) ON DELETE SET NULL,
     previous_school VARCHAR(255),
     status VARCHAR(50) DEFAULT 'submitted',

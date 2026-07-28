@@ -29,6 +29,7 @@ export async function GET(
       dob: rawAdmission.dob,
       gender: rawAdmission.gender,
       preferredClass: rawAdmission.preferred_class,
+      academicYear: rawAdmission.academic_year,
       previousSchool: rawAdmission.previous_school,
       status: rawAdmission.status,
       appliedByParentId: rawAdmission.applied_by_parent_id,
@@ -120,6 +121,7 @@ export async function PUT(
     if (updatePayload.childLastName !== undefined) updatePayload.child_last_name = updatePayload.childLastName;
     if (updatePayload.dob !== undefined) updatePayload.dob = updatePayload.dob ? new Date(updatePayload.dob).toISOString().split('T')[0] : null;
     if (updatePayload.preferredClass !== undefined) updatePayload.preferred_class = updatePayload.preferredClass;
+    if (updatePayload.academicYear !== undefined) updatePayload.academic_year = updatePayload.academicYear;
     if (updatePayload.previousSchool !== undefined) updatePayload.previous_school = updatePayload.previousSchool;
     if (updatePayload.appliedByParentId !== undefined) updatePayload.applied_by_parent_id = updatePayload.appliedByParentId;
     if (updatePayload.admissionFeePaid !== undefined) updatePayload.admission_fee_paid = updatePayload.admissionFeePaid;
@@ -128,6 +130,7 @@ export async function PUT(
     delete updatePayload.childFirstName;
     delete updatePayload.childLastName;
     delete updatePayload.preferredClass;
+    delete updatePayload.academicYear;
     delete updatePayload.previousSchool;
     delete updatePayload.appliedByParentId;
     delete updatePayload.admissionFeePaid;

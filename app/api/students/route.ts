@@ -1,8 +1,10 @@
 // app/api/students/route.ts
 import { NextResponse } from "next/server";
 import { StudentRepository } from "@/repositories/student.repository";
+import { ClassRepository } from "@/repositories/class.repository";
 import { LogActivityRepository } from "@/repositories/logactivity.repository";
 import { StudentCreateZ } from "@/lib/validations/studentSchema";
+import { validateParentLoginEmail } from "@/lib/validations/emailValidation";
 import { verifyToken } from "@/lib/auth";
 import bcryptjs from "bcryptjs";
 
@@ -38,21 +40,50 @@ export async function GET(req: Request) {
     sort: { field: 'created_at', ascending: false } 
   });
 
-  const mappedStudents = students.map((s: any) => ({
-    ...s,
-    _id: s.id,
-    firstName: s.first_name,
-    lastName: s.last_name,
-    classId: s.class_id,
-    admissionNo: s.admission_no,
-    admissionDate: s.admission_date,
-    medicalAllergies: s.medical_allergies,
-    medicalNotes: s.medical_notes,
-    pickupPerson: s.pickup_person,
-    pickupPhone: s.pickup_phone,
-    createdAt: s.created_at,
-    updatedAt: s.updated_at,
-  }));
+  const mappedStudents = students.map((s: any) => {
+    const hasPassword = Boolean(s.password && String(s.password).trim().length > 0);
+    const { password, ...sRest } = s;
+    return {
+      ...sRest,
+      _id: s.id,
+      firstName: s.first_name,
+      lastName: s.last_name,
+      hasParentPassword: hasPassword,
+      classId: s.class_id,
+      class: s.class ? {
+        _id: s.class.id,
+        id: s.class.id,
+        name: s.class.name,
+        section: s.class.section
+      } : null,
+      className: s.class?.name || "",
+      section: s.class?.section || "",
+      admissionNo: s.admission_no,
+      admissionDate: s.admission_date,
+      medicalAllergies: s.medical_allergies,
+      medicalNotes: s.medical_notes,
+      pickupPerson: s.pickup_person,
+      pickupPhone: s.pickup_phone,
+      medical: {
+        allergies: s.medical_allergies || (s.medical?.allergies) || [],
+        notes: s.medical_notes || (s.medical?.notes) || "",
+      },
+      pickupInfo: {
+        pickupPerson: s.pickup_person || (s.pickupInfo?.pickupPerson) || "",
+        pickupPhone: s.pickup_phone || (s.pickupInfo?.pickupPhone) || "",
+      },
+      parents: (s.student_parents || s.parents || []).map((p: any) => ({
+        _id: p.id,
+        id: p.id,
+        name: p.name || "",
+        phone: p.phone || "",
+        email: p.email || "",
+        relation: p.relation || ""
+      })),
+      createdAt: s.created_at,
+      updatedAt: s.updated_at,
+    };
+  });
 
   return NextResponse.json({
     success: true,
@@ -107,8 +138,32 @@ export async function POST(req: Request) {
       }).filter((p: any) => p && (p.name || p.phone || p.email || p.relation));
     }
 
+    const targetEmail = cleanBody.email || (cleanBody.parents && cleanBody.parents[0]?.email);
+    if (!targetEmail) {
+      return NextResponse.json({ success: false, error: "Parent Login Email is required." }, { status: 400 });
+    }
+
+    const emailCheck = validateParentLoginEmail(targetEmail);
+    if (!emailCheck.valid) {
+      return NextResponse.json({
+        success: false,
+        error: emailCheck.error || "Invalid parent login email.",
+      }, { status: 400 });
+    }
+
     const parsed = StudentCreateZ.parse(cleanBody);
     console.log("Parsed student data:", parsed);
+
+    let finalClassId: string | null = null;
+    if (parsed.classId && typeof parsed.classId === "string" && parsed.classId.trim() !== "" && parsed.classId !== "null") {
+      const classRepo = new ClassRepository();
+      const existingClass = await classRepo.findById(parsed.classId);
+      if (existingClass) {
+        finalClassId = existingClass.id;
+      } else {
+        return NextResponse.json({ success: false, error: "Invalid class selection." }, { status: 400 });
+      }
+    }
 
     let hashedPassword = undefined;
     if (parsed.password) {
@@ -125,7 +180,7 @@ export async function POST(req: Request) {
       password: hashedPassword,
       dob: parsed.dob ? new Date(parsed.dob) : undefined,
       gender: parsed.gender,
-      class_id: parsed.classId,
+      class_id: finalClassId,
       admission_no: admissionNo,
       admission_date: parsed.admissionDate ? new Date(parsed.admissionDate) : undefined,
       medical_allergies: parsed.medical?.allergies,

@@ -8,6 +8,7 @@ interface ModalProps {
   children: ReactNode;
   footer?: ReactNode;
   size?: "sm" | "md" | "lg" | "xl";
+  closeOnOutsideClick?: boolean;
 }
 
 export default function Modal({
@@ -17,6 +18,7 @@ export default function Modal({
   children,
   footer,
   size = "md",
+  closeOnOutsideClick = false,
 }: ModalProps) {
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -41,41 +43,41 @@ export default function Modal({
 
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center z-[100] p-4 animate-modal-backdrop overflow-y-auto"
+      className="fixed inset-0 flex items-center justify-center z-[100] p-4 sm:p-6 animate-modal-backdrop overflow-hidden"
       style={{
         background: "rgba(15, 23, 42, 0.4)",
         backdropFilter: "blur(12px)",
         WebkitBackdropFilter: "blur(12px)",
       }}
       onClick={(e) => {
-        // Close modal when clicking outside the content area
-        if (e.target === e.currentTarget) onClose();
+        // Close modal when clicking outside content area ONLY if closeOnOutsideClick is enabled
+        if (closeOnOutsideClick && e.target === e.currentTarget) onClose();
       }}
     >
       <div
-        className={`bg-white rounded-2xl ${sizeClasses[size]} w-full mx-auto relative animate-modal-content mb-auto mt-auto`}
+        className={`bg-white rounded-2xl ${sizeClasses[size]} w-full mx-auto relative animate-modal-content my-auto flex flex-col max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-3.5rem)] shadow-2xl overflow-hidden`}
         style={{
           boxShadow: "0 10px 40px rgba(0,0,0,0.2)",
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {title && (
-          <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-white/50">
+          <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white shrink-0">
             <h2 className="text-xl font-bold text-gray-900 tracking-tight">{title}</h2>
             <button
               type="button"
               onClick={onClose}
-              className="w-10 h-10 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all text-2xl leading-none"
+              className="w-9 h-9 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all text-xl leading-none"
             >
               ×
             </button>
           </div>
         )}
-        <div className="px-6 py-6 max-h-[80vh] overflow-y-auto custom-scrollbar">
+        <div className="px-6 py-5 overflow-y-auto flex-1 custom-scrollbar">
           {children}
         </div>
         {footer && (
-          <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 bg-gray-50/50">
+          <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 bg-gray-50/50 shrink-0">
             {footer}
           </div>
         )}

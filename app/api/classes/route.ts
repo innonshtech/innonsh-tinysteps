@@ -28,7 +28,9 @@ export async function GET(req: Request) {
         teacher:teachers(*)
       ),
       students(*)
-    `).limit(limit);
+    `)
+    .order('created_at', { ascending: false })
+    .limit(limit);
 
     if (q) {
       query = query.or(`name.ilike.%${q}%,section.ilike.%${q}%,room_number.ilike.%${q}%`);
@@ -82,6 +84,45 @@ export async function POST(req: Request) {
     const body = await req.json();
     const parsed = ClassCreateZ.parse(body);
 
+    // 1. Parallel Pre-Validation Checks (Class + Section Uniqueness AND Room Number Uniqueness)
+    const comboCheckPromise = supabaseAdmin
+      .from('classes')
+      .select('id, name, section')
+      .ilike('name', parsed.name.trim())
+      .ilike('section', parsed.section.trim())
+      .maybeSingle();
+
+    const roomCheckPromise = (parsed.roomNumber && parsed.roomNumber.trim() !== '')
+      ? supabaseAdmin
+          .from('classes')
+          .select('id, name, section, room_number')
+          .ilike('room_number', parsed.roomNumber.trim())
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null });
+
+    const [{ data: existingClassCombo }, { data: existingRoomOwner }] = await Promise.all([
+      comboCheckPromise,
+      roomCheckPromise,
+    ]);
+
+    if (existingClassCombo) {
+      return NextResponse.json(
+        { success: false, error: `${parsed.name.trim()} - Section ${parsed.section.trim()} already exists.` },
+        { status: 409 }
+      );
+    }
+
+    if (existingRoomOwner) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Room ${(parsed.roomNumber || "").trim()} is already assigned to ${existingRoomOwner.name} - Section ${existingRoomOwner.section}.`,
+        },
+        { status: 409 }
+      );
+    }
+
+    // 2. Class INSERT
     const classRepo = new ClassRepository();
     const createdClass = await classRepo.create({
       name: parsed.name,
@@ -89,55 +130,68 @@ export async function POST(req: Request) {
       room_number: parsed.roomNumber,
     });
 
-    // If teachers are provided in the payload, assign them
-    if (parsed.teachers && parsed.teachers.length > 0) {
-      const assignments = parsed.teachers.map((tId: string) => ({
-        teacher_id: tId,
-        class_id: createdClass.id
-      }));
-      await supabaseAdmin.from('teacher_class_assignments').insert(assignments);
-    }
+    // 3. Parallel Post-Insert Tasks (Teacher Assignments + Student Eligibility & Update)
+    const assignTeachersTask = (async () => {
+      if (parsed.teachers && parsed.teachers.length > 0) {
+        const assignments = parsed.teachers.map((tId: string) => ({
+          teacher_id: tId,
+          class_id: createdClass.id,
+        }));
+        await supabaseAdmin.from('teacher_class_assignments').insert(assignments);
+      }
+    })();
 
-    // If students are provided, validate they are not already assigned to another class
-    if (parsed.students && parsed.students.length > 0) {
-      const { data: selectedStudents, error: fetchError } = await supabaseAdmin
-        .from('students')
-        .select('id, class_id')
-        .in('id', parsed.students);
+    const assignStudentsTask = (async () => {
+      if (parsed.students && parsed.students.length > 0) {
+        const { data: selectedStudents, error: fetchError } = await supabaseAdmin
+          .from('students')
+          .select('id, class_id')
+          .in('id', parsed.students);
 
-      if (fetchError) throw fetchError;
+        if (fetchError) throw fetchError;
 
-      // Reject if any selected student already has a class_id (JS-side check is more reliable)
-      const conflicting = (selectedStudents || []).filter((s: any) => s.class_id !== null && s.class_id !== undefined);
+        const conflicting = (selectedStudents || []).filter(
+          (s: any) => s.class_id !== null && s.class_id !== undefined
+        );
 
-      if (conflicting.length > 0) {
-        // Roll back the created class since assignment failed
+        if (conflicting.length > 0) {
+          throw new Error("STUDENT_ALREADY_ASSIGNED");
+        }
+
+        await supabaseAdmin
+          .from('students')
+          .update({ class_id: createdClass.id })
+          .in('id', parsed.students);
+      }
+    })();
+
+    try {
+      await Promise.all([assignTeachersTask, assignStudentsTask]);
+    } catch (assignErr: any) {
+      if (assignErr.message === "STUDENT_ALREADY_ASSIGNED") {
         await supabaseAdmin.from('classes').delete().eq('id', createdClass.id);
         return NextResponse.json(
           { success: false, error: "Student is already assigned to another class." },
           { status: 400 }
         );
       }
-
-      await supabaseAdmin
-        .from('students')
-        .update({ class_id: createdClass.id })
-        .in('id', parsed.students);
+      throw assignErr;
     }
 
     const formattedClass = {
-        _id: createdClass.id,
-        id: createdClass.id,
-        name: createdClass.name,
-        section: createdClass.section,
-        roomNumber: createdClass.room_number,
-        teachers: parsed.teachers || [],
-        students: parsed.students || []
+      _id: createdClass.id,
+      id: createdClass.id,
+      name: createdClass.name,
+      section: createdClass.section,
+      roomNumber: createdClass.room_number,
+      teachers: parsed.teachers || [],
+      students: parsed.students || [],
     };
 
-    // Log admin activity
+    // 4. Reliable Audit Logging (passing actorEmail: user.email to prevent extra DB lookup)
     await logAdminActivity({
       actorId: String(user.id),
+      actorEmail: user.email,
       actorRole: user.role,
       action: "create:class",
       message: `Class created: ${formattedClass.name} - ${formattedClass.section}`,
@@ -146,7 +200,7 @@ export async function POST(req: Request) {
         name: formattedClass.name,
         section: formattedClass.section,
         roomNumber: formattedClass.roomNumber,
-      }
+      },
     });
 
     return NextResponse.json({ success: true, class: formattedClass }, { status: 201 });

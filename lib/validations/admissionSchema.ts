@@ -18,6 +18,7 @@ export const AdmissionApplyZ = z.object({
   dob: z.string().optional(),
   gender: z.enum(["male","female","other"]).optional(),
   preferredClass: z.string().optional(),
+  academicYear: z.string().optional(),
   parents: z.array(
     z.object({
       parentId: z.string().optional(),

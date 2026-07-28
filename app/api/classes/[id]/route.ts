@@ -59,6 +59,49 @@ export async function PUT(
     const { data: oldClass } = await supabaseAdmin.from('classes').select('*').eq('id', id).single();
     if (!oldClass) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
 
+    const targetName = parsed.name ? parsed.name.trim() : oldClass.name;
+    const targetSection = parsed.section ? parsed.section.trim() : oldClass.section;
+    const targetRoom = parsed.roomNumber !== undefined ? parsed.roomNumber : oldClass.room_number;
+
+    // 1. Check Class + Section uniqueness (excluding current class ID)
+    if (parsed.name || parsed.section) {
+      const { data: existingClassCombo } = await supabaseAdmin
+        .from('classes')
+        .select('id, name, section')
+        .neq('id', id)
+        .ilike('name', targetName)
+        .ilike('section', targetSection)
+        .maybeSingle();
+
+      if (existingClassCombo) {
+        return NextResponse.json(
+          { success: false, error: `${targetName} - Section ${targetSection} already exists.` },
+          { status: 409 }
+        );
+      }
+    }
+
+    // 2. Check Room Number uniqueness (excluding current class ID)
+    if (targetRoom && String(targetRoom).trim() !== '') {
+      const cleanRoom = String(targetRoom).trim();
+      const { data: existingRoomOwner } = await supabaseAdmin
+        .from('classes')
+        .select('id, name, section, room_number')
+        .neq('id', id)
+        .ilike('room_number', cleanRoom)
+        .maybeSingle();
+
+      if (existingRoomOwner) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Room ${cleanRoom} is already assigned to ${existingRoomOwner.name} - Section ${existingRoomOwner.section}.`,
+          },
+          { status: 409 }
+        );
+      }
+    }
+
     const updateData: any = {};
     if (parsed.name) updateData.name = parsed.name;
     if (parsed.section) updateData.section = parsed.section;
