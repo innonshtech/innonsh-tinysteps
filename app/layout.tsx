@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Manrope, Fraunces, Plus_Jakarta_Sans } from "next/font/google";
+import { Inter, Manrope, Fredoka, Nunito } from "next/font/google";
 import "./globals.css";
 import "react-toastify/dist/ReactToastify.css";
 import { AuthProvider } from "@/context/AuthContext";
@@ -8,31 +8,31 @@ import { ToastContainer } from "react-toastify";
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
-  display: 'swap',
+  display: "swap",
 });
 
 const manrope = Manrope({
   variable: "--font-manrope",
   subsets: ["latin"],
-  display: 'swap',
+  display: "swap",
 });
 
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
+const fredoka = Fredoka({
+  variable: "--font-fredoka",
   subsets: ["latin"],
-  display: 'swap',
+  display: "swap",
 });
 
-const plusJakartaSans = Plus_Jakarta_Sans({
-  variable: "--font-plus-jakarta-sans",
+const nunito = Nunito({
+  variable: "--font-nunito",
   subsets: ["latin"],
-  display: 'swap',
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Innonsh TinySteps | School Management System",
+  title: "TinySteps — A little app that runs your preschool with a smile",
   description:
-    "Innonsh TinySteps System for managing admissions, students, teachers, attendance, fees, payroll, and academic operations efficiently.",
+    "TinySteps is a warm, simple preschool ERP. Attendance, fees, parents, admissions, notices — all in one friendly little app made for tiny humans and the grown-ups who love them.",
   keywords: [
     "School ERP",
     "Innonsh TinySteps",
@@ -58,7 +58,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${manrope.variable} ${fraunces.variable} ${plusJakartaSans.variable}`}>
+    <html lang="en" className={`${inter.variable} ${manrope.variable} ${fredoka.variable} ${nunito.variable}`}>
       <body className="antialiased">
         <AuthProvider>
           {children}
