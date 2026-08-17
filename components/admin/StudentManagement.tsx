@@ -849,6 +849,7 @@ export default function StudentManagement() {
           </div>
           <button type="button"
             onClick={() => {
+              setEditingStudent(null);
               resetForm();
               setModalOpen(true);
             }}

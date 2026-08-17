@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
 import { NotificationRepository } from "@/repositories/notification.repository";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getParentStudentIds } from "@/lib/parent";
 
 export async function GET(req: Request) {
   const token = req.headers.get("cookie")?.match(/token=([^;]+)/)?.[1];
@@ -10,15 +10,9 @@ export async function GET(req: Request) {
   if (!parent || parent.role !== "parent")
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
 
-  // find all children
-  const { data: mappings } = await supabaseAdmin.from('student_parents')
-    .select('student_id')
-    .eq('parent_user_id', parent.id);
-
-  const studentIds = mappings?.map(m => m.student_id) || [];
-  
-  // The parent also gets notifications sent directly to their user ID
-  const allIds = [parent.id, ...studentIds];
+  const parentEmail = (parent as { email?: string }).email;
+  const studentIds = await getParentStudentIds(parent.id, parentEmail);
+  const allIds = [...new Set([parent.id, ...studentIds])];
 
   const repo = new NotificationRepository();
   const notifications = await repo.find({ recipient_id: { $in: allIds } }, { sort: { field: 'created_at', ascending: false } });

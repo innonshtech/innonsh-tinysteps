@@ -18,17 +18,9 @@ export async function GET(
   const student = await parentOwnsStudent(id, user.id, (user as any).email);
 
   if (!student) {
-    // Determine if student doesn't exist or just forbidden
-    // parentOwnsStudent handles both by returning null if forbidden/not found
     return NextResponse.json({ success: false, error: "Student not found or Forbidden" }, { status: 404 });
   }
 
-  // Ensure _id exists for frontend
-  const mappedStudent = {
-      ...student,
-      _id: (student as any).id || (student as any)._id
-  };
-
-  return NextResponse.json({ success: true, student: mappedStudent });
+  return NextResponse.json({ success: true, student });
 }
   
