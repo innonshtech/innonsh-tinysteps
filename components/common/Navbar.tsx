@@ -1,3 +1,6 @@
+"use client";
+
+import { useState, useEffect, useRef } from "react";
 import { formatPersonName } from "@/lib/formatName";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
