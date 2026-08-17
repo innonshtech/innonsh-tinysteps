@@ -1,5 +1,7 @@
 "use client";
-import React, { useState, useRef, useEffect } from "react";
+
+import { useState, useEffect, useRef } from "react";
+import { formatPersonName } from "@/lib/formatName";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, usePathname } from "next/navigation";
@@ -21,6 +23,13 @@ export default function Navbar({
   const { user, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const profilePath = pathname?.startsWith("/teacher-dashboard")
+    ? "/teacher-dashboard/profile"
+    : pathname?.startsWith("/student-dashboard")
+      ? "/student-dashboard/profile"
+      : pathname?.startsWith("/parent-dashboard")
+        ? "/parent-dashboard/profile"
+        : "/dashboard/profile";
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -369,10 +378,10 @@ export default function Navbar({
               className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 rounded-md transition-all group"
             >
               <div className="w-8 h-8 bg-gradient-to-br from-accent via-primary to-primary-dark rounded-full flex items-center justify-center text-white text-xs font-semibold border border-white">
-                {user?.name?.charAt(0).toUpperCase() || "U"}
+                {formatPersonName(user, "U").charAt(0).toUpperCase()}
               </div>
               <div className="hidden md:block text-left">
-                <p className="text-sm font-semibold text-gray-800 leading-none mb-0.5">{user?.name || "User"}</p>
+                <p className="text-sm font-semibold text-gray-800 leading-none mb-0.5">{formatPersonName(user, "User")}</p>
                 <p className="text-[11px] text-gray-500 capitalize leading-none">{user?.role || "Role"}</p>
               </div>
               <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${dropdownOpen ? "rotate-180" : ""}`} />
@@ -384,10 +393,10 @@ export default function Navbar({
                 <div className="px-4 py-3 bg-gradient-to-r from-orange-50 to-pink-50 border-b border-gray-200">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-gradient-to-br from-accent via-primary to-primary-dark rounded-full flex items-center justify-center text-white text-sm font-semibold">
-                      {user?.name?.charAt(0).toUpperCase() || "U"}
+                      {formatPersonName(user, "U").charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-gray-800">{user?.name || "User"}</p>
+                      <p className="text-sm font-semibold text-gray-800">{formatPersonName(user, "User")}</p>
                       <p className="text-xs text-gray-600">{user?.email || "user@example.com"}</p>
                     </div>
                   </div>
@@ -399,7 +408,7 @@ export default function Navbar({
                 {/* Menu Items */}
                 <div className="py-1">
                   <Link
-                    href="/dashboard/profile"
+                    href={profilePath}
                     className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                     onClick={() => setDropdownOpen(false)}
                   >

@@ -1,8 +1,10 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { formatStudentName } from "@/lib/formatName";
 
-export default function ParentChildDetails({ params }: any) {
+export default function ParentChildDetails({ params }: { params: { id: string } }) {
   const { id } = params;
   const [student, setStudent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -19,23 +21,28 @@ export default function ParentChildDetails({ params }: any) {
   if (loading) return <div>Loading...</div>;
   if (!student) return <div>Student not found.</div>;
 
+  const classLabel = student.className || student.class?.name;
+  const sectionLabel = student.section || student.class?.section;
+  const classDisplay =
+    classLabel && sectionLabel ? `${classLabel} - ${sectionLabel}` : classLabel || sectionLabel || "-";
+
   return (
     <div className="p-4 space-y-4">
       <Link href="/parent-portal">
         <button type="button" className="px-4 py-1 border rounded">← Back</button>
       </Link>
 
-      <h1 className="text-2xl font-bold">
-        {student.firstName} {student.lastName}
-      </h1>
+      <h1 className="text-2xl font-bold">{formatStudentName(student)}</h1>
 
       <div className="border p-4 rounded">
-        <p><strong>Admission No:</strong> {student.admissionNo}</p>
+        <p><strong>Admission No:</strong> {student.admissionNo || student.admission_no || "-"}</p>
         <p><strong>DOB:</strong> {student.dob ? new Date(student.dob).toLocaleDateString() : "-"}</p>
-        <p><strong>Class:</strong> {student.classId || "-"}</p>
+        <p><strong>Class:</strong> {classDisplay}</p>
+        {student.parents?.[0]?.name && (
+          <p><strong>Parent:</strong> {student.parents[0].name}</p>
+        )}
       </div>
 
-      {/* Links to child-specific data */}
       <div className="grid gap-3">
         <Link href={`/parent-portal/attendance/${student._id}`}>
           <div className="parent-tile">📅 View Attendance</div>
@@ -49,9 +56,11 @@ export default function ParentChildDetails({ params }: any) {
           <div className="parent-tile">📘 View Assessments</div>
         </Link>
 
-        <Link href={`/parent-portal/timetable/${student.classId}`}>
-          <div className="parent-tile">📚 View Timetable</div>
-        </Link>
+        {student.classId && (
+          <Link href={`/parent-portal/timetable/${student.classId}`}>
+            <div className="parent-tile">📚 View Timetable</div>
+          </Link>
+        )}
 
         <Link href="/parent-portal/notifications">
           <div className="parent-tile">🔔 Notifications</div>

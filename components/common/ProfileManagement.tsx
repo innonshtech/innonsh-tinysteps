@@ -5,6 +5,7 @@ import Input from "@/components/common/Input";
 import Alert from "@/components/common/Alert";
 import { showToast } from "@/lib/toast";
 import Breadcrumbs from "@/components/common/Breadcrumbs";
+import { formatPersonName } from "@/lib/formatName";
 import {
     User,
     Mail,
@@ -51,10 +52,11 @@ export default function ProfileManagement() {
             if (res.ok) {
                 const data = await res.json();
                 setUserProfile(data.user);
+                const displayName = formatPersonName(data.user, "");
                 setFormData({
-                    name: data.user.name || "",
-                    firstName: data.user.firstName || "",
-                    lastName: data.user.lastName || "",
+                    name: displayName,
+                    firstName: data.user.firstName || data.user.first_name || "",
+                    lastName: data.user.lastName || data.user.last_name || "",
                     email: data.user.email || "",
                 });
             } else {
@@ -134,7 +136,7 @@ export default function ProfileManagement() {
                             </div>
                             <div className="pt-16 pb-8 px-6 text-center">
                                 <h2 className="text-xl font-bold text-gray-800">
-                                    {userProfile?.name || `${userProfile?.firstName} ${userProfile?.lastName}` || "User Name"}
+                                    {formatPersonName(userProfile, "User Name")}
                                 </h2>
                                 <div className="flex items-center justify-center gap-1.5 mt-1 text-orange-600 font-medium text-sm">
                                     <Shield className="w-4 h-4" />
@@ -177,7 +179,7 @@ export default function ProfileManagement() {
                                             <Input
                                                 label="Full Name"
                                                 name="name"
-                                                value={formData.name}
+                                                value={formData.name ?? ""}
                                                 onChange={handleInputChange}
                                                 placeholder="Your full name"
                                                 icon={<User className="w-4 h-4" />}
@@ -189,7 +191,7 @@ export default function ProfileManagement() {
                                             <Input
                                                 label="First Name"
                                                 name="firstName"
-                                                value={formData.firstName}
+                                                value={formData.firstName ?? ""}
                                                 onChange={handleInputChange}
                                                 placeholder="First name"
                                                 icon={<User className="w-4 h-4" />}
@@ -198,7 +200,7 @@ export default function ProfileManagement() {
                                             <Input
                                                 label="Last Name"
                                                 name="lastName"
-                                                value={formData.lastName}
+                                                value={formData.lastName ?? ""}
                                                 onChange={handleInputChange}
                                                 placeholder="Last name"
                                                 icon={<User className="w-4 h-4" />}

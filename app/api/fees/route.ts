@@ -12,18 +12,27 @@ export async function GET(req: Request) {
   }
 
   const url = new URL(req.url);
+  const classId = url.searchParams.get("classId");
   const page = Math.max(1, parseInt(url.searchParams.get("page") || "1"));
   const limit = Math.max(1, Math.min(100, parseInt(url.searchParams.get("limit") || "20")));
   const skip = (page - 1) * limit;
 
   const repo = new FeeStructureRepository();
-  const itemsData = await repo.findWithHeads({}, { skip, limit });
+  const itemsData = await repo.findWithHeads({}, classId ? {} : { skip, limit });
   
   // Need exact count, use separate count call
   const total = await repo.count({});
 
   // Map to frontend expected format
-  const items = itemsData.map((i: any) => ({
+  let filteredData = itemsData;
+  if (classId) {
+    filteredData = itemsData.filter(
+      (i: { class_id?: string | null; active?: boolean }) =>
+        i.active !== false && (i.class_id === classId || !i.class_id)
+    );
+  }
+
+  const items = filteredData.map((i: any) => ({
     _id: i.id,
     id: i.id,
     name: i.name,
@@ -42,7 +51,13 @@ export async function GET(req: Request) {
     updatedAt: i.updated_at
   }));
 
-  return NextResponse.json({ success: true, items, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
+  const itemTotal = classId ? items.length : total;
+  return NextResponse.json({
+    success: true,
+    items,
+    ...(classId ? { structures: items } : {}),
+    pagination: { page, limit, total: itemTotal, pages: Math.ceil(itemTotal / limit) },
+  });
 }
 
 export async function POST(req: Request) {

@@ -6,6 +6,7 @@ import { TeacherRepository } from "@/repositories/teacher.repository";
 import { StudentRepository } from "@/repositories/student.repository";
 import { LogActivityRepository } from "@/repositories/logactivity.repository";
 import { supabaseAdmin } from "@/lib/supabase";
+import { getParentDisplayName } from "@/lib/parent";
 
 export async function POST(req: Request) {
   try {
@@ -173,17 +174,29 @@ export async function POST(req: Request) {
 
     const maxAge = 60 * 60 * 24 * 7; // 7 days
 
-    const name = 'name' in user ? user.name : user.first_name;
+    let name = "";
+    if (detectedRole === "parent") {
+      name = await getParentDisplayName(user.id, trimmedEmail);
+    }
+    if (!name) {
+      name = ("name" in user ? user.name : user.first_name) || "";
+    }
+    name = String(name).trim();
+    if (name === "undefined" || name === "null") name = "";
+
+    const nameParts = name ? name.split(/\s+/) : [];
 
     const res = NextResponse.json(
       {
         success: true,
         user: {
-          _id: user.id, // Keeping _id for frontend compatibility in the short term
+          _id: user.id,
           id: user.id,
           email: user.email,
           role: detectedRole,
           name: name,
+          firstName: nameParts[0] || name || "",
+          lastName: nameParts.slice(1).join(" ") || "",
         },
       },
       { status: 200 }
