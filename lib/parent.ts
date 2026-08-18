@@ -59,14 +59,14 @@ export async function getParentStudentIds(loggedInParentId: string, parentEmail?
       .from("student_parents")
       .select("student_id")
       .eq("email", parentEmail);
-    byEmail?.forEach((m) => ids.add(m.student_id));
+    byEmail?.forEach((m: any) => ids.add(m.student_id));
   }
 
   const { data: byUserId } = await supabaseAdmin
     .from("student_parents")
     .select("student_id")
     .eq("parent_user_id", loggedInParentId);
-  byUserId?.forEach((m) => ids.add(m.student_id));
+  byUserId?.forEach((m: any) => ids.add(m.student_id));
 
   return [...ids];
 }

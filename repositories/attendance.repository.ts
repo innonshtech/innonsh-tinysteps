@@ -17,6 +17,10 @@ export interface Attendance {
   classes?: any;
   teachers?: any;
   users?: any;
+  student?: any;
+  class?: any;
+  teacher?: any;
+  user?: any;
 }
 
 export class AttendanceRepository extends BaseRepository<Attendance> {

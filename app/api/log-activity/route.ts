@@ -28,16 +28,16 @@ export async function GET(req: Request) {
     if (error) throw error;
 
     // Optional: get actors (users)
-    const actorIds = [...new Set(logsData.filter(l => l.actor_id).map(l => l.actor_id))];
+    const actorIds = [...new Set((logsData || []).filter((l: any) => l.actor_id).map((l: any) => l.actor_id))];
     let actorsMap: any = {};
     if (actorIds.length > 0) {
       const { data: users } = await supabaseAdmin.from('users').select('id, name, email').in('id', actorIds);
       if (users) {
-        users.forEach(u => actorsMap[u.id] = { _id: u.id, name: u.name, email: u.email });
+        users.forEach((u: any) => actorsMap[u.id] = { _id: u.id, name: u.name, email: u.email });
       }
     }
 
-    const mappedLogs = logsData.map(l => ({
+    const mappedLogs = (logsData || []).map((l: any) => ({
       ...l,
       _id: l.id,
       actorId: actorsMap[l.actor_id] || l.actor_id,

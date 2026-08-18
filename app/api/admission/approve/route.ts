@@ -39,7 +39,7 @@ export async function POST(req: Request) {
       class_id: classId,
       // section: assignSection, // In Postgres, section is probably on classes table, but if students has section we'd map it. Wait, students table does not have 'section', it relies on class_id.
       admission_no: admNo,
-      admission_date: new Date().toISOString().split('T')[0]
+      admission_date: new Date()
     });
     
     // In Postgres schema, 'students' does not have 'section' column, it relies on classes table.

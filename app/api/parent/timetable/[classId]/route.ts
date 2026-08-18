@@ -28,7 +28,7 @@ export async function GET(
   }
 
   const { data: mappings } = await queryBuilder;
-  const mappedStudentIds = mappings?.map(m => m.student_id) || [];
+  const mappedStudentIds = mappings?.map((m: any) => m.student_id) || [];
   
   const allStudentIds = [...new Set([studentId, ...mappedStudentIds])];
 

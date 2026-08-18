@@ -9,7 +9,7 @@ export async function GET(req: Request) {
   if (!user || user.role !== "parent") return NextResponse.json({ success:false, error:"Unauthorized" }, { status:403 });
 
   const { data: mappings } = await supabaseAdmin.from('admission_parents').select('admission_id').eq('parent_user_id', user.id);
-  const mappedIds = mappings?.map(m => m.admission_id) || [];
+  const mappedIds = mappings?.map((m: any) => m.admission_id) || [];
 
   let query = supabaseAdmin.from('admissions').select('*').order('created_at', { ascending: false });
   
@@ -21,7 +21,7 @@ export async function GET(req: Request) {
 
   const { data: admissions } = await query;
 
-  const mappedAdmissions = (admissions || []).map(a => ({
+  const mappedAdmissions = (admissions || []).map((a: any) => ({
     ...a,
     _id: a.id,
     academicYear: a.academic_year,
