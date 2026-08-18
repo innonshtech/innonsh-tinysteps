@@ -69,6 +69,7 @@ export default function ClassManagement() {
   const [saving, setSaving] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletingClass, setDeletingClass] = useState<Class | null>(null);
+  const [isCustomClassName, setIsCustomClassName] = useState(false);
 
   const [teacherSearch, setTeacherSearch] = useState("");
   const [studentSearch, setStudentSearch] = useState("");
@@ -379,6 +380,10 @@ export default function ClassManagement() {
       teachers: cls.teachers?.map((t) => t._id) || [],
       students: cls.students?.map((s) => s._id) || [],
     });
+    const inSupported = SUPPORTED_CLASSES.some(
+      (item) => item.toLowerCase() === cls.name.toLowerCase()
+    );
+    setIsCustomClassName(!inSupported);
     setTeacherSearch("");
     setStudentSearch("");
     setModalOpen(true);
@@ -608,6 +613,7 @@ export default function ClassManagement() {
               setFormData({ name: "", section: "", roomNumber: "", teachers: [], students: [] });
               setTeacherSearch("");
               setStudentSearch("");
+              setIsCustomClassName(false);
               setModalOpen(true);
             }}
             className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white rounded-lg font-medium transition-all"
@@ -708,18 +714,42 @@ export default function ClassManagement() {
             </h2>
           </div>
 
-          <Select
-            label="Class Name *"
-            name="name"
-            value={formData.name}
-            onChange={handleInputChange}
-            fullWidth
-            placeholder="Select Class"
-            options={classOptions.map((className) => ({
-              value: className,
-              label: className,
-            }))}
-          />
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-sm font-medium text-gray-700">Class Name *</label>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCustomClassName(!isCustomClassName);
+                  setFormData((prev) => ({ ...prev, name: "" }));
+                }}
+                className="text-xs font-semibold text-orange-600 hover:text-orange-700 transition-colors"
+              >
+                {isCustomClassName ? "Select from list" : "Type custom name"}
+              </button>
+            </div>
+            {isCustomClassName ? (
+              <Input
+                name="name"
+                value={formData.name}
+                onChange={handleInputChange}
+                fullWidth
+                placeholder="e.g., Class 1, Grade 5"
+              />
+            ) : (
+              <Select
+                name="name"
+                value={formData.name}
+                onChange={handleInputChange}
+                fullWidth
+                placeholder="Select Class"
+                options={classOptions.map((className) => ({
+                  value: className,
+                  label: className,
+                }))}
+              />
+            )}
+          </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Section *</label>

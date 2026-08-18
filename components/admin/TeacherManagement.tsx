@@ -390,16 +390,24 @@ export default function TeacherManagement() {
     const matchesClass =
       !selectedClass ||
       (teacher.classes || []).some((cls) => {
-        const classId = typeof cls.classId === "object" ? (cls.classId as any)._id : cls.classId;
-        return classId === selectedClass;
+        if (!cls) return false;
+        const classId = typeof cls === "object" ? ((cls as any).classId || (cls as any)._id || (cls as any).id) : cls;
+        return String(classId) === String(selectedClass);
       });
 
     return matchesSearch && matchesClass;
   });
 
 
-  const totalSubjectsAssigned = teachers.reduce((sum, t) => sum + (t.subjects?.length || 0), 0);
-  const totalClassesAssigned = teachers.reduce((sum, t) => sum + (t.classes?.length || 0), 0);
+  const totalSubjectsAssigned = new Set(teachers.flatMap((t) => t.subjects || [])).size;
+  const totalClassesAssigned = new Set(
+    teachers.flatMap((t) =>
+      (t.classes || []).map((cls) => {
+        if (!cls) return "";
+        return typeof cls === "object" ? ((cls as any).classId || (cls as any)._id || (cls as any).id) : cls;
+      })
+    ).filter(Boolean)
+  ).size;
 
   const columns: Column[] = [
     {

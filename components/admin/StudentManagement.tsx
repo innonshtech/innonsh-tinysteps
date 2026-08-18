@@ -6,6 +6,7 @@ import Input from "@/components/common/Input";
 import Select from "@/components/common/Select";
 import Modal from "@/components/common/Modal";
 import StudentModal from "@/components/admin/StudentModal";
+import StudentBulkImportModal from "@/components/admin/StudentBulkImportModal";
 import Table from "@/components/common/Table";
 import Card from "@/components/common/Card";
 import Badge from "@/components/common/Badge";
@@ -101,6 +102,7 @@ export default function StudentManagement() {
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletingStudent, setDeletingStudent] = useState<Student | null>(null);
+  const [importModalOpen, setImportModalOpen] = useState(false);
 
   // --- Fee assignment at enrollment ---
   interface FeeStructureForClass {
@@ -787,6 +789,14 @@ export default function StudentManagement() {
             <p className="text-sm text-gray-600 mt-1">Manage all students in the system</p>
           </div>
           <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setImportModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-all cursor-pointer bg-white"
+            >
+              <Upload className="w-4 h-4" />
+              <span className="text-sm font-medium">Import</span>
+            </button>
             <button type="button" onClick={() => exportStudentsToCSV(students, "students.csv")} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-all cursor-pointer">
               <Download className="w-4 h-4" />
               <span className="text-sm font-medium">Export</span>
@@ -1002,6 +1012,12 @@ export default function StudentManagement() {
           </p>
         </div>
       </Modal>
+
+      <StudentBulkImportModal
+        isOpen={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        onSuccess={fetchStudents}
+      />
     </div>
   );
 }
