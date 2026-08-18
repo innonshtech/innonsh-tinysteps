@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { AssessmentCreateZ } from "@/lib/validations/teacherSchema";
 import { verifyToken } from "@/lib/auth";
 import { AssessmentRepository } from "@/repositories/exam.repository";
+import { StudentRepository } from "@/repositories/student.repository";
 
 export async function POST(req: Request) {
   const cookie = req.headers.get("cookie") || "";
@@ -16,18 +17,23 @@ export async function POST(req: Request) {
     const body = await req.json();
     const parsed = AssessmentCreateZ.parse(body);
 
+    const studentRepo = new StudentRepository();
+    const student = await studentRepo.findById(parsed.studentId);
+    if (!student) {
+      return NextResponse.json({ success: false, error: "Student not found" }, { status: 404 });
+    }
+
     const assessmentRepo = new AssessmentRepository();
     const created = await assessmentRepo.create({
       student_id: parsed.studentId,
-      class_id: parsed.classId,
+      class_id: student.class_id,
       term: parsed.term,
-      month: parsed.month,
-      type: parsed.type,
-      subject: parsed.subject,
+      cognitive: parsed.cognitive,
+      motor: parsed.motor,
+      social: parsed.social,
+      notes: parsed.notes,
       score: parsed.score,
-      remarks: parsed.remarks,
-      teacher_id: user.id,
-      date: parsed.date || new Date().toISOString()
+      teacher_id: user.id
     });
 
     const assessment = {
@@ -36,13 +42,12 @@ export async function POST(req: Request) {
         studentId: created.student_id,
         classId: created.class_id,
         term: created.term,
-        month: created.month,
-        type: created.type,
-        subject: created.subject,
+        cognitive: created.cognitive,
+        motor: created.motor,
+        social: created.social,
+        notes: created.notes,
         score: created.score,
-        remarks: created.remarks,
         teacherId: created.teacher_id,
-        date: created.date,
         createdAt: created.created_at,
         updatedAt: created.updated_at
     };

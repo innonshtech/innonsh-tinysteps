@@ -4,6 +4,7 @@ import { StudentRepository } from "@/repositories/student.repository";
 import { ClassRepository } from "@/repositories/class.repository";
 import { LogActivityRepository } from "@/repositories/logactivity.repository";
 import { generateAdmissionNo } from "@/lib/admissionNumber";
+import { parseDate } from "@/lib/date";
 import bcryptjs from "bcryptjs";
 
 export async function POST(req: Request) {
@@ -49,8 +50,8 @@ export async function POST(req: Request) {
           throw new Error(`Row ${rowNum}: First Name is required`);
         }
 
-        const dobVal = s.dob ? new Date(s.dob) : null;
-        if (!dobVal || isNaN(dobVal.getTime())) {
+        const dobVal = parseDate(s.dob);
+        if (!dobVal) {
           throw new Error(`Row ${rowNum}: Invalid Date of Birth`);
         }
 
@@ -127,7 +128,7 @@ export async function POST(req: Request) {
           gender: s.gender?.trim() || "Other",
           class_id: classId || undefined,
           admission_no: admissionNo,
-          admission_date: s.admissionDate ? new Date(s.admissionDate) : new Date(),
+          admission_date: parseDate(s.admissionDate) || new Date(),
           medical_allergies: allergies,
           medical_notes: s.medicalNotes?.trim() || undefined,
           pickup_person: s.pickupPerson?.trim() || undefined,

@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
             amountPaid: tx.amount_paid,
             fineAmount: tx.fine_amount,
             status: tx.status,
-            items: tx.items.map((i: any) => ({ name: i.head, amount: i.amount })),
+            items: (tx.items || []).map((i: any) => ({ name: i.head, amount: i.amount })),
             dueDate: tx.due_date,
             note: tx.note,
             createdAt: tx.created_at,

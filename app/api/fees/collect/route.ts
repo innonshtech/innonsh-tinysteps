@@ -52,14 +52,14 @@ export async function POST(req: Request) {
       payment_method: payload.paymentMethod || "cash",
       payment_meta: payload.paymentMeta || null,
       created_by: user.id,
-      note: payload.note || null,
+      note: payload.note || undefined,
     });
 
     if (payload.items && payload.items.length > 0) {
       for (const item of payload.items) {
         await feeTxItemRepo.create({
           transaction_id: tx.id,
-          head: item.name || item.head,
+          head: item.head,
           amount: Number(item.amount),
         });
       }
@@ -80,7 +80,7 @@ export async function POST(req: Request) {
       paymentMethod: populatedTx.payment_method,
       paymentMeta: populatedTx.payment_meta,
       note: populatedTx.note,
-      items: populatedTx.items.map((i: any) => ({ name: i.head, amount: i.amount })),
+      items: (populatedTx.items || []).map((i: any) => ({ name: i.head, amount: i.amount })),
       createdAt: populatedTx.created_at,
       updatedAt: populatedTx.updated_at
     };

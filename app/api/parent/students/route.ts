@@ -30,7 +30,7 @@ export async function GET(req: Request) {
     .select("*, class:classes(id, name, section), student_parents(*)")
     .in("id", allStudentIds);
 
-  const mappedStudents = (students || []).map((s) => mapStudentForClient(s, s.student_parents));
+  const mappedStudents = (students || []).map((s: any) => mapStudentForClient(s, s.student_parents));
 
   return NextResponse.json({ success: true, students: mappedStudents });
 }

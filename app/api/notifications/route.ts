@@ -47,7 +47,7 @@ export async function GET(req: Request) {
         let recipient = null;
         if (n.recipient_id) {
             const u = await userRepo.findById(n.recipient_id);
-            if (u) recipient = { _id: u.id, name: u.first_name + ' ' + u.last_name, email: u.email };
+            if (u) recipient = { _id: u.id, name: u.name, email: u.email };
         }
         
         return {
@@ -118,7 +118,7 @@ export async function POST(req: Request) {
     const userRepo = new UserRepository();
     let recipient = null;
     const u = await userRepo.findById(recipientId);
-    if (u) recipient = { _id: u.id, name: u.first_name + ' ' + u.last_name, email: u.email };
+    if (u) recipient = { _id: u.id, name: u.name, email: u.email };
 
     const notification = {
         _id: created.id,
@@ -188,7 +188,7 @@ export async function PUT(req: Request) {
     let recipient = null;
     if (updated.recipient_id) {
         const u = await userRepo.findById(updated.recipient_id);
-        if (u) recipient = { _id: u.id, name: u.first_name + ' ' + u.last_name, email: u.email };
+        if (u) recipient = { _id: u.id, name: u.name, email: u.email };
     }
 
     const notification = {

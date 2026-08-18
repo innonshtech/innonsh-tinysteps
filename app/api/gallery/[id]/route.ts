@@ -32,25 +32,25 @@ export async function GET(
     const { data: images } = await supabaseAdmin.from('gallery_images').select('*').eq('album_id', id);
 
     // Collect all user IDs needed for uploadedBy and comments
-    const imageIds = images?.map(img => img.id) || [];
+    const imageIds = images?.map((img: any) => img.id) || [];
     const { data: comments } = imageIds.length > 0 
       ? await supabaseAdmin.from('gallery_image_comments').select('*').in('image_id', imageIds)
       : { data: [] };
 
-    const uploaderIds = images?.filter(i => i.uploaded_by).map(i => i.uploaded_by) || [];
-    const commenterIds = comments?.filter(c => c.user_id).map(c => c.user_id) || [];
+    const uploaderIds = images?.filter((i: any) => i.uploaded_by).map((i: any) => i.uploaded_by) || [];
+    const commenterIds = comments?.filter((c: any) => c.user_id).map((c: any) => c.user_id) || [];
     const allUserIds = [...new Set([...uploaderIds, ...commenterIds])];
     
     let usersMap: any = {};
     if (allUserIds.length > 0) {
       const { data: users } = await supabaseAdmin.from('users').select('id, name, email').in('id', allUserIds);
       if (users) {
-        users.forEach(u => usersMap[u.id] = { _id: u.id, name: u.name, email: u.email });
+        users.forEach((u: any) => usersMap[u.id] = { _id: u.id, name: u.name, email: u.email });
       }
     }
 
-    const mappedImages = (images || []).map(img => {
-      const imgComments = (comments || []).filter(c => c.image_id === img.id).map(c => ({
+    const mappedImages = (images || []).map((img: any) => {
+      const imgComments = (comments || []).filter((c: any) => c.image_id === img.id).map((c: any) => ({
         _id: c.id,
         text: c.text,
         userId: usersMap[c.user_id] || c.user_id,

@@ -97,7 +97,7 @@ export async function PUT(
                 // Fetch and delete existing items
                 const { data: existingItemsData } = await feeTxRepo.findWithDetails({ id: transaction.id });
                 if (existingItemsData.length > 0) {
-                   const existingItems = existingItemsData[0].items;
+                   const existingItems = existingItemsData[0].items || [];
                    for(const exItem of existingItems) {
                        await feeTxItemRepo.delete(exItem.id);
                    }
