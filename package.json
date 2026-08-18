@@ -27,7 +27,8 @@
     "react-dom": "19.2.0",
     "react-toastify": "^11.0.5",
     "streamifier": "^0.1.1",
-    "three": "^0.185.1"
+    "three": "^0.185.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

@@ -59,9 +59,9 @@ export async function PUT(
     const { data: oldClass } = await supabaseAdmin.from('classes').select('*').eq('id', id).single();
     if (!oldClass) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
 
-    const targetName = parsed.name ? parsed.name.trim() : oldClass.name;
-    const targetSection = parsed.section ? parsed.section.trim() : oldClass.section;
-    const targetRoom = parsed.roomNumber !== undefined ? parsed.roomNumber : oldClass.room_number;
+    const targetName = parsed.name ? parsed.name.trim().replace(/\s+/g, " ") : oldClass.name;
+    const targetSection = parsed.section ? parsed.section.trim().toUpperCase() : oldClass.section;
+    const targetRoom = parsed.roomNumber !== undefined ? (parsed.roomNumber ? parsed.roomNumber.trim() : "") : oldClass.room_number;
 
     // 1. Check Class + Section uniqueness (excluding current class ID)
     if (parsed.name || parsed.section) {
@@ -103,9 +103,9 @@ export async function PUT(
     }
 
     const updateData: any = {};
-    if (parsed.name) updateData.name = parsed.name;
-    if (parsed.section) updateData.section = parsed.section;
-    if (parsed.roomNumber !== undefined) updateData.room_number = parsed.roomNumber;
+    if (parsed.name) updateData.name = targetName;
+    if (parsed.section) updateData.section = targetSection;
+    if (parsed.roomNumber !== undefined) updateData.room_number = targetRoom || null;
 
     const { data: updated, error } = await supabaseAdmin.from('classes').update(updateData).eq('id', id).select('*').single();
 

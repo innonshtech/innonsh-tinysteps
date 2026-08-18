@@ -59,13 +59,24 @@ export async function POST(req: Request) {
         
         // Auto-update teacher profile with the new subject if not present
         const currentSubjects = (teacher.subjects || []) as string[];
-        const currentClasses = (teacher.classes || []) as string[];
-        const updates: any = {};
-        if (!currentSubjects.includes(entry.subject)) updates.subjects = [...currentSubjects, entry.subject];
-        if (!currentClasses.includes(entry.classId)) updates.classes = [...currentClasses, entry.classId];
-        
-        if (Object.keys(updates).length > 0) {
-            await teacherRepo.update(teacher.id as string, updates);
+        if (!currentSubjects.includes(entry.subject)) {
+            await teacherRepo.update(teacher.id as string, {
+                subjects: [...currentSubjects, entry.subject],
+            });
+        }
+
+        // Sync class assignment to teacher_class_assignments table
+        const { data: existingAssignment } = await repo.getClient().from('teacher_class_assignments')
+            .select('*')
+            .eq('teacher_id', entry.teacherId)
+            .eq('class_id', entry.classId)
+            .maybeSingle();
+
+        if (!existingAssignment) {
+            await repo.getClient().from('teacher_class_assignments').insert({
+                teacher_id: entry.teacherId,
+                class_id: entry.classId
+            });
         }
         
         savedEntries.push({

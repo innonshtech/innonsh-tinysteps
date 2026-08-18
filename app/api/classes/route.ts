@@ -84,19 +84,23 @@ export async function POST(req: Request) {
     const body = await req.json();
     const parsed = ClassCreateZ.parse(body);
 
+    const cleanName = parsed.name.trim().replace(/\s+/g, " ");
+    const cleanSection = parsed.section.trim().toUpperCase();
+    const cleanRoomNumber = parsed.roomNumber ? parsed.roomNumber.trim() : "";
+
     // 1. Parallel Pre-Validation Checks (Class + Section Uniqueness AND Room Number Uniqueness)
     const comboCheckPromise = supabaseAdmin
       .from('classes')
       .select('id, name, section')
-      .ilike('name', parsed.name.trim())
-      .ilike('section', parsed.section.trim())
+      .ilike('name', cleanName)
+      .ilike('section', cleanSection)
       .maybeSingle();
 
-    const roomCheckPromise = (parsed.roomNumber && parsed.roomNumber.trim() !== '')
+    const roomCheckPromise = (cleanRoomNumber !== '')
       ? supabaseAdmin
           .from('classes')
           .select('id, name, section, room_number')
-          .ilike('room_number', parsed.roomNumber.trim())
+          .ilike('room_number', cleanRoomNumber)
           .maybeSingle()
       : Promise.resolve({ data: null, error: null });
 
@@ -107,7 +111,7 @@ export async function POST(req: Request) {
 
     if (existingClassCombo) {
       return NextResponse.json(
-        { success: false, error: `${parsed.name.trim()} - Section ${parsed.section.trim()} already exists.` },
+        { success: false, error: `${cleanName} - Section ${cleanSection} already exists.` },
         { status: 409 }
       );
     }
@@ -116,7 +120,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: `Room ${(parsed.roomNumber || "").trim()} is already assigned to ${existingRoomOwner.name} - Section ${existingRoomOwner.section}.`,
+          error: `Room ${cleanRoomNumber} is already assigned to ${existingRoomOwner.name} - Section ${existingRoomOwner.section}.`,
         },
         { status: 409 }
       );
@@ -125,9 +129,9 @@ export async function POST(req: Request) {
     // 2. Class INSERT
     const classRepo = new ClassRepository();
     const createdClass = await classRepo.create({
-      name: parsed.name,
-      section: parsed.section,
-      room_number: parsed.roomNumber,
+      name: cleanName,
+      section: cleanSection,
+      room_number: cleanRoomNumber || undefined,
     });
 
     // 3. Parallel Post-Insert Tasks (Teacher Assignments + Student Eligibility & Update)
